@@ -2,7 +2,7 @@ package scene
 
 import (
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/illoprin/obj-scene-editor-go/src/render"
+	"github.com/illoprin/retro-fps-kit-go/src/render"
 )
 
 type Prefab struct {

@@ -2,11 +2,11 @@ package renderers
 
 import (
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/illoprin/obj-scene-editor-go/src/assetmgr"
-	"github.com/illoprin/obj-scene-editor-go/src/math"
-	"github.com/illoprin/obj-scene-editor-go/src/player"
-	"github.com/illoprin/obj-scene-editor-go/src/render"
-	"github.com/illoprin/obj-scene-editor-go/src/scene"
+	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
+	"github.com/illoprin/retro-fps-kit-go/src/math"
+	"github.com/illoprin/retro-fps-kit-go/src/player"
+	"github.com/illoprin/retro-fps-kit-go/src/render"
+	"github.com/illoprin/retro-fps-kit-go/src/scene"
 )
 
 type PrefabRenderer struct {

@@ -2,8 +2,8 @@ package render
 
 import (
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/illoprin/obj-scene-editor-go/src/global"
-	"github.com/illoprin/obj-scene-editor-go/src/model"
+	"github.com/illoprin/retro-fps-kit-go/src/engine/global"
+	"github.com/illoprin/retro-fps-kit-go/src/model"
 )
 
 type Mesh struct {
@@ -68,4 +68,9 @@ func (m *Mesh) Draw() {
 	global.DrawCalls++
 	global.DrawVertices += m.count
 	gl.BindVertexArray(0)
+}
+
+func (m *Mesh) Delete() {
+	gl.DeleteBuffers(2, &m.vbo)
+	gl.DeleteVertexArrays(1, &m.vao)
 }

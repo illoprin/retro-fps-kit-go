@@ -1,8 +1,9 @@
 package player
 
 import (
-	"github.com/go-gl/mathgl/mgl32"
 	"math"
+
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 // Camera represents a first-person style camera
@@ -63,8 +64,8 @@ func (c *Camera) GetProjectionMatrix(width, height int) mgl32.Mat4 {
 }
 
 // Getters
-func (c *Camera) GetRotation() mgl32.Vec2 {
-	return mgl32.Vec2{c.pitch, c.yaw}
+func (c *Camera) GetRotation() (float32, float32) {
+	return c.pitch, c.yaw
 }
 
 func (c *Camera) GetFront() mgl32.Vec3 {

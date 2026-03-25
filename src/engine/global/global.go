@@ -1,0 +1,10 @@
+package global
+
+var (
+	DrawCalls          uint32 = 0
+	DrawVertices       uint32 = 0
+	LastDrawCalls      uint32 = 0
+	LastVertices       uint32 = 0
+	LastImguiVertices  int32  = 0
+	LastImguiDrawCalls int32  = 0
+)

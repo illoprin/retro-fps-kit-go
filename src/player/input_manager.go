@@ -26,11 +26,14 @@ type InputManager struct {
 	mouse    MouseState
 	gameMode bool
 
-	// Callbacks
-	keyCallback         func(key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey)
-	mouseButtonCallback func(button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey)
-	cursorPosCallback   func(xpos, ypos float64)
-	scrollCallback      func(xoff, yoff float64)
+	// User callbacks
+	userKeyCallback func(key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey)
+
+	// Prev Callbacks
+	prevKeyCallback         glfw.KeyCallback
+	prevMouseButtonCallback glfw.MouseButtonCallback
+	prevCursorPosCallback   glfw.CursorPosCallback
+	prevScrollCallback      glfw.ScrollCallback
 }
 
 // NewManager creates a new input manager
@@ -51,16 +54,16 @@ func NewManager(window *glfw.Window) *InputManager {
 // setupCallbacks registers all input callbacks
 func (m *InputManager) setupCallbacks() {
 	// Keyboard callback
-	m.window.SetKeyCallback(m.handleKey)
+	m.prevKeyCallback = m.window.SetKeyCallback(m.handleKey)
 
 	// Mouse button callback
-	m.window.SetMouseButtonCallback(m.handleMouseButton)
+	m.prevMouseButtonCallback = m.window.SetMouseButtonCallback(m.handleMouseButton)
 
 	// Cursor position callback
-	m.window.SetCursorPosCallback(m.handleCursorPos)
+	m.prevCursorPosCallback = m.window.SetCursorPosCallback(m.handleCursorPos)
 
 	// Scroll callback
-	m.window.SetScrollCallback(m.handleScroll)
+	m.prevScrollCallback = m.window.SetScrollCallback(m.handleScroll)
 }
 
 // handleKey processes keyboard events
@@ -83,9 +86,13 @@ func (m *InputManager) handleKey(w *glfw.Window, key glfw.Key, scancode int, act
 
 	m.keys[key] = state
 
-	// Call user callback if set
-	if m.keyCallback != nil {
-		m.keyCallback(key, scancode, action, mods)
+	// Call prev callback if set
+	if m.prevKeyCallback != nil {
+		m.prevKeyCallback(w, key, scancode, action, mods)
+	}
+	// call user callback if set
+	if m.userKeyCallback != nil {
+		m.userKeyCallback(key, scancode, action, mods)
 	}
 }
 
@@ -97,8 +104,8 @@ func (m *InputManager) handleMouseButton(w *glfw.Window, button glfw.MouseButton
 		m.mouse.Buttons[button] = false
 	}
 
-	if m.mouseButtonCallback != nil {
-		m.mouseButtonCallback(button, action, mods)
+	if m.prevMouseButtonCallback != nil {
+		m.prevMouseButtonCallback(w, button, action, mods)
 	}
 }
 
@@ -112,8 +119,8 @@ func (m *InputManager) handleCursorPos(w *glfw.Window, xpos, ypos float64) {
 	m.mouse.X = xpos
 	m.mouse.Y = ypos
 
-	if m.cursorPosCallback != nil {
-		m.cursorPosCallback(xpos, ypos)
+	if m.prevCursorPosCallback != nil {
+		m.prevCursorPosCallback(w, xpos, ypos)
 	}
 }
 
@@ -122,8 +129,8 @@ func (m *InputManager) handleScroll(w *glfw.Window, xoff, yoff float64) {
 	m.mouse.ScrollX = xoff
 	m.mouse.ScrollY = yoff
 
-	if m.scrollCallback != nil {
-		m.scrollCallback(xoff, yoff)
+	if m.prevScrollCallback != nil {
+		m.prevScrollCallback(w, xoff, yoff)
 	}
 }
 
@@ -211,5 +218,5 @@ func (m *InputManager) GetGameMode() bool {
 
 // SetKeyCallback sets a custom callback for keyboard events
 func (m *InputManager) SetKeyCallback(callback func(key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey)) {
-	m.keyCallback = callback
+	m.userKeyCallback = callback
 }

@@ -1,9 +1,9 @@
 package renderers
 
-import "github.com/illoprin/obj-scene-editor-go/src/player"
+import "github.com/illoprin/retro-fps-kit-go/src/player"
 
 type Renderer interface {
-	Prepare(*player.Camera)
+	Prepare(int, int, *player.Camera)
 	Render(interface{})
-	Destroy()
+	Shutdown()
 }

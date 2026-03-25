@@ -11,10 +11,10 @@ type EditorController struct {
 	i *InputManager
 
 	// Movement speed
-	speed float32
+	Speed float32
 
 	// Mouse sensitivity
-	sensitivity float32
+	Sensitivity float32
 }
 
 func NewEditorController(i *InputManager, pos mgl32.Vec3, speed, sensitivity float32) *EditorController {
@@ -37,7 +37,7 @@ func (c *EditorController) Update(dt float32) {
 
 // ProcessKeyboard handles keyboard input for camera movement
 func (c *EditorController) processKeyboard(deltaTime float32) {
-	speed := c.speed * deltaTime
+	speed := c.Speed * deltaTime
 
 	if c.i.IsKeyPressed(glfw.KeyW) {
 		c.camera.AddPosition(c.camera.GetFront().Mul(speed))
@@ -61,7 +61,7 @@ func (c *EditorController) processKeyboard(deltaTime float32) {
 
 // processMouse handles mouse movement for camera rotation
 func (c *EditorController) processMouse(dx, dy float64) {
-	c.camera.Rotate(float32(-dy)*c.sensitivity, float32(dx)*c.sensitivity)
+	c.camera.Rotate(float32(-dy)*c.Sensitivity, float32(dx)*c.Sensitivity)
 }
 
 // processMouseScroll handles mouse wheel for zoom (FOV adjustment)

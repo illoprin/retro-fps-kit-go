@@ -1,4 +1,4 @@
-module github.com/illoprin/obj-scene-editor-go
+module github.com/illoprin/retro-fps-kit-go
 
 go 1.25.0
 
