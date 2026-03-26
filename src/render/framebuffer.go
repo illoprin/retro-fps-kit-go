@@ -23,6 +23,7 @@ type FramebufferConfig struct {
 	Width           int32
 	Height          int32
 	ColorFormat     TextureFormat
+	ColorFiltering  TextureFilter
 	UseDepth        bool
 	UseDepthStencil bool
 	UseMultisample  bool
@@ -60,7 +61,7 @@ func NewFramebuffer(config FramebufferConfig) (*Framebuffer, error) {
 
 	// Создаём цветную текстуру
 	if config.ColorFormat != 0 {
-		colorTex, err := NewFramebufferColorTexture(config.Width, config.Height, config.ColorFormat)
+		colorTex, err := NewFramebufferColorTexture(config.Width, config.Height, config.ColorFormat, config.ColorFiltering)
 		if err != nil {
 			fb.Delete()
 			return nil, fmt.Errorf("failed to create color texture: %v", err)

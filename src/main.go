@@ -1,6 +1,10 @@
 package main
 
-import "github.com/illoprin/retro-fps-kit-go/src/engine"
+import (
+	"log"
+
+	"github.com/illoprin/retro-fps-kit-go/src/engine"
+)
 
 func main() {
 
@@ -9,6 +13,9 @@ func main() {
 		panic(err)
 	}
 	defer e.Destroy()
-	e.Run()
+
+	if err := e.Run(); err != nil {
+		log.Fatalln(err)
+	}
 
 }

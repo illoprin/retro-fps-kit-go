@@ -1,7 +1,6 @@
 package window
 
 import (
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
@@ -34,16 +33,16 @@ func NewWindow(width, height int, title string) (*Window, error) {
 	w := &Window{
 		glfwW, width, height,
 	}
-	w.setCallbacks()
+
+	w.setupCallbacks()
 
 	return w, nil
 }
 
-func (w *Window) setCallbacks() {
-	w.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
+func (w *Window) setupCallbacks() {
+	w.Window.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
 		w.width = width
 		w.height = height
-		gl.Viewport(0, 0, int32(width), int32(height))
 	})
 }
 

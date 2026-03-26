@@ -201,7 +201,7 @@ func NewFontAtlasTexture(width, height int32, data []byte) (*Texture, error) {
 }
 
 // NewFramebufferColorTexture создаёт текстуру для использования с Framebuffer
-func NewFramebufferColorTexture(width, height int32, format TextureFormat) (*Texture, error) {
+func NewFramebufferColorTexture(width, height int32, format TextureFormat, filter TextureFilter) (*Texture, error) {
 	config := DefaultTextureConfig(width, height)
 	config.Format = format
 	config.FilterMin = FilterLinear

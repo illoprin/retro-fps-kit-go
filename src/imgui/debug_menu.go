@@ -9,13 +9,14 @@ import (
 )
 
 type DebugMenu struct {
-	Visible bool
-	c       *player.EditorController
+	Visible          bool
+	DestroyingEffect bool
+	c                *player.EditorController
 }
 
 func NewDebugMenu(c *player.EditorController) *DebugMenu {
 
-	return &DebugMenu{true, c}
+	return &DebugMenu{true, false, c}
 }
 
 func (m *DebugMenu) Show() {
@@ -91,6 +92,9 @@ func (m *DebugMenu) barScene() {
 	if imgui.CollapsingHeaderBoolPtr("Controller", &camVty) {
 		imgui.SliderFloat("Speed", &m.c.Speed, 1, 20)
 		imgui.SliderFloat("Sensitivity", &m.c.Sensitivity, 0.01, 1)
+	}
+	if imgui.CollapsingHeaderBoolPtr("Game objects", &camVty) {
+		imgui.Checkbox("Shotgun destroying effect", &m.DestroyingEffect)
 	}
 	imgui.EndTabItem()
 

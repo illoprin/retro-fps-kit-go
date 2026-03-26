@@ -3,12 +3,13 @@ package player
 import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/illoprin/retro-fps-kit-go/src/window"
 )
 
 type EditorController struct {
 	camera *Camera
 
-	i *InputManager
+	i *window.InputManager
 
 	// Movement speed
 	Speed float32
@@ -17,7 +18,7 @@ type EditorController struct {
 	Sensitivity float32
 }
 
-func NewEditorController(i *InputManager, pos mgl32.Vec3, speed, sensitivity float32) *EditorController {
+func NewEditorController(i *window.InputManager, pos mgl32.Vec3, speed, sensitivity float32) *EditorController {
 	c := NewCamera(pos[0], pos[1], pos[2])
 
 	return &EditorController{
@@ -30,8 +31,9 @@ func NewEditorController(i *InputManager, pos mgl32.Vec3, speed, sensitivity flo
 
 func (c *EditorController) Update(dt float32) {
 	c.processKeyboard(dt)
-	c.processMouse(c.i.mouse.DeltaX, c.i.mouse.DeltaY)
-	c.processMouseScroll(c.i.mouse.ScrollY)
+	c.processMouse(c.i.GetMouseDelta())
+	yOffset, _ := c.i.GetMouseScroll()
+	c.processMouseScroll(yOffset)
 	c.camera.Update()
 }
 
