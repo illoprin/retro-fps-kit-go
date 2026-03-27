@@ -65,15 +65,6 @@ func (m *DebugMenu) showDebugWindow() {
 	imgui.End()
 }
 
-func (m *DebugMenu) getCameraStatsString() string {
-	cam := m.c.GetCamera()
-	p, y := cam.GetRotation()
-	return fmt.Sprintf(
-		"X: %.2f\nY: %.2f\nZ: %.2f\nPitch: %.2f\nYaw: %.2f\nFOV: %.2f",
-		cam.Position[0], cam.Position[1], cam.Position[2], p, y, cam.Fov,
-	)
-}
-
 func (m *DebugMenu) barStats() {
 
 	io := imgui.CurrentIO()
@@ -90,10 +81,7 @@ func (m *DebugMenu) barStats() {
 	if imgui.CollapsingHeaderBoolPtr("Vertices", &vVty) {
 		imgui.Text(fmt.Sprintf("Scene: %d\nImGUI: %d", global.LastVertices, global.LastImguiVertices))
 	}
-	cVty := true
-	if imgui.CollapsingHeaderBoolPtr("Camera", &cVty) {
-		imgui.Text(m.getCameraStatsString())
-	}
+
 	imgui.EndTabItem()
 
 }
@@ -107,12 +95,28 @@ func (m *DebugMenu) barScene() {
 	if imgui.CollapsingHeaderBoolPtr("Game objects", &camVty) {
 		imgui.Checkbox("Shotgun destroying effect", &m.DestroyingEffect)
 	}
+	cVty := true
+	if imgui.CollapsingHeaderBoolPtr("Camera", &cVty) {
+		imgui.PushItemFlag(imgui.ItemFlags(imgui.ItemFlagsReadOnly), true)
+		cam := m.c.GetCamera()
+		front := cam.GetFront()
+		p, y := cam.GetRotation()
+		rot := [2]float32{p, y}
+		imgui.DragFloat3("Position", (*[3]float32)(&cam.Position))
+		imgui.DragFloat3("Front", (*[3]float32)(&front))
+		imgui.DragFloat2("Rotation", &rot)
+		imgui.Text(fmt.Sprintf("FOV: %.2f", cam.Fov))
+		imgui.PopItemFlag()
+	}
 	imgui.EndTabItem()
 
 }
 
 func (m *DebugMenu) barPP() {
 	cgVty := true
+	imgui.Checkbox("Wireframe", &m.mixerConfig.Wireframe)
+	imgui.SliderFloat("Resolution Ratio", &m.mixerConfig.ResolutionRatio, 0.01, 1)
+
 	if imgui.CollapsingHeaderBoolPtr("Color Grading", &cgVty) {
 		imgui.SliderFloat("Gamma", &m.cg.Gamma, 1, 5)
 		imgui.SliderFloat("Exposure", &m.cg.Exposure, 0.5, 2)

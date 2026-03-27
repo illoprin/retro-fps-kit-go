@@ -71,6 +71,8 @@ func NewEngine() (*Engine, error) {
 		return nil, fmt.Errorf("failed to init opengl - %v", err)
 	}
 
+	e.printUserData()
+
 	if err := e.initImgui(); err != nil {
 		return nil, fmt.Errorf("failed to init imgui context - %v", err)
 	}
@@ -100,6 +102,12 @@ func (e *Engine) createWindow() error {
 	e.input = window.NewManager(e.window.Window)
 
 	return nil
+}
+
+func (e *Engine) printUserData() {
+	fmt.Println(gl.GoStr(gl.GetString(gl.RENDERER)))
+	fmt.Println(gl.GoStr(gl.GetString(gl.VERSION)))
+	fmt.Println(gl.GoStr(gl.GetString(gl.SHADING_LANGUAGE_VERSION)))
 }
 
 func (e *Engine) initImgui() error {
@@ -153,25 +161,27 @@ func (e *Engine) initMenus() {
 	e.debugMenu = imguimenus.NewDebugMenu(e.controller, e.mixer.GetConfig(), e.mixer.GetColorGrading())
 }
 
+func (e *Engine) keyCallback(key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	if action == glfw.Press {
+		if key == glfw.KeyEscape {
+			e.window.SetShouldClose(true)
+		}
+		if key == glfw.KeyF8 {
+			e.input.ToggleGameMode()
+		}
+		if key == glfw.KeyF1 {
+			e.debugMenu.Visible = !e.debugMenu.Visible
+		}
+	}
+}
+
 func (e *Engine) setupScene() error {
 
 	e.controller = player.NewEditorController(
 		e.input, mgl32.Vec3{0, 0, 3}, 10.5, 0.085,
 	)
 
-	e.input.SetKeyCallback(func(key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-		if action == glfw.Press {
-			if key == glfw.KeyEscape {
-				e.window.SetShouldClose(true)
-			}
-			if key == glfw.KeyF8 {
-				e.input.ToggleGameMode()
-			}
-			if key == glfw.KeyF1 {
-				e.debugMenu.Visible = !e.debugMenu.Visible
-			}
-		}
-	})
+	e.input.SetKeyCallback(e.keyCallback)
 
 	// init color grading
 	cg := &postprocessing.ColorGrading{
@@ -190,7 +200,7 @@ func (e *Engine) setupScene() error {
 		e.prefabRenderer = prefabRenderer
 	}
 
-	// model
+	// shotgun model
 	parser := model.NewOBJParser()
 	shotgunModel, err := parser.ParseFile(assetmgr.GetModelPath("shotgun.obj"))
 	if err != nil {
@@ -198,18 +208,18 @@ func (e *Engine) setupScene() error {
 	}
 	updatedModelVertices := make([]model.ModelVertex, len(shotgunModel.Vertices))
 
-	// mesh
+	// shotgun mesh
 	meshShotgun := render.NewMesh()
 	meshShotgun.SetupFromModel(shotgunModel, gl.DYNAMIC_DRAW)
 	e.resources = append(e.resources, meshShotgun)
-	// texture
-	texColors, err := render.NewTextureFromImage(assetmgr.GetTexturePath("colors.png"), true)
+	// shotgun texture
+	texColors, err := render.NewTextureFromImage(assetmgr.GetTexturePath("colors.png"), true, true)
 	if err != nil {
 		log.Printf("failed to load texture %v", err)
 	} else {
 		e.resources = append(e.resources, texColors)
 	}
-	// create prefab
+	// shotgun prefab
 	e.prefabs = append(e.prefabs, *scene.NewPrefab(meshShotgun, texColors))
 	e.prefabState = &PrefabState{
 		LastEffectState: false,
@@ -217,8 +227,39 @@ func (e *Engine) setupScene() error {
 		Model:           shotgunModel,
 	}
 
+	// triangulation algo test
+	// polygon model
+	polygon := []model.ModelVertex{
+		{X: 1, Y: 0, Z: 0},
+		{X: 2, Y: 0.5, Z: 0},
+		{X: 1.5, Y: 1, Z: 0},
+		{X: 1.5, Y: 1.5, Z: 0},
+		{X: 1, Y: 2, Z: 0},
+		{X: 0, Y: 2, Z: 0},
+		{X: 0, Y: 0, Z: 0},
+	}
+	vertices, indices := model.TriangulatePolygon(polygon)
+	polygonModel := model.Model{
+		Vertices: vertices,
+		Indices:  indices,
+	}
+	// polygon mesh
+	meshPolygon := render.NewMesh()
+	meshPolygon.SetupFromModel(&polygonModel, gl.STATIC_DRAW)
+	e.resources = append(e.resources, meshPolygon)
+	// polygon texture
+	texGrayTiles, err := render.NewTextureFromImage(assetmgr.GetTexturePath("gray_tiles.png"), true, true)
+	if err != nil {
+		log.Printf("failed to load texture %v", err)
+	} else {
+		e.resources = append(e.resources, texGrayTiles)
+	}
+	// polygon prefab
+	prefabPolygon := scene.NewPrefab(meshPolygon, texGrayTiles)
+	e.prefabs = append(e.prefabs, *prefabPolygon)
+
 	sceneMixerConfig := &postprocessing.SceneMixerConfig{
-		DefaultResolutionRatio: 0.5,
+		ResolutionRatio: 0.5,
 		Vignette: struct {
 			Radius float32
 			Smooth float32
@@ -237,15 +278,12 @@ func (e *Engine) setupScene() error {
 		},
 		SceneClearColor: mgl32.Vec3{0.176, 0.216, 0.302},
 	}
-
 	mixer, err := postprocessing.NewSceneMixer(e.window, sceneMixerConfig, cg)
 	if err != nil {
 		return err
 	}
 	mixer.SetSceneRenderFunc(e.renderScene)
-
 	e.resources = append(e.resources, mixer)
-
 	e.mixer = mixer
 
 	e.initMenus()
@@ -345,14 +383,12 @@ func (e *Engine) update() {
 }
 
 func (e *Engine) renderScene() {
-
 	// render scene
 	w, h := e.window.GetSize()
 	e.prefabRenderer.Prepare(w, h, e.controller.GetCamera())
 	for _, p := range e.prefabs {
 		e.prefabRenderer.Render(&p)
 	}
-
 }
 
 func (e *Engine) renderImgui() {

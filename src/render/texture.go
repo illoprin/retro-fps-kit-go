@@ -129,7 +129,7 @@ func NewTexture(config TextureConfig) (*Texture, error) {
 }
 
 // NewTextureFromImage создаёт текстуру из загруженного изображения
-func NewTextureFromImage(path string, generateMipmaps bool) (*Texture, error) {
+func NewTextureFromImage(path string, generateMipmaps bool, nearest bool) (*Texture, error) {
 	imgFile, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open image: %v", err)
@@ -158,8 +158,13 @@ func NewTextureFromImage(path string, generateMipmaps bool) (*Texture, error) {
 
 	config := DefaultTextureConfig(int32(width), int32(height))
 	config.GenerateMipmaps = generateMipmaps
-	config.FilterMin = FilterLinearMipmapLinear
-	config.FilterMag = FilterLinear
+	if nearest {
+		config.FilterMin = FilterNearestMipmapLinear
+		config.FilterMag = FilterNearest
+	} else {
+		config.FilterMin = FilterLinearMipmapLinear
+		config.FilterMag = FilterLinear
+	}
 
 	texture, err := NewTexture(config)
 	if err != nil {
@@ -204,8 +209,8 @@ func NewFontAtlasTexture(width, height int32, data []byte) (*Texture, error) {
 func NewFramebufferColorTexture(width, height int32, format TextureFormat, filter TextureFilter) (*Texture, error) {
 	config := DefaultTextureConfig(width, height)
 	config.Format = format
-	config.FilterMin = FilterLinear
-	config.FilterMag = FilterLinear
+	config.FilterMin = filter
+	config.FilterMag = filter
 	config.WrapS = WrapClampToEdge
 	config.WrapT = WrapClampToEdge
 	config.GenerateMipmaps = false

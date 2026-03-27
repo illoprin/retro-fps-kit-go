@@ -19,8 +19,9 @@ type ColorGrading struct {
 }
 
 type SceneMixerConfig struct {
-	DefaultResolutionRatio float32
-	Vignette               struct {
+	lastResolutionRatio float32
+	ResolutionRatio     float32
+	Vignette            struct {
 		Radius, Smooth float32
 		Use            bool
 	}
@@ -29,6 +30,7 @@ type SceneMixerConfig struct {
 		Use                  bool
 	}
 	SceneClearColor mgl32.Vec3
+	Wireframe       bool
 }
 
 type SceneMixer struct {
@@ -61,6 +63,8 @@ func NewSceneMixer(win *window.Window, cfg *SceneMixerConfig, cg *ColorGrading) 
 	}
 	m.setupCallbacks()
 
+	m.cfg.lastResolutionRatio = m.cfg.ResolutionRatio
+
 	m.resources = make([]render.Resource, 3)
 	m.resources[0] = m.SceneFBO
 	m.resources[1] = m.screenQuad
@@ -75,8 +79,8 @@ func (m *SceneMixer) initFramebuffers() error {
 
 	// init scene framebuffer
 	sceneFBO, err := render.NewFramebuffer(render.FramebufferConfig{
-		Width:           int32(float32(winWidth) * m.cfg.DefaultResolutionRatio),
-		Height:          int32(float32(winHeight) * m.cfg.DefaultResolutionRatio),
+		Width:           int32(float32(winWidth) * m.cfg.ResolutionRatio),
+		Height:          int32(float32(winHeight) * m.cfg.ResolutionRatio),
 		ColorFormat:     render.FormatRGB8,
 		ColorFiltering:  render.FilterNearest,
 		UseDepth:        true,
@@ -95,14 +99,18 @@ func (m *SceneMixer) setupCallbacks() {
 
 	prevCallback := m.w.SetFramebufferSizeCallback(nil)
 	m.w.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
-		m.SceneFBO.Resize(
-			int32(float32(width)*m.cfg.DefaultResolutionRatio),
-			int32(float32(height)*m.cfg.DefaultResolutionRatio),
-		)
+		m.resizeSceneFBO(width, height)
 		if prevCallback != nil {
 			prevCallback(w, width, height)
 		}
 	})
+}
+
+func (m *SceneMixer) resizeSceneFBO(w, h int) {
+	m.SceneFBO.Resize(
+		int32(float32(w)*m.cfg.ResolutionRatio),
+		int32(float32(h)*m.cfg.ResolutionRatio),
+	)
 }
 
 func (m *SceneMixer) setupScreen() error {
@@ -130,8 +138,9 @@ func (m *SceneMixer) Render() {
 	m.newSceneFrame()
 	m.sceneRenderFunc()
 	m.SceneFBO.Unbind()
-
 	m.renderSceneQuad()
+
+	m.cfg.lastResolutionRatio = m.cfg.ResolutionRatio
 }
 
 func (m *SceneMixer) SetSceneRenderFunc(f func()) {
@@ -142,9 +151,12 @@ func (m *SceneMixer) newSceneFrame() {
 
 	w, h := m.w.GetSize()
 	gl.Viewport(0, 0,
-		int32(float32(w)*m.cfg.DefaultResolutionRatio),
-		int32(float32(h)*m.cfg.DefaultResolutionRatio),
+		int32(float32(w)*m.cfg.ResolutionRatio),
+		int32(float32(h)*m.cfg.ResolutionRatio),
 	)
+	if m.cfg.ResolutionRatio != m.cfg.lastResolutionRatio {
+		m.resizeSceneFBO(w, h)
+	}
 
 	gl.ClearColor(
 		m.cfg.SceneClearColor[0],
@@ -155,6 +167,12 @@ func (m *SceneMixer) newSceneFrame() {
 
 	gl.Enable(gl.DEPTH_TEST)
 	gl.Enable(gl.CULL_FACE)
+	if m.cfg.Wireframe {
+		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+		gl.Disable(gl.CULL_FACE)
+	} else {
+		gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
+	}
 
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
@@ -164,6 +182,7 @@ func (m *SceneMixer) renderSceneQuad() {
 	w, h := m.w.GetSize()
 
 	gl.Disable(gl.DEPTH_TEST)
+	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
 	gl.ClearColor(0, 0, 0, 1.0)
 	gl.Viewport(0, 0, int32(w), int32(h))
 
