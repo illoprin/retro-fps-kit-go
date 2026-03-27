@@ -6,17 +6,24 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/global"
 	"github.com/illoprin/retro-fps-kit-go/src/player"
+	postprocessing "github.com/illoprin/retro-fps-kit-go/src/post_processing"
 )
 
 type DebugMenu struct {
 	Visible          bool
 	DestroyingEffect bool
+	mixerConfig      *postprocessing.SceneMixerConfig
+	cg               *postprocessing.ColorGrading
 	c                *player.EditorController
 }
 
-func NewDebugMenu(c *player.EditorController) *DebugMenu {
+func NewDebugMenu(
+	c *player.EditorController,
+	cfg *postprocessing.SceneMixerConfig,
+	cg *postprocessing.ColorGrading,
+) *DebugMenu {
 
-	return &DebugMenu{true, false, c}
+	return &DebugMenu{true, false, cfg, cg, c}
 }
 
 func (m *DebugMenu) Show() {
@@ -42,6 +49,10 @@ func (m *DebugMenu) showDebugWindow() {
 
 		if imgui.BeginTabItem("Textures") {
 			m.barTextures()
+		}
+
+		if imgui.BeginTabItem("Post Processing") {
+			m.barPP()
 		}
 
 		if imgui.BeginTabItem("Framebuffers") {
@@ -98,6 +109,24 @@ func (m *DebugMenu) barScene() {
 	}
 	imgui.EndTabItem()
 
+}
+
+func (m *DebugMenu) barPP() {
+	cgVty := true
+	if imgui.CollapsingHeaderBoolPtr("Color Grading", &cgVty) {
+		imgui.SliderFloat("Gamma", &m.cg.Gamma, 1, 5)
+		imgui.SliderFloat("Exposure", &m.cg.Exposure, 0.5, 2)
+		imgui.SliderFloat("Contrast", &m.cg.Contrast, 0.5, 1.5)
+		imgui.SliderFloat("Saturation", &m.cg.Saturation, 0.5, 2)
+		imgui.SliderFloat("Brightness", &m.cg.Brightness, 0.5, 2)
+	}
+	vigVty := true
+	if imgui.CollapsingHeaderBoolPtr("Vignette", &vigVty) {
+		imgui.Checkbox("Use Vignette", &m.mixerConfig.Vignette.Use)
+		imgui.SliderFloat("Radius", &m.mixerConfig.Vignette.Radius, 0.2, 2)
+		imgui.SliderFloat("Smooth", &m.mixerConfig.Vignette.Smooth, 0.01, 5)
+	}
+	imgui.EndTabItem()
 }
 
 func (m *DebugMenu) barTextures() {

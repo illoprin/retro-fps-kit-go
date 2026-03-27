@@ -5,15 +5,17 @@ import (
 	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
 	"github.com/illoprin/retro-fps-kit-go/src/math"
 	"github.com/illoprin/retro-fps-kit-go/src/player"
+	postprocessing "github.com/illoprin/retro-fps-kit-go/src/post_processing"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
 	"github.com/illoprin/retro-fps-kit-go/src/scene"
 )
 
 type PrefabRenderer struct {
-	p *render.Program
+	p  *render.Program
+	cg *postprocessing.ColorGrading
 }
 
-func NewPrefabRenderer() (*PrefabRenderer, error) {
+func NewPrefabRenderer(cg *postprocessing.ColorGrading) (*PrefabRenderer, error) {
 	// init shader program
 	program, err := render.NewProgram(
 		assetmgr.GetShaderPath("basic.vert"),
@@ -22,7 +24,7 @@ func NewPrefabRenderer() (*PrefabRenderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &PrefabRenderer{program}, nil
+	return &PrefabRenderer{program, cg}, nil
 }
 
 func (r *PrefabRenderer) Prepare(w, h int, c *player.Camera) {
@@ -59,6 +61,10 @@ func (r *PrefabRenderer) Render(p *scene.Prefab) {
 		r.p.Set1i("u_texture", 0)
 	}
 	r.p.Set3f("u_color", p.Color)
+
+	// color grading
+	r.p.Set1f("u_gamma", r.cg.Gamma)
+	r.p.Set1f("u_exposure", r.cg.Exposure)
 
 	// draw
 	p.Mesh.Draw()

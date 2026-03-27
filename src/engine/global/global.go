@@ -9,3 +9,10 @@ var (
 	SizeOfFloat        int32  = 4
 	LastImguiDrawCalls int32  = 0
 )
+
+func BoolToInt32(b bool) int32 {
+	if b {
+		return 1
+	}
+	return 0
+}

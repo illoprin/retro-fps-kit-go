@@ -20,6 +20,7 @@ import (
 	imguimenus "github.com/illoprin/retro-fps-kit-go/src/imgui"
 	"github.com/illoprin/retro-fps-kit-go/src/model"
 	"github.com/illoprin/retro-fps-kit-go/src/player"
+	postprocessing "github.com/illoprin/retro-fps-kit-go/src/post_processing"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
 	"github.com/illoprin/retro-fps-kit-go/src/renderers"
 	"github.com/illoprin/retro-fps-kit-go/src/scene"
@@ -27,10 +28,9 @@ import (
 )
 
 const (
-	defaultWindowWidth     = 1470
-	defaultWindowHeight    = 710
-	defaultResolutionRatio = 0.5
-	defaultTitle           = "Retro FPS Kit - Demo"
+	defaultWindowWidth  = 1470
+	defaultWindowHeight = 710
+	defaultTitle        = "Retro FPS Kit - Demo"
 )
 
 type PrefabState struct {
@@ -49,9 +49,7 @@ type Engine struct {
 	resources      []render.Resource
 	prefabs        []scene.Prefab
 	prefabState    *PrefabState
-	sceneFBO       *render.Framebuffer
-	screenProgram  *render.Program
-	screenQuad     *render.Mesh
+	mixer          *postprocessing.SceneMixer
 }
 
 func NewEngine() (*Engine, error) {
@@ -77,12 +75,13 @@ func NewEngine() (*Engine, error) {
 		return nil, fmt.Errorf("failed to init imgui context - %v", err)
 	}
 
-	// setup input manager
 	if err := e.initImguiRenderer(); err != nil {
 		return nil, fmt.Errorf("failed to init imgui renderer - %v", err)
 	}
 
-	e.initMenus()
+	if err := e.setupScene(); err != nil {
+		return nil, fmt.Errorf("failed to init scene - %v", err)
+	}
 
 	return e, nil
 }
@@ -99,73 +98,6 @@ func (e *Engine) createWindow() error {
 	e.window.Center()
 
 	e.input = window.NewManager(e.window.Window)
-	e.input.SetKeyCallback(func(key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-		if action == glfw.Press {
-			if key == glfw.KeyEscape {
-				e.window.SetShouldClose(true)
-			}
-			if key == glfw.KeyF8 {
-				e.input.ToggleGameMode()
-			}
-			if key == glfw.KeyF1 {
-				e.debugMenu.Visible = !e.debugMenu.Visible
-			}
-		}
-	})
-
-	return nil
-}
-
-func (e *Engine) setupGL() error {
-	width, height := e.window.GetSize()
-	gl.Viewport(0, 0, int32(width), int32(height))
-	gl.Enable(gl.DEPTH_TEST)
-	gl.Enable(gl.CULL_FACE)
-	gl.CullFace(gl.BACK)
-	gl.FrontFace(gl.CCW)
-
-	// init scene framebuffer
-	sceneFBO, err := render.NewFramebuffer(render.FramebufferConfig{
-		Width:           int32(float32(width) * defaultResolutionRatio),
-		Height:          int32(float32(height) * defaultResolutionRatio),
-		ColorFormat:     render.FormatRGB8,
-		ColorFiltering:  render.FilterNearest,
-		UseDepth:        true,
-		UseDepthStencil: false,
-		UseMultisample:  false,
-	})
-	if err != nil {
-		return err
-	}
-	e.sceneFBO = sceneFBO
-
-	prevCallback := e.window.Window.SetFramebufferSizeCallback(nil)
-	e.window.Window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
-		e.sceneFBO.Resize(
-			int32(float32(width)*defaultResolutionRatio),
-			int32(float32(height)*defaultResolutionRatio),
-		)
-		// gl.Viewport(0, 0,
-		// 	int32(float32(width)*defaultResolutionRatio),
-		// 	int32(float32(height)*defaultResolutionRatio),
-		// )
-		if prevCallback != nil {
-			prevCallback(w, width, height)
-		}
-	})
-
-	// init screen quad mesh
-	e.screenQuad = render.NewMesh()
-	e.screenQuad.SetupBasicQuad()
-
-	// init screen quad shader
-	screenProg, err := render.NewProgram(assetmgr.GetShaderPath("screen_quad.vert"), assetmgr.GetShaderPath("screen_quad.frag"))
-	if err != nil {
-		return err
-	}
-	e.screenProgram = screenProg
-
-	e.resources = append(e.resources, sceneFBO, screenProg, e.screenQuad)
 
 	return nil
 }
@@ -218,17 +150,40 @@ func (e *Engine) initImguiRenderer() error {
 }
 
 func (e *Engine) initMenus() {
-	e.debugMenu = imguimenus.NewDebugMenu(e.controller)
+	e.debugMenu = imguimenus.NewDebugMenu(e.controller, e.mixer.GetConfig(), e.mixer.GetColorGrading())
 }
 
-func (e *Engine) Run() error {
+func (e *Engine) setupScene() error {
 
 	e.controller = player.NewEditorController(
 		e.input, mgl32.Vec3{0, 0, 3}, 10.5, 0.085,
 	)
 
+	e.input.SetKeyCallback(func(key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		if action == glfw.Press {
+			if key == glfw.KeyEscape {
+				e.window.SetShouldClose(true)
+			}
+			if key == glfw.KeyF8 {
+				e.input.ToggleGameMode()
+			}
+			if key == glfw.KeyF1 {
+				e.debugMenu.Visible = !e.debugMenu.Visible
+			}
+		}
+	})
+
+	// init color grading
+	cg := &postprocessing.ColorGrading{
+		Gamma:      1.8,
+		Exposure:   0.98,
+		Contrast:   1.36,
+		Saturation: 0.96,
+		Brightness: 1.395,
+	}
+
 	// init prefab renderer
-	prefabRenderer, err := renderers.NewPrefabRenderer()
+	prefabRenderer, err := renderers.NewPrefabRenderer(cg)
 	if err != nil {
 		return fmt.Errorf("failed to create prefab renderer")
 	} else {
@@ -262,10 +217,43 @@ func (e *Engine) Run() error {
 		Model:           shotgunModel,
 	}
 
-	if err := e.setupGL(); err != nil {
+	sceneMixerConfig := &postprocessing.SceneMixerConfig{
+		DefaultResolutionRatio: 0.5,
+		Vignette: struct {
+			Radius float32
+			Smooth float32
+			Use    bool
+		}{
+			1.4,
+			1.3,
+			true,
+		},
+		Flickering: struct {
+			Frequency float32
+			Intensity float32
+			Use       bool
+		}{
+			70, 0.01, true,
+		},
+		SceneClearColor: mgl32.Vec3{0.176, 0.216, 0.302},
+	}
+
+	mixer, err := postprocessing.NewSceneMixer(e.window, sceneMixerConfig, cg)
+	if err != nil {
 		return err
 	}
+	mixer.SetSceneRenderFunc(e.renderScene)
+
+	e.resources = append(e.resources, mixer)
+
+	e.mixer = mixer
+
 	e.initMenus()
+
+	return nil
+}
+
+func (e *Engine) Run() {
 
 	for !e.window.ShouldClose() {
 		e.processInput()
@@ -273,14 +261,13 @@ func (e *Engine) Run() error {
 		// update scene
 		e.update()
 		// scene
-		e.render()
+		e.mixer.Render()
 		// render imgui on top of scene
 		e.renderImgui()
 
 		stats.UpdateGlobal()
 	}
 
-	return nil
 }
 
 func (e *Engine) processInput() {
@@ -357,40 +344,14 @@ func (e *Engine) update() {
 
 }
 
-func (e *Engine) render() {
-
-	e.sceneFBO.Bind()
-
-	w, h := e.window.GetSize()
-	gl.Viewport(0, 0, int32(float32(w)*defaultResolutionRatio), int32(float32(h)*defaultResolutionRatio))
-
-	gl.ClearColor(0.176, 0.216, 0.302, 1.0)
-
-	gl.Enable(gl.DEPTH_TEST)
-	gl.Enable(gl.CULL_FACE)
-
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+func (e *Engine) renderScene() {
 
 	// render scene
+	w, h := e.window.GetSize()
 	e.prefabRenderer.Prepare(w, h, e.controller.GetCamera())
 	for _, p := range e.prefabs {
 		e.prefabRenderer.Render(&p)
 	}
-
-	e.sceneFBO.Unbind()
-
-	gl.Disable(gl.DEPTH_TEST)
-
-	gl.ClearColor(0, 0, 0, 1.0)
-
-	gl.Viewport(0, 0, int32(w), int32(h))
-
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-
-	e.screenProgram.Use()
-	e.sceneFBO.ColorTexture.Bind(0)
-	e.screenProgram.Set1i("u_color", 0)
-	e.screenQuad.Draw()
 
 }
 
@@ -399,14 +360,15 @@ func (e *Engine) renderImgui() {
 	stats.UpdateForImgui(drawData)
 	implgl3.RenderDrawData(drawData)
 	e.window.SwapBuffers()
-
 }
 
 func (e *Engine) Destroy() {
 
 	// clear resources
-	for _, res := range e.resources {
-		res.Delete()
+	for _, r := range e.resources {
+		if r != nil {
+			r.Delete()
+		}
 	}
 
 	e.prefabRenderer.Shutdown()
