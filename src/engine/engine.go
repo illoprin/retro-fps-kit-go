@@ -32,15 +32,24 @@ const (
 )
 
 type Engine struct {
-	window         *window.Window
-	debugMenu      *imguimenus.DebugMenu
-	input          *window.InputManager
-	controller     *player.EditorController
-	imguiFont      *imgui.Font
-	prefabRenderer *renderers.PrefabRenderer
+	window     *window.Window
+	debugMenu  *imguimenus.DebugMenu
+	input      *window.InputManager
+	controller *player.EditorController
+	imguiFont  *imgui.Font
+
+	// geometry render pass
 	resources      []render.Resource
+	deferred       *renderers.DeferredRenderTarget
+	prefabRenderer *renderers.PrefabRenderer
 	prefabs        []scene.Prefab
-	mixer          *postprocessing.SceneMixer
+
+	// post processing render pass
+	ppPipeline []postprocessing.PostProcessingPass
+
+	// screen render pass
+	screen       *renderers.ScreenRenderer
+	screenConfig *postprocessing.ScreenConfig
 }
 
 func NewEngine() (*Engine, error) {
@@ -72,9 +81,15 @@ func NewEngine() (*Engine, error) {
 		return nil, fmt.Errorf("failed to init imgui renderer - %v", err)
 	}
 
-	if err := e.setupScene(); err != nil {
-		return nil, fmt.Errorf("failed to init scene - %v", err)
+	if err := e.setupGame(); err != nil {
+		return nil, fmt.Errorf("failed to init game - %v", err)
 	}
+
+	if err := e.setupRenderingPipeline(); err != nil {
+		return nil, fmt.Errorf("failed to init rendering pipeline - %v", err)
+	}
+
+	e.initCustomImguiUI()
 
 	return e, nil
 }
@@ -93,10 +108,6 @@ func (e *Engine) createWindow() error {
 	e.input = window.NewManager(e.window.Window)
 
 	return nil
-}
-
-func (e *Engine) framebufferSizeCallback(_ *glfw.Window, width, height int) {
-	e.mixer.ResizeCallback(width, height)
 }
 
 func (e *Engine) printUserData() {
@@ -152,31 +163,29 @@ func (e *Engine) initImguiRenderer() error {
 	return nil
 }
 
-func (e *Engine) initMenus() {
+func (e *Engine) initCustomImguiUI() {
 
 	buffersImages := []imguimenus.ImageTexture{
 		{
-			ID:   e.mixer.SceneFBO.ColorTextures[0].ID,
+			ID:   e.deferred.DeferredFBO.ColorTextures[0].ID,
 			Name: "Color",
 		},
 		{
-			ID:   e.mixer.SceneFBO.ColorTextures[1].ID,
+			ID:   e.deferred.DeferredFBO.ColorTextures[1].ID,
 			Name: "Normal",
 		},
 		{
-			ID:   e.mixer.SceneFBO.ColorTextures[2].ID,
-			Name: "Position",
-		},
-		{
-			ID:   e.mixer.SceneFBO.DepthTexture.ID,
+			ID:   e.deferred.DeferredFBO.DepthTexture.ID,
 			Name: "Depth",
 		},
 	}
 
+	// FIX
 	e.debugMenu = imguimenus.NewDebugMenu(
 		e.controller,
-		e.mixer.GetConfig(),
-		e.mixer.GetColorGrading(),
+		e.window,
+		e.screen.GetConfig(),
+		e.screen.GetColorGrading(),
 		buffersImages, nil,
 	)
 }
@@ -195,30 +204,13 @@ func (e *Engine) keyCallback(key glfw.Key, scancode int, action glfw.Action, mod
 	}
 }
 
-func (e *Engine) setupScene() error {
+func (e *Engine) setupGame() error {
 
 	e.controller = player.NewEditorController(
 		e.input, mgl32.Vec3{0, 0, 3}, 10.5, 0.085,
 	)
 
 	e.input.SetKeyCallback(e.keyCallback)
-
-	// init color grading
-	cg := &postprocessing.ColorGrading{
-		Gamma:      1.714,
-		Exposure:   1.194,
-		Contrast:   1.28,
-		Saturation: 0.96,
-		Brightness: 1.180,
-	}
-
-	// init prefab renderer
-	prefabRenderer, err := renderers.NewPrefabRenderer(cg)
-	if err != nil {
-		return fmt.Errorf("failed to create prefab renderer")
-	} else {
-		e.prefabRenderer = prefabRenderer
-	}
 
 	// create obj parser
 	parser := model.NewOBJParser()
@@ -279,13 +271,7 @@ func (e *Engine) setupScene() error {
 		log.Printf("failed to load texture %v", err)
 	}
 
-	// tiles texture
-	texTiles, err := render.NewTextureFromImage(assetmgr.GetTexturePath("gray_tiles.png"), true, true)
-	if err != nil {
-		log.Printf("failed to load texture %v", err)
-	}
-
-	// bricks texture
+	// brick texture
 	texBrick, err := render.NewTextureFromImage(assetmgr.GetTexturePath("dark_brick.png"), true, true)
 	if err != nil {
 		log.Printf("failed to load texture %v", err)
@@ -299,6 +285,12 @@ func (e *Engine) setupScene() error {
 
 	// rock texture
 	texWood, err := render.NewTextureFromImage(assetmgr.GetTexturePath("wood.png"), true, true)
+	if err != nil {
+		log.Printf("failed to load texture %v", err)
+	}
+
+	// tiles texture
+	texTiles, err := render.NewTextureFromImage(assetmgr.GetTexturePath("gray_tiles.png"), true, true)
 	if err != nil {
 		log.Printf("failed to load texture %v", err)
 	}
@@ -328,45 +320,141 @@ func (e *Engine) setupScene() error {
 		*scene.NewPrefab(meshTable, texWood),
 	)
 
-	sceneMixerConfig := &postprocessing.SceneMixerConfig{
-		ResolutionRatio: 0.5,
-		Vignette: struct {
-			Radius float32
-			Smooth float32
-			Use    bool
-		}{
-			0.85,
-			0.535,
-			true,
-		},
+	return nil
+}
+
+func (e *Engine) setupRenderingPipeline() error {
+
+	// init prefab renderer
+	prefabRenderer, err := renderers.NewPrefabRenderer()
+	if err != nil {
+		return fmt.Errorf("failed to create prefab renderer")
+	} else {
+		e.prefabRenderer = prefabRenderer
 	}
-	mixer, err := postprocessing.NewSceneMixer(e.window, sceneMixerConfig, cg)
+
+	// setup screen
+	w, h := e.window.GetSize()
+	e.screenConfig = &postprocessing.ScreenConfig{
+		Width:           int32(w),
+		Height:          int32(h),
+		ResolutionRatio: 0.5,
+	}
+
+	// setup deferred render target
+	deferred, err := renderers.NewDeferredRenderTarget(e.screenConfig)
 	if err != nil {
 		return err
 	}
-	mixer.SetSceneRenderFunc(e.renderScene)
-	e.resources = append(e.resources, mixer)
-	e.mixer = mixer
+	e.deferred = deferred
+
+	// init screen quad mesh
+	meshQuad := render.NewMesh()
+	meshQuad.SetupBasicQuad()
+
+	screen, err := renderers.NewScreen(meshQuad, e.screenConfig)
+	if err != nil {
+		return err
+	}
+	e.screen = screen
+
+	// setup effects
+	// setup post processing effects
+
+	// -- ssao
+	ssaoConfig := &postprocessing.SSAOConfig{}
+	ssaoPass, err := postprocessing.NewSSAOPass(
+		e.screenConfig, meshQuad, ssaoConfig,
+	)
+	if err != nil {
+		return err
+	}
+
+	// -- color grading
+	colorGradingConfig := &postprocessing.ColorGradingConfig{
+		Gamma:      1.714,
+		Exposure:   1.194,
+		Contrast:   1.28,
+		Saturation: 0.96,
+		Brightness: 1.180,
+	}
+	colorGradingPass, err := postprocessing.NewColorGradingPass(
+		e.screenConfig, meshQuad, colorGradingConfig,
+	)
+	if err != nil {
+		return err
+	}
+
+	// -- vignette
+	vignetteConfig := &postprocessing.VignetteConfig{
+		Radius: 0.85,
+		Smooth: 0.535,
+	}
+	vignettePass, err := postprocessing.NewVignettePass(
+		e.screenConfig, meshQuad, vignetteConfig,
+	)
+	if err != nil {
+		return err
+	}
+
+	// create post processing pipeline
+	e.ppPipeline = append(
+		e.ppPipeline,
+		ssaoPass, colorGradingPass, vignettePass,
+	)
+
+	// append resources
+	e.resources = append(e.resources, meshQuad, screen, deferred, prefabRenderer)
 
 	e.window.SetResizeCallback(e.framebufferSizeCallback)
-
-	e.initMenus()
-
 	return nil
+}
+
+func (e *Engine) framebufferSizeCallback(w *glfw.Window, width, height int) {
+	e.screenConfig.Width = int32(width)
+	e.screenConfig.Height = int32(height)
+	e.screenConfig.Aspect = float32(width) / float32(height)
+	e.resizeRenderTargets()
+}
+
+func (e *Engine) resizeRenderTargets() {
+	// resize all render targets
+	// deferred
+	e.deferred.ResizeCallback()
+	for _, t := range e.ppPipeline {
+		t.ResizeCallback()
+	}
 }
 
 func (e *Engine) Run() {
 
 	for !e.window.ShouldClose() {
+		// process current context input
 		e.processInput()
 		e.processImgui()
-		// update scene
+
+		// update current context
 		e.update()
-		// scene
-		e.mixer.Render()
-		// render imgui on top of scene
+
+		// resize targets if resolution changes
+		if e.screenConfig.LastResolutionRatio != e.screenConfig.ResolutionRatio {
+			e.resizeRenderTargets()
+		}
+
+		// render geometry
+		e.deferred.BindForNewFrame()
+		e.render()
+
+		// perform post processing
+		result := e.performPostProcessingPipeline()
+
+		// render screen quad
+		e.screen.RenderScreenQuad(result)
+
+		// render imgui on top of screen
 		e.renderImgui()
 
+		// update global post rendering states
 		stats.UpdateGlobal()
 	}
 
@@ -410,19 +498,19 @@ func (e *Engine) processImgui() {
 }
 
 func (e *Engine) update() {
-
 	shotgun := &e.prefabs[0]
 	shotgun.Position = mgl32.Vec3{0, 1.446, 0}
 	shotgun.Scaling = mgl32.Vec3{0.25, 0.25, 0.25}
 	shotgun.Rotation[1] = -90
-	// shotgun.Rotation[2] = 90
-
 }
 
-func (e *Engine) renderScene() {
+func (e *Engine) render() {
 	// render scene
-	w, h := e.window.GetSize()
-	e.prefabRenderer.Prepare(w, h, e.controller.GetCamera())
+	e.prefabRenderer.Prepare(
+		int(e.screenConfig.Width),
+		int(e.screenConfig.Height),
+		e.controller.GetCamera(),
+	)
 	for _, p := range e.prefabs {
 		e.prefabRenderer.Render(&p)
 	}
@@ -435,7 +523,31 @@ func (e *Engine) renderImgui() {
 	e.window.SwapBuffers()
 }
 
+func (e *Engine) performPostProcessingPipeline() *render.Texture {
+	// get deferred textures
+	color := e.deferred.DeferredFBO.ColorTextures[0]
+	normal := e.deferred.DeferredFBO.ColorTextures[1]
+	depth := e.deferred.DeferredFBO.DepthTexture
+
+	lastColor := color
+
+	// perform
+	for _, node := range e.ppPipeline {
+		node.RenderPass([]*render.Texture{lastColor, normal, depth})
+		lastColor = node.GetColor()
+	}
+
+	return lastColor
+}
+
 func (e *Engine) Destroy() {
+
+	// clear post process pipeline
+	for _, n := range e.ppPipeline {
+		if n != nil {
+			n.Delete()
+		}
+	}
 
 	// clear resources
 	for _, r := range e.resources {
@@ -444,7 +556,6 @@ func (e *Engine) Destroy() {
 		}
 	}
 
-	e.prefabRenderer.Shutdown()
 	implgl3.Shutdown()
 	implglfw.Shutdown()
 	imgui.DestroyContext()

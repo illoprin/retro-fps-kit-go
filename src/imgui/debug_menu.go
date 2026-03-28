@@ -7,6 +7,7 @@ import (
 	"github.com/illoprin/retro-fps-kit-go/src/engine/global"
 	"github.com/illoprin/retro-fps-kit-go/src/player"
 	postprocessing "github.com/illoprin/retro-fps-kit-go/src/post_processing"
+	"github.com/illoprin/retro-fps-kit-go/src/window"
 )
 
 type ImageTexture struct {
@@ -15,23 +16,25 @@ type ImageTexture struct {
 }
 
 type DebugMenu struct {
-	Visible     bool
-	buffers     []ImageTexture
-	textures    []ImageTexture
-	mixerConfig *postprocessing.SceneMixerConfig
-	cg          *postprocessing.ColorGrading
-	c           *player.EditorController
+	Visible   bool
+	window    *window.Window
+	buffers   []ImageTexture
+	textures  []ImageTexture
+	screenCfg *postprocessing.ScreenConfig
+	cgCfg     *postprocessing.ColorGradingConfig
+	c         *player.EditorController
 }
 
 func NewDebugMenu(
 	c *player.EditorController,
-	cfg *postprocessing.SceneMixerConfig,
-	cg *postprocessing.ColorGrading,
+	win *window.Window,
+	screenCfg *postprocessing.ScreenConfig,
+	cgCfg *postprocessing.ColorGradingConfig,
 	bufs []ImageTexture,
 	tex []ImageTexture,
 ) *DebugMenu {
 
-	return &DebugMenu{true, bufs, tex, cfg, cg, c}
+	return &DebugMenu{true, win, bufs, tex, screenCfg, cgCfg, c}
 }
 
 func (m *DebugMenu) Show() {
@@ -59,8 +62,8 @@ func (m *DebugMenu) showDebugWindow() {
 			m.barPP()
 		}
 
-		if imgui.BeginTabItem("Attachments") {
-			m.barAttachments()
+		if imgui.BeginTabItem("Deferred") {
+			m.barSceneFramebuffer()
 		}
 
 		imgui.EndTabBar()
@@ -118,21 +121,21 @@ func (m *DebugMenu) barScene() {
 
 func (m *DebugMenu) barPP() {
 	cgVty := true
-	imgui.Checkbox("Wireframe", &m.mixerConfig.Wireframe)
-	imgui.SliderFloat("Resolution Ratio", &m.mixerConfig.ResolutionRatio, 0.01, 1)
+	imgui.Checkbox("Wireframe", &m.screenCfg.Wireframe)
+	imgui.SliderFloat("Resolution Ratio", &m.screenCfg.ResolutionRatio, 0.01, 1)
 
 	if imgui.CollapsingHeaderBoolPtr("Color Grading", &cgVty) {
-		imgui.SliderFloat("Gamma", &m.cg.Gamma, 1, 5)
-		imgui.SliderFloat("Exposure", &m.cg.Exposure, 0.5, 2)
-		imgui.SliderFloat("Contrast", &m.cg.Contrast, 0.5, 1.5)
-		imgui.SliderFloat("Saturation", &m.cg.Saturation, 0.5, 2)
-		imgui.SliderFloat("Brightness", &m.cg.Brightness, 0.5, 2)
+		imgui.SliderFloat("Gamma", &m.cgCfg.Gamma, 1, 5)
+		imgui.SliderFloat("Exposure", &m.cgCfg.Exposure, 0.5, 2)
+		imgui.SliderFloat("Contrast", &m.cgCfg.Contrast, 0.5, 1.5)
+		imgui.SliderFloat("Saturation", &m.cgCfg.Saturation, 0.5, 2)
+		imgui.SliderFloat("Brightness", &m.cgCfg.Brightness, 0.5, 2)
 	}
 	vigVty := true
 	if imgui.CollapsingHeaderBoolPtr("Vignette", &vigVty) {
-		imgui.Checkbox("Use Vignette", &m.mixerConfig.Vignette.Use)
-		imgui.SliderFloat("Radius", &m.mixerConfig.Vignette.Radius, 0.2, 2)
-		imgui.SliderFloat("Smooth", &m.mixerConfig.Vignette.Smooth, 0.01, 5)
+		imgui.Checkbox("Use Vignette", &m.screenCfg.Vignette.Use)
+		imgui.SliderFloat("Radius", &m.screenCfg.Vignette.Radius, 0.2, 2)
+		imgui.SliderFloat("Smooth", &m.screenCfg.Vignette.Smooth, 0.01, 5)
 	}
 	imgui.EndTabItem()
 }
@@ -142,14 +145,17 @@ func (m *DebugMenu) barTextures() {
 	imgui.EndTabItem()
 }
 
-func (m *DebugMenu) barAttachments() {
+func (m *DebugMenu) barSceneFramebuffer() {
 	for _, b := range m.buffers {
 		imgui.Text(b.Name)
 
 		ref := imgui.NewEmptyTextureRef()
 		ref.SetTexID(imgui.TextureID(b.ID))
 
-		imgui.ImageV(*ref, imgui.Vec2{512, 512}, imgui.Vec2{0, 1}, imgui.Vec2{1, 0})
+		aspect := m.window.GetAspect()
+		size := float32(512)
+
+		imgui.ImageV(*ref, imgui.Vec2{aspect * size, size}, imgui.Vec2{0, 1}, imgui.Vec2{1, 0})
 	}
 
 	imgui.EndTabItem()

@@ -60,8 +60,16 @@ func (f *Framebuffer) NewColorAttachment(colorFormat TextureFormat) error {
 }
 
 // SetDrawBuffers determines buffers to color drawing (bind before use)
-func (f *Framebuffer) SetDrawBuffers(buffersIDs []uint32) {
-	gl.DrawBuffers(int32(len(buffersIDs)), &buffersIDs[0])
+func (f *Framebuffer) SetDrawBuffers(colorAttachmentIndices []int) {
+
+	// create color attachments list
+	attachmentsList := make([]uint32, len(colorAttachmentIndices))
+	for i, index := range colorAttachmentIndices {
+		attachmentsList[i] = gl.COLOR_ATTACHMENT0 + uint32(index)
+	}
+	size := int32(len(attachmentsList))
+
+	gl.DrawBuffers(size, &attachmentsList[0])
 }
 
 // NewDepthStencilAttachment generates new depth stencil attachment (bind before use)
@@ -142,7 +150,9 @@ func (fb *Framebuffer) Delete() {
 	if fb.DepthTexture != nil {
 		fb.DepthTexture.Delete()
 	}
-	gl.DeleteFramebuffers(1, &fb.ID)
+	if fb.ID > 0 {
+		gl.DeleteFramebuffers(1, &fb.ID)
+	}
 }
 
 // Resize framebuffer color attachments

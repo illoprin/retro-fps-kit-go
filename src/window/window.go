@@ -64,3 +64,7 @@ func (w *Window) Center() {
 func (w *Window) GetSize() (int, int) {
 	return w.width, w.height
 }
+
+func (w *Window) GetAspect() float32 {
+	return float32(w.width) / float32(w.height)
+}
