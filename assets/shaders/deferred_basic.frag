@@ -12,8 +12,8 @@ uniform sampler2D u_texture;
 uniform bool u_useTexture;
 uniform vec3 u_light_pos;
 uniform vec3 u_light_color;
-uniform float u_light_intensity = 1.2;
-uniform float u_light_radius = 50;
+uniform float u_light_intensity = 3;
+uniform float u_light_radius = 37;
 uniform vec3 u_color;
 
 // Light Attenuation Algo
@@ -26,7 +26,7 @@ float getLightAttenuation(float d, float r) {
 
 void main() {
 	// ambient
-	float ambientStrength = 0.4;
+	float ambientStrength = 0.2;
 	vec3 ambient = ambientStrength * u_light_color;
 	
 	// diffuse

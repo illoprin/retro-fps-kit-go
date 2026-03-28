@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	postprocessing "github.com/illoprin/retro-fps-kit-go/src/post_processing"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
+	"github.com/illoprin/retro-fps-kit-go/src/window"
 )
 
 // create deferred fbo (color, normal)
@@ -14,12 +14,13 @@ import (
 // DeferredRenderTarget describes deffered fbo and bindings for geometry rendering
 type DeferredRenderTarget struct {
 	DeferredFBO         *render.Framebuffer
-	scConfig            *postprocessing.ScreenConfig
+	scConfig            *window.ScreenConfig
 	lastResolutionRatio float32
+	Wireframe           bool
 }
 
 func NewDeferredRenderTarget(
-	scConfig *postprocessing.ScreenConfig,
+	scConfig *window.ScreenConfig,
 ) (*DeferredRenderTarget, error) {
 
 	t := &DeferredRenderTarget{
@@ -36,10 +37,10 @@ func NewDeferredRenderTarget(
 
 func (t *DeferredRenderTarget) setupFramebuffer() error {
 
-	// init scene framebuffer
+	// init new framebuffer
 	deferredFBO, err := render.NewFramebuffer(
 		int32(float32(t.scConfig.Width)*t.scConfig.ResolutionRatio),
-		int32(float32(t.scConfig.Width)*t.scConfig.ResolutionRatio),
+		int32(float32(t.scConfig.Height)*t.scConfig.ResolutionRatio),
 	)
 	if err != nil {
 		return err
@@ -71,8 +72,7 @@ func (t *DeferredRenderTarget) setupFramebuffer() error {
 
 	t.DeferredFBO = deferredFBO
 
-	gl.CullFace(gl.BACK)
-	gl.FrontFace(gl.CCW)
+	gl.ClearColor(0, 0, 0, 0)
 
 	return nil
 }
@@ -84,17 +84,14 @@ func (t *DeferredRenderTarget) BindForNewFrame() {
 		int32(float32(t.scConfig.Width)*t.scConfig.ResolutionRatio),
 		int32(float32(t.scConfig.Height)*t.scConfig.ResolutionRatio),
 	)
-	if t.scConfig.ResolutionRatio != t.lastResolutionRatio {
-		t.resizeDeferredFBO()
-	}
-
-	gl.ClearColor(0, 0, 0, 0)
 
 	gl.Enable(gl.DEPTH_TEST)
 	gl.Enable(gl.CULL_FACE)
+	gl.CullFace(gl.BACK)
+	gl.FrontFace(gl.CCW)
 
 	// set wireframe if needed
-	if t.scConfig.Wireframe {
+	if t.Wireframe {
 		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
 		gl.Disable(gl.CULL_FACE)
 	} else {
@@ -106,10 +103,6 @@ func (t *DeferredRenderTarget) BindForNewFrame() {
 }
 
 func (t *DeferredRenderTarget) ResizeCallback() {
-	t.resizeDeferredFBO()
-}
-
-func (t *DeferredRenderTarget) resizeDeferredFBO() {
 	t.DeferredFBO.Resize(
 		int32(float32(t.scConfig.Width)*t.scConfig.ResolutionRatio),
 		int32(float32(t.scConfig.Height)*t.scConfig.ResolutionRatio),

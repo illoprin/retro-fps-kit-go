@@ -2,11 +2,19 @@ package window
 
 import (
 	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/illoprin/retro-fps-kit-go/src/engine/global"
 )
+
+type ScreenConfig struct {
+	Width, Height       int32
+	ResolutionRatio     float32
+	LastResolutionRatio float32
+	Aspect              float32
+}
 
 type Window struct {
 	*glfw.Window
-	width, height    int
+	cfg              *ScreenConfig
 	userSizeCallback glfw.FramebufferSizeCallback
 }
 
@@ -33,13 +41,22 @@ func NewWindow(width, height int, title string) (*Window, error) {
 
 	w := &Window{
 		Window: glfwW,
-		width:  width,
-		height: height,
+		cfg: &ScreenConfig{
+			Width:               int32(width),
+			Height:              int32(height),
+			Aspect:              float32(width) / float32(height),
+			ResolutionRatio:     global.DefaultResolutionRatio,
+			LastResolutionRatio: global.DefaultResolutionRatio,
+		},
 	}
 
 	w.setupCallbacks()
 
 	return w, nil
+}
+
+func (w *Window) GetConfig() *ScreenConfig {
+	return w.cfg
 }
 
 func (w *Window) SetResizeCallback(f glfw.FramebufferSizeCallback) {
@@ -48,8 +65,9 @@ func (w *Window) SetResizeCallback(f glfw.FramebufferSizeCallback) {
 
 func (w *Window) setupCallbacks() {
 	w.Window.SetFramebufferSizeCallback(func(win *glfw.Window, width, height int) {
-		w.width = width
-		w.height = height
+		w.cfg.Width = int32(width)
+		w.cfg.Height = int32(height)
+		w.cfg.Aspect = float32(width) / float32(height)
 		if w.userSizeCallback != nil {
 			w.userSizeCallback(win, width, height)
 		}
@@ -58,13 +76,5 @@ func (w *Window) setupCallbacks() {
 
 func (w *Window) Center() {
 	vidMode := glfw.GetPrimaryMonitor().GetVideoMode()
-	w.SetPos(vidMode.Width/2-w.width/2, vidMode.Height/2-w.height/2)
-}
-
-func (w *Window) GetSize() (int, int) {
-	return w.width, w.height
-}
-
-func (w *Window) GetAspect() float32 {
-	return float32(w.width) / float32(w.height)
+	w.SetPos(vidMode.Width/2-int(w.cfg.Width)/2, vidMode.Height/2-int(w.cfg.Height)/2)
 }

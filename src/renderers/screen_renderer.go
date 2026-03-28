@@ -3,23 +3,23 @@ package renderers
 import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
-	postprocessing "github.com/illoprin/retro-fps-kit-go/src/post_processing"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
+	"github.com/illoprin/retro-fps-kit-go/src/window"
 )
 
 type ScreenRenderer struct {
-	cfg     *postprocessing.ScreenConfig
+	cfg     *window.ScreenConfig
 	program *render.Program
 	mesh    *render.Mesh
 }
 
-func (s *ScreenRenderer) GetConfig() *postprocessing.ScreenConfig {
+func (s *ScreenRenderer) GetConfig() *window.ScreenConfig {
 	return s.cfg
 }
 
 func NewScreen(
 	screenQuad *render.Mesh,
-	cfg *postprocessing.ScreenConfig,
+	cfg *window.ScreenConfig,
 ) (*ScreenRenderer, error) {
 	s := &ScreenRenderer{
 		cfg:  cfg,
@@ -27,15 +27,14 @@ func NewScreen(
 	}
 
 	// init screen quad shader
-	screenProg, err := render.NewProgram(
-		assetmgr.GetShaderPath("basic_quad.vert"),
+	program, err := render.NewProgram(
+		assetmgr.GetShaderPath("quad.vert"),
 		assetmgr.GetShaderPath("screen.frag"),
 	)
 	if err != nil {
-		s.mesh.Delete()
 		return nil, err
 	}
-	s.program = screenProg
+	s.program = program
 
 	return s, nil
 }
@@ -46,7 +45,6 @@ func (s *ScreenRenderer) RenderScreenQuad(color *render.Texture) {
 
 	gl.Disable(gl.DEPTH_TEST)
 	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
-	gl.ClearColor(0, 0, 0, 1.0)
 	gl.Viewport(0, 0, int32(s.cfg.Width), int32(s.cfg.Height))
 
 	gl.Clear(gl.COLOR_BUFFER_BIT)

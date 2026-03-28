@@ -10,6 +10,10 @@ var (
 	LastImguiDrawCalls int32  = 0
 )
 
+const (
+	DefaultResolutionRatio float32 = 0.5
+)
+
 func BoolToInt32(b bool) int32 {
 	if b {
 		return 1

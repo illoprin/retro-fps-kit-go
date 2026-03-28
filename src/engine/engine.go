@@ -45,11 +45,10 @@ type Engine struct {
 	prefabs        []scene.Prefab
 
 	// post processing render pass
-	ppPipeline []postprocessing.PostProcessingPass
+	passPipeline []postprocessing.PostProcessingPass
 
 	// screen render pass
-	screen       *renderers.ScreenRenderer
-	screenConfig *postprocessing.ScreenConfig
+	screen *renderers.ScreenRenderer
 }
 
 func NewEngine() (*Engine, error) {
@@ -165,7 +164,7 @@ func (e *Engine) initImguiRenderer() error {
 
 func (e *Engine) initCustomImguiUI() {
 
-	buffersImages := []imguimenus.ImageTexture{
+	deferredTextures := []imguimenus.ImageTexture{
 		{
 			ID:   e.deferred.DeferredFBO.ColorTextures[0].ID,
 			Name: "Color",
@@ -180,13 +179,29 @@ func (e *Engine) initCustomImguiUI() {
 		},
 	}
 
-	// FIX
+	// Post-processing textures (add more as needed)
+	passTextures := make([]imguimenus.ImageTexture, 0)
+	for _, p := range e.passPipeline {
+		t := imguimenus.ImageTexture{
+			ID:   p.GetColor().ID,
+			Name: p.GetName(),
+		}
+		passTextures = append(passTextures, t)
+	}
+
+	ssao := e.passPipeline[0].(*postprocessing.SSAOPass)
+	colorGrading := e.passPipeline[1].(*postprocessing.ColorGradingPass)
+	vignette := e.passPipeline[2].(*postprocessing.VignettePass)
+
 	e.debugMenu = imguimenus.NewDebugMenu(
-		e.controller,
-		e.window,
-		e.screen.GetConfig(),
-		e.screen.GetColorGrading(),
-		buffersImages, nil,
+		e.window.GetConfig(), // window config
+		e.deferred,           // deferred render target (for wireframe)
+		e.controller,         // player controller
+		ssao.GetConfig().(*postprocessing.SSAOConfig),
+		colorGrading.GetConfig().(*postprocessing.ColorGradingConfig),
+		vignette.GetConfig().(*postprocessing.VignetteConfig),
+		deferredTextures, // deferred textures
+		passTextures,     // post-processing textures
 	)
 }
 
@@ -328,21 +343,13 @@ func (e *Engine) setupRenderingPipeline() error {
 	// init prefab renderer
 	prefabRenderer, err := renderers.NewPrefabRenderer()
 	if err != nil {
-		return fmt.Errorf("failed to create prefab renderer")
+		return fmt.Errorf("failed to create prefab renderer - %w", err)
 	} else {
 		e.prefabRenderer = prefabRenderer
 	}
 
-	// setup screen
-	w, h := e.window.GetSize()
-	e.screenConfig = &postprocessing.ScreenConfig{
-		Width:           int32(w),
-		Height:          int32(h),
-		ResolutionRatio: 0.5,
-	}
-
 	// setup deferred render target
-	deferred, err := renderers.NewDeferredRenderTarget(e.screenConfig)
+	deferred, err := renderers.NewDeferredRenderTarget(e.window.GetConfig())
 	if err != nil {
 		return err
 	}
@@ -352,7 +359,7 @@ func (e *Engine) setupRenderingPipeline() error {
 	meshQuad := render.NewMesh()
 	meshQuad.SetupBasicQuad()
 
-	screen, err := renderers.NewScreen(meshQuad, e.screenConfig)
+	screen, err := renderers.NewScreen(meshQuad, e.window.GetConfig())
 	if err != nil {
 		return err
 	}
@@ -364,7 +371,7 @@ func (e *Engine) setupRenderingPipeline() error {
 	// -- ssao
 	ssaoConfig := &postprocessing.SSAOConfig{}
 	ssaoPass, err := postprocessing.NewSSAOPass(
-		e.screenConfig, meshQuad, ssaoConfig,
+		e.window.GetConfig(), meshQuad, ssaoConfig,
 	)
 	if err != nil {
 		return err
@@ -372,14 +379,19 @@ func (e *Engine) setupRenderingPipeline() error {
 
 	// -- color grading
 	colorGradingConfig := &postprocessing.ColorGradingConfig{
-		Gamma:      1.714,
-		Exposure:   1.194,
-		Contrast:   1.28,
-		Saturation: 0.96,
-		Brightness: 1.180,
+		Gamma:          1.9,
+		Exposure:       1.6,
+		Contrast:       1.18,
+		Saturation:     0.85,
+		Brightness:     1.4,
+		ShadowsColor:   [3]float32{.063, .102, .576},
+		MidColor:       [3]float32{.494, .294, .067},
+		HighlightColor: [3]float32{.903, .402, .061},
+		ColorStrength:  0.68,
+		Use:            true,
 	}
 	colorGradingPass, err := postprocessing.NewColorGradingPass(
-		e.screenConfig, meshQuad, colorGradingConfig,
+		e.window.GetConfig(), meshQuad, colorGradingConfig,
 	)
 	if err != nil {
 		return err
@@ -387,19 +399,20 @@ func (e *Engine) setupRenderingPipeline() error {
 
 	// -- vignette
 	vignetteConfig := &postprocessing.VignetteConfig{
-		Radius: 0.85,
-		Smooth: 0.535,
+		Radius:   0.85,
+		Softness: 0.535,
+		Use:      true,
 	}
 	vignettePass, err := postprocessing.NewVignettePass(
-		e.screenConfig, meshQuad, vignetteConfig,
+		e.window.GetConfig(), meshQuad, vignetteConfig,
 	)
 	if err != nil {
 		return err
 	}
 
 	// create post processing pipeline
-	e.ppPipeline = append(
-		e.ppPipeline,
+	e.passPipeline = append(
+		e.passPipeline,
 		ssaoPass, colorGradingPass, vignettePass,
 	)
 
@@ -411,9 +424,7 @@ func (e *Engine) setupRenderingPipeline() error {
 }
 
 func (e *Engine) framebufferSizeCallback(w *glfw.Window, width, height int) {
-	e.screenConfig.Width = int32(width)
-	e.screenConfig.Height = int32(height)
-	e.screenConfig.Aspect = float32(width) / float32(height)
+
 	e.resizeRenderTargets()
 }
 
@@ -421,7 +432,7 @@ func (e *Engine) resizeRenderTargets() {
 	// resize all render targets
 	// deferred
 	e.deferred.ResizeCallback()
-	for _, t := range e.ppPipeline {
+	for _, t := range e.passPipeline {
 		t.ResizeCallback()
 	}
 }
@@ -437,7 +448,7 @@ func (e *Engine) Run() {
 		e.update()
 
 		// resize targets if resolution changes
-		if e.screenConfig.LastResolutionRatio != e.screenConfig.ResolutionRatio {
+		if e.window.GetConfig().LastResolutionRatio != e.window.GetConfig().ResolutionRatio {
 			e.resizeRenderTargets()
 		}
 
@@ -457,7 +468,6 @@ func (e *Engine) Run() {
 		// update global post rendering states
 		stats.UpdateGlobal()
 	}
-
 }
 
 func (e *Engine) processInput() {
@@ -507,8 +517,8 @@ func (e *Engine) update() {
 func (e *Engine) render() {
 	// render scene
 	e.prefabRenderer.Prepare(
-		int(e.screenConfig.Width),
-		int(e.screenConfig.Height),
+		int(e.window.GetConfig().Width),
+		int(e.window.GetConfig().Height),
 		e.controller.GetCamera(),
 	)
 	for _, p := range e.prefabs {
@@ -532,7 +542,10 @@ func (e *Engine) performPostProcessingPipeline() *render.Texture {
 	lastColor := color
 
 	// perform
-	for _, node := range e.ppPipeline {
+	for _, node := range e.passPipeline {
+		if !node.Use() {
+			continue
+		}
 		node.RenderPass([]*render.Texture{lastColor, normal, depth})
 		lastColor = node.GetColor()
 	}
@@ -543,7 +556,7 @@ func (e *Engine) performPostProcessingPipeline() *render.Texture {
 func (e *Engine) Destroy() {
 
 	// clear post process pipeline
-	for _, n := range e.ppPipeline {
+	for _, n := range e.passPipeline {
 		if n != nil {
 			n.Delete()
 		}
