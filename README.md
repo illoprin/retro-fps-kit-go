@@ -10,7 +10,7 @@
 
 ## 📷 Скриншоты
 
-![Image](https://raw.githubusercontent.com/illoprin/retro-fps-kit-go/0c6ecdbda020ed00443b6f33263638bd1a2694e9/img/2.jpg)
+![Image](https://raw.githubusercontent.com/illoprin/retro-fps-kit-go/refs/heads/master/img/3.jpg)
 
 
 ## 🚀 Основные особенности (Roadmap / Реализовано)
