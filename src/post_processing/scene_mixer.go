@@ -1,9 +1,9 @@
 package postprocessing
 
 import (
+	"fmt"
+
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/glfw/v3.3/glfw"
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/global"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
@@ -25,12 +25,7 @@ type SceneMixerConfig struct {
 		Radius, Smooth float32
 		Use            bool
 	}
-	Flickering struct {
-		Frequency, Intensity float32
-		Use                  bool
-	}
-	SceneClearColor mgl32.Vec3
-	Wireframe       bool
+	Wireframe bool
 }
 
 type SceneMixer struct {
@@ -55,13 +50,12 @@ func (m *SceneMixer) GetColorGrading() *ColorGrading {
 func NewSceneMixer(win *window.Window, cfg *SceneMixerConfig, cg *ColorGrading) (*SceneMixer, error) {
 	m := &SceneMixer{w: win, cg: cg, cfg: cfg}
 
-	var err error
-	err = m.initFramebuffers()
-	err = m.setupScreen()
-	if err != nil {
+	if err := m.initFramebuffer(); err != nil {
 		return nil, err
 	}
-	m.setupCallbacks()
+	if err := m.setupScreen(); err != nil {
+		return nil, err
+	}
 
 	m.cfg.lastResolutionRatio = m.cfg.ResolutionRatio
 
@@ -73,37 +67,49 @@ func NewSceneMixer(win *window.Window, cfg *SceneMixerConfig, cg *ColorGrading) 
 	return m, nil
 }
 
-func (m *SceneMixer) initFramebuffers() error {
+func (m *SceneMixer) initFramebuffer() error {
 
-	winWidth, winHeight := m.w.GetSize()
+	w, h := m.w.GetSize()
 
 	// init scene framebuffer
-	sceneFBO, err := render.NewFramebuffer(render.FramebufferConfig{
-		Width:           int32(float32(winWidth) * m.cfg.ResolutionRatio),
-		Height:          int32(float32(winHeight) * m.cfg.ResolutionRatio),
-		ColorFormat:     render.FormatRGB8,
-		ColorFiltering:  render.FilterNearest,
-		UseDepth:        true,
-		UseDepthStencil: false,
-		UseMultisample:  false,
-	})
+	sceneFBO, err := render.NewFramebuffer(
+		int32(float32(w)*m.cfg.ResolutionRatio),
+		int32(float32(h)*m.cfg.ResolutionRatio),
+	)
 	if err != nil {
 		return err
 	}
+
+	sceneFBO.Bind()
+	// color
+	err = sceneFBO.NewColorAttachment(render.FormatRGBA8)
+	// normal
+	err = sceneFBO.NewColorAttachment(render.FormatRGB16F)
+	// position
+	err = sceneFBO.NewColorAttachment(render.FormatRGB16F)
+	sceneFBO.SetDrawBuffers([]uint32{
+		gl.COLOR_ATTACHMENT0,
+		gl.COLOR_ATTACHMENT1,
+		gl.COLOR_ATTACHMENT2,
+	})
+	err = sceneFBO.NewDepthAttachment()
+
+	if err != nil {
+		sceneFBO.Delete()
+		return err
+	}
+	if !sceneFBO.Check() {
+		sceneFBO.Delete()
+		return fmt.Errorf("fbo not completed")
+	}
+	sceneFBO.Unbind()
 	m.SceneFBO = sceneFBO
 
 	return nil
 }
 
-func (m *SceneMixer) setupCallbacks() {
-
-	prevCallback := m.w.SetFramebufferSizeCallback(nil)
-	m.w.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
-		m.resizeSceneFBO(width, height)
-		if prevCallback != nil {
-			prevCallback(w, width, height)
-		}
-	})
+func (m *SceneMixer) ResizeCallback(width, height int) {
+	m.resizeSceneFBO(width, height)
 }
 
 func (m *SceneMixer) resizeSceneFBO(w, h int) {
@@ -126,8 +132,6 @@ func (m *SceneMixer) setupScreen() error {
 	}
 	m.screenProgram = screenProg
 
-	gl.Enable(gl.DEPTH_TEST)
-	gl.Enable(gl.CULL_FACE)
 	gl.CullFace(gl.BACK)
 	gl.FrontFace(gl.CCW)
 	return nil
@@ -159,10 +163,7 @@ func (m *SceneMixer) newSceneFrame() {
 	}
 
 	gl.ClearColor(
-		m.cfg.SceneClearColor[0],
-		m.cfg.SceneClearColor[1],
-		m.cfg.SceneClearColor[2],
-		1.0,
+		0, 0, 0, 0,
 	)
 
 	gl.Enable(gl.DEPTH_TEST)
@@ -189,8 +190,14 @@ func (m *SceneMixer) renderSceneQuad() {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	m.screenProgram.Use()
-	m.SceneFBO.ColorTexture.Bind(0)
+	m.SceneFBO.ColorTextures[0].Bind(0)
+	m.SceneFBO.ColorTextures[1].Bind(1)
+	m.SceneFBO.ColorTextures[2].Bind(2)
+	m.SceneFBO.DepthTexture.Bind(3)
 	m.screenProgram.Set1i("u_color", 0)
+	m.screenProgram.Set1i("u_normal", 1)
+	m.screenProgram.Set1i("u_position", 2)
+	m.screenProgram.Set1i("u_depth", 3)
 	m.screenProgram.Set1f("u_vignette.radius", m.cfg.Vignette.Radius)
 	m.screenProgram.Set1f("u_vignette.softness", m.cfg.Vignette.Smooth)
 	m.screenProgram.Set1i("u_vignette.use", global.BoolToInt32(m.cfg.Vignette.Use))

@@ -3,8 +3,6 @@ package engine
 import (
 	"fmt"
 	"log"
-	"math"
-	"math/rand"
 	"path/filepath"
 	"runtime"
 	"unsafe"
@@ -33,12 +31,6 @@ const (
 	defaultTitle        = "Retro FPS Kit - Demo"
 )
 
-type PrefabState struct {
-	LastEffectState bool
-	Vertices        []model.ModelVertex
-	Model           *model.Model
-}
-
 type Engine struct {
 	window         *window.Window
 	debugMenu      *imguimenus.DebugMenu
@@ -48,7 +40,6 @@ type Engine struct {
 	prefabRenderer *renderers.PrefabRenderer
 	resources      []render.Resource
 	prefabs        []scene.Prefab
-	prefabState    *PrefabState
 	mixer          *postprocessing.SceneMixer
 }
 
@@ -102,6 +93,10 @@ func (e *Engine) createWindow() error {
 	e.input = window.NewManager(e.window.Window)
 
 	return nil
+}
+
+func (e *Engine) framebufferSizeCallback(_ *glfw.Window, width, height int) {
+	e.mixer.ResizeCallback(width, height)
 }
 
 func (e *Engine) printUserData() {
@@ -158,7 +153,32 @@ func (e *Engine) initImguiRenderer() error {
 }
 
 func (e *Engine) initMenus() {
-	e.debugMenu = imguimenus.NewDebugMenu(e.controller, e.mixer.GetConfig(), e.mixer.GetColorGrading())
+
+	buffersImages := []imguimenus.ImageTexture{
+		{
+			ID:   e.mixer.SceneFBO.ColorTextures[0].ID,
+			Name: "Color",
+		},
+		{
+			ID:   e.mixer.SceneFBO.ColorTextures[1].ID,
+			Name: "Normal",
+		},
+		{
+			ID:   e.mixer.SceneFBO.ColorTextures[2].ID,
+			Name: "Position",
+		},
+		{
+			ID:   e.mixer.SceneFBO.DepthTexture.ID,
+			Name: "Depth",
+		},
+	}
+
+	e.debugMenu = imguimenus.NewDebugMenu(
+		e.controller,
+		e.mixer.GetConfig(),
+		e.mixer.GetColorGrading(),
+		buffersImages, nil,
+	)
 }
 
 func (e *Engine) keyCallback(key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
@@ -185,11 +205,11 @@ func (e *Engine) setupScene() error {
 
 	// init color grading
 	cg := &postprocessing.ColorGrading{
-		Gamma:      1.8,
-		Exposure:   0.98,
-		Contrast:   1.36,
+		Gamma:      1.714,
+		Exposure:   1.194,
+		Contrast:   1.28,
 		Saturation: 0.96,
-		Brightness: 1.395,
+		Brightness: 1.180,
 	}
 
 	// init prefab renderer
@@ -200,63 +220,113 @@ func (e *Engine) setupScene() error {
 		e.prefabRenderer = prefabRenderer
 	}
 
-	// shotgun model
+	// create obj parser
 	parser := model.NewOBJParser()
+
+	// shotgun model
 	shotgunModel, err := parser.ParseFile(assetmgr.GetModelPath("shotgun.obj"))
 	if err != nil {
 		log.Printf("failed to load model %v", err)
 	}
-	updatedModelVertices := make([]model.ModelVertex, len(shotgunModel.Vertices))
+
+	// floor model
+	floorModel, err := parser.ParseFile(assetmgr.GetModelPath("floor.obj"))
+	if err != nil {
+		log.Printf("failed to load model %v", err)
+	}
+
+	// walls model
+	wallsModel, err := parser.ParseFile(assetmgr.GetModelPath("walls.obj"))
+	if err != nil {
+		log.Printf("failed to load model %v", err)
+	}
+
+	// ceiling model
+	ceilingModel, err := parser.ParseFile(assetmgr.GetModelPath("ceiling.obj"))
+	if err != nil {
+		log.Printf("failed to load model %v", err)
+	}
+
+	// ceiling model
+	tableModel, err := parser.ParseFile(assetmgr.GetModelPath("table.obj"))
+	if err != nil {
+		log.Printf("failed to load model %v", err)
+	}
 
 	// shotgun mesh
 	meshShotgun := render.NewMesh()
-	meshShotgun.SetupFromModel(shotgunModel, gl.DYNAMIC_DRAW)
-	e.resources = append(e.resources, meshShotgun)
-	// shotgun texture
+	meshShotgun.SetupFromModel(shotgunModel, gl.STATIC_DRAW)
+
+	// floor mesh
+	meshFloor := render.NewMesh()
+	meshFloor.SetupFromModel(floorModel, gl.STATIC_DRAW)
+
+	// ceiling mesh
+	meshCeiling := render.NewMesh()
+	meshCeiling.SetupFromModel(ceilingModel, gl.STATIC_DRAW)
+
+	// walls mesh
+	meshWalls := render.NewMesh()
+	meshWalls.SetupFromModel(wallsModel, gl.STATIC_DRAW)
+
+	// walls mesh
+	meshTable := render.NewMesh()
+	meshTable.SetupFromModel(tableModel, gl.STATIC_DRAW)
+
+	// colors texture
 	texColors, err := render.NewTextureFromImage(assetmgr.GetTexturePath("colors.png"), true, true)
 	if err != nil {
 		log.Printf("failed to load texture %v", err)
-	} else {
-		e.resources = append(e.resources, texColors)
-	}
-	// shotgun prefab
-	e.prefabs = append(e.prefabs, *scene.NewPrefab(meshShotgun, texColors))
-	e.prefabState = &PrefabState{
-		LastEffectState: false,
-		Vertices:        updatedModelVertices,
-		Model:           shotgunModel,
 	}
 
-	// triangulation algo test
-	// polygon model
-	polygon := []model.ModelVertex{
-		{X: 1, Y: 0, Z: 0},
-		{X: 2, Y: 0.5, Z: 0},
-		{X: 1.5, Y: 1, Z: 0},
-		{X: 1.5, Y: 1.5, Z: 0},
-		{X: 1, Y: 2, Z: 0},
-		{X: 0, Y: 2, Z: 0},
-		{X: 0, Y: 0, Z: 0},
-	}
-	vertices, indices := model.TriangulatePolygon(polygon)
-	polygonModel := model.Model{
-		Vertices: vertices,
-		Indices:  indices,
-	}
-	// polygon mesh
-	meshPolygon := render.NewMesh()
-	meshPolygon.SetupFromModel(&polygonModel, gl.STATIC_DRAW)
-	e.resources = append(e.resources, meshPolygon)
-	// polygon texture
-	texGrayTiles, err := render.NewTextureFromImage(assetmgr.GetTexturePath("gray_tiles.png"), true, true)
+	// tiles texture
+	texTiles, err := render.NewTextureFromImage(assetmgr.GetTexturePath("gray_tiles.png"), true, true)
 	if err != nil {
 		log.Printf("failed to load texture %v", err)
-	} else {
-		e.resources = append(e.resources, texGrayTiles)
 	}
-	// polygon prefab
-	prefabPolygon := scene.NewPrefab(meshPolygon, texGrayTiles)
-	e.prefabs = append(e.prefabs, *prefabPolygon)
+
+	// bricks texture
+	texBrick, err := render.NewTextureFromImage(assetmgr.GetTexturePath("dark_brick.png"), true, true)
+	if err != nil {
+		log.Printf("failed to load texture %v", err)
+	}
+
+	// rock texture
+	texRock, err := render.NewTextureFromImage(assetmgr.GetTexturePath("gray_rock.png"), true, true)
+	if err != nil {
+		log.Printf("failed to load texture %v", err)
+	}
+
+	// rock texture
+	texWood, err := render.NewTextureFromImage(assetmgr.GetTexturePath("wood.png"), true, true)
+	if err != nil {
+		log.Printf("failed to load texture %v", err)
+	}
+
+	// add resources
+	e.resources = append(
+		e.resources,
+		meshShotgun,
+		meshFloor,
+		meshWalls,
+		meshCeiling,
+		meshTable,
+		texColors,
+		texBrick,
+		texRock,
+		texWood,
+		texTiles,
+	)
+
+	// add prefabs
+	e.prefabs = append(
+		e.prefabs,
+		*scene.NewPrefab(meshShotgun, texColors),
+		*scene.NewPrefab(meshFloor, texTiles),
+		*scene.NewPrefab(meshWalls, texBrick),
+		*scene.NewPrefab(meshCeiling, texRock),
+		*scene.NewPrefab(meshTable, texWood),
+	)
 
 	sceneMixerConfig := &postprocessing.SceneMixerConfig{
 		ResolutionRatio: 0.5,
@@ -265,18 +335,10 @@ func (e *Engine) setupScene() error {
 			Smooth float32
 			Use    bool
 		}{
-			1.4,
-			1.3,
+			0.85,
+			0.535,
 			true,
 		},
-		Flickering: struct {
-			Frequency float32
-			Intensity float32
-			Use       bool
-		}{
-			70, 0.01, true,
-		},
-		SceneClearColor: mgl32.Vec3{0.176, 0.216, 0.302},
 	}
 	mixer, err := postprocessing.NewSceneMixer(e.window, sceneMixerConfig, cg)
 	if err != nil {
@@ -285,6 +347,8 @@ func (e *Engine) setupScene() error {
 	mixer.SetSceneRenderFunc(e.renderScene)
 	e.resources = append(e.resources, mixer)
 	e.mixer = mixer
+
+	e.window.SetResizeCallback(e.framebufferSizeCallback)
 
 	e.initMenus()
 
@@ -347,38 +411,11 @@ func (e *Engine) processImgui() {
 
 func (e *Engine) update() {
 
-	ps := e.prefabState
-	shotgunMesh := e.prefabs[0].Mesh
-	if e.debugMenu.DestroyingEffect {
-
-		// update scene
-		for i, v := range ps.Model.Vertices {
-			normal := mgl32.Vec3{v.Nx, v.Ny, v.Nz}
-			vert := mgl32.Vec3{v.X, v.Y, v.Z}
-
-			factor := float32(math.Sin(glfw.GetTime()) * 0.1)
-			factor = mgl32.Clamp(factor, 0, 1)
-			offset := normal.Mul(factor + rand.Float32()*0.05)
-
-			vert = vert.Add(offset)
-
-			ps.Vertices[i] = v
-			ps.Vertices[i].X = vert[0]
-			ps.Vertices[i].Y = vert[1]
-			ps.Vertices[i].Z = vert[2]
-		}
-
-		// update buffers
-		shotgunMesh.UpdateVertexBuffer(0, ps.Vertices, shotgunMesh.GetCount())
-		// update state
-		e.prefabState.LastEffectState = true
-		return
-	}
-
-	if e.prefabState.LastEffectState {
-		shotgunMesh.UpdateVertexBuffer(0, ps.Model.Vertices, uint32(len(ps.Model.Indices)))
-		e.prefabState.LastEffectState = false
-	}
+	shotgun := &e.prefabs[0]
+	shotgun.Position = mgl32.Vec3{0, 1.446, 0}
+	shotgun.Scaling = mgl32.Vec3{0.25, 0.25, 0.25}
+	shotgun.Rotation[1] = -90
+	// shotgun.Rotation[2] = 90
 
 }
 

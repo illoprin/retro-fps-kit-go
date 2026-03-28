@@ -30,7 +30,7 @@ func GetTransformMatrixWithOrder(order TransformOrder, pos mgl32.Vec3, rot mgl32
 
 	// pivot translation matrix
 	pivotMat := mgl32.Translate3D(pvt.X(), pvt.Y(), pvt.Z())
-	invPivotMat := mgl32.Translate3D(-pvt.X(), -pvt.Y(), -pvt.Z())
+	// invPivotMat := mgl32.Translate3D(-pvt.X(), -pvt.Y(), -pvt.Z())
 
 	// apply transformations in specific order
 	switch order {
@@ -79,7 +79,7 @@ func GetTransformMatrixWithOrder(order TransformOrder, pos mgl32.Vec3, rot mgl32
 
 	// apply pivot (if needed)
 	if pvt != (mgl32.Vec3{}) {
-		model = invPivotMat.Mul4(model).Mul4(pivotMat)
+		model = pivotMat.Mul4(model)
 	}
 
 	return model

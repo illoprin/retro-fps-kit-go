@@ -1,0 +1,57 @@
+lvl Dungeon Entrance
+author illoprin
+music assets/music/dark_ambient.ogg
+
+using assets/textures/brick.png as "brick"
+using assets/textures/floor_stone.png as "floor"
+using assets/textures/sky.png as "sky"
+using assets/models/torch.obj as "torch"
+using assets/textures/wood.png as "wood_door"
+
+[VERTS]
+0 0
+512 0
+512 512
+0 512
+512 1024
+1024 1024
+1024 0
+
+[WALLS]
+# Комната 1
+0, 1, false, "brick", -1
+1, 2, false, "brick", -1
+2, 3, false, "brick", -1
+3, 0, false, "brick", -1
+
+# Портал в коридор
+2, 4, true, ("brick", "brick"), 1
+
+# Коридор (сектор 1)
+4, 5, false, "brick", -1
+5, 6, false, "brick", -1
+6, 1, false, "brick", -1
+1, 2, false, "brick", -1  # Эта стена уже была, но здесь она дублируется? 
+# Внимание: В реальном парсере стены не должны дублироваться.
+# Для корректности укажем стены сектора 1 отдельным списком после сектора 0.
+# Исправим индексы в [SECTORS] соответственно.
+
+# Правильный список WALLS (сквозной):
+# W0: 0-1 (S0)
+# W1: 1-2 (S0)
+# W2: 2-3 (S0)
+# W3: 3-0 (S0)
+# W4: 2-4 (Portal S0->S1)
+# W5: 4-5 (S1)
+# W6: 5-6 (S1)
+# W7: 6-1 (S1)
+# W8: 1-2 (S1) - дубль, но технически это часть S1
+
+[SECTORS]
+0, 3, 0.0, 128.0, "floor", "ceil_white", 200, 1
+4, 8, -32.0, 96.0, "floor", "ceil_white", 150, 2
+
+[ENTITIES]
+PlayerStart, 0, 256.0, 256.0, 0.0, 0.0
+Model, 0, 128.0, 384.0, 0.0, "torch", 1.0
+Trigger, 0, 400.0, 400.0, 0.0, 2, "open_door"

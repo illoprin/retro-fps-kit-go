@@ -6,7 +6,8 @@ import (
 
 type Window struct {
 	*glfw.Window
-	width, height int
+	width, height    int
+	userSizeCallback glfw.FramebufferSizeCallback
 }
 
 func InitGLFW() error {
@@ -31,7 +32,9 @@ func NewWindow(width, height int, title string) (*Window, error) {
 	}
 
 	w := &Window{
-		glfwW, width, height,
+		Window: glfwW,
+		width:  width,
+		height: height,
 	}
 
 	w.setupCallbacks()
@@ -39,10 +42,17 @@ func NewWindow(width, height int, title string) (*Window, error) {
 	return w, nil
 }
 
+func (w *Window) SetResizeCallback(f glfw.FramebufferSizeCallback) {
+	w.userSizeCallback = f
+}
+
 func (w *Window) setupCallbacks() {
-	w.Window.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
+	w.Window.SetFramebufferSizeCallback(func(win *glfw.Window, width, height int) {
 		w.width = width
 		w.height = height
+		if w.userSizeCallback != nil {
+			w.userSizeCallback(win, width, height)
+		}
 	})
 }
 

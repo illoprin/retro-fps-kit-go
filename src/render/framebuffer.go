@@ -6,152 +6,138 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
-// Framebuffer обёртка над OpenGL Framebuffer
+// Framebuffer object implementation
 type Framebuffer struct {
 	ID              uint32
 	Width           int32
 	Height          int32
-	ColorTexture    *Texture
+	ColorTextures   [](*Texture)
 	DepthTexture    *Texture
-	HasColor        bool
 	HasDepth        bool
 	HasDepthStencil bool
 }
 
-// FramebufferConfig конфигурация для создания Framebuffer
-type FramebufferConfig struct {
-	Width           int32
-	Height          int32
-	ColorFormat     TextureFormat
-	ColorFiltering  TextureFilter
-	UseDepth        bool
-	UseDepthStencil bool
-	UseMultisample  bool
-	Samples         int32
-}
-
-// DefaultFramebufferConfig возвращает конфигурацию по умолчанию
-func DefaultFramebufferConfig(width, height int32) FramebufferConfig {
-	return FramebufferConfig{
-		Width:           width,
-		Height:          height,
-		ColorFormat:     FormatRGBA8,
-		UseDepth:        true,
-		UseDepthStencil: false,
-		UseMultisample:  false,
-		Samples:         4,
-	}
-}
-
 // NewFramebuffer создаёт новый Framebuffer
-func NewFramebuffer(config FramebufferConfig) (*Framebuffer, error) {
+func NewFramebuffer(width, height int32) (*Framebuffer, error) {
 	var id uint32
 	gl.GenFramebuffers(1, &id)
+
 	if id == 0 {
-		return nil, fmt.Errorf("failed to generate framebuffer")
+		return nil, fmt.Errorf("failed to create framebuffer")
 	}
 
 	fb := &Framebuffer{
-		ID:     id,
-		Width:  config.Width,
-		Height: config.Height,
+		ID:            id,
+		Width:         width,
+		Height:        height,
+		ColorTextures: make([](*Texture), 0),
 	}
-
-	fb.Bind()
-
-	// Создаём цветную текстуру
-	if config.ColorFormat != 0 {
-		colorTex, err := NewFramebufferColorTexture(config.Width, config.Height, config.ColorFormat, config.ColorFiltering)
-		if err != nil {
-			fb.Delete()
-			return nil, fmt.Errorf("failed to create color texture: %v", err)
-		}
-		fb.ColorTexture = colorTex
-		fb.HasColor = true
-
-		if config.UseMultisample {
-			// Для мультисэмплинга используем Renderbuffer
-			var rbo uint32
-			gl.GenRenderbuffers(1, &rbo)
-			gl.BindRenderbuffer(gl.RENDERBUFFER, rbo)
-			gl.RenderbufferStorageMultisample(gl.RENDERBUFFER, config.Samples, uint32(fb.ColorTexture.getInternalFormat()), config.Width, config.Height)
-			gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo)
-		} else {
-			gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, colorTex.ID, 0)
-		}
-	}
-
-	// Создаём текстуру глубины
-	if config.UseDepthStencil {
-		depthTex, err := NewFramebufferDepthTexture(config.Width, config.Height)
-		if err != nil {
-			fb.Delete()
-			return nil, fmt.Errorf("failed to create depth texture: %v", err)
-		}
-		// Изменяем формат на Depth24Stencil8
-		depthTex.Config.Format = FormatDepth24Stencil8
-		depthTex.bind()
-		depthTex.allocateStorage()
-		depthTex.unbind()
-
-		fb.DepthTexture = depthTex
-		fb.HasDepthStencil = true
-
-		if config.UseMultisample {
-			var rbo uint32
-			gl.GenRenderbuffers(1, &rbo)
-			gl.BindRenderbuffer(gl.RENDERBUFFER, rbo)
-			gl.RenderbufferStorageMultisample(gl.RENDERBUFFER, config.Samples, gl.DEPTH24_STENCIL8, config.Width, config.Height)
-			gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, rbo)
-		} else {
-			gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, depthTex.ID, 0)
-		}
-	} else if config.UseDepth {
-		depthTex, err := NewFramebufferDepthTexture(config.Width, config.Height)
-		if err != nil {
-			fb.Delete()
-			return nil, fmt.Errorf("failed to create depth texture: %v", err)
-		}
-		fb.DepthTexture = depthTex
-		fb.HasDepth = true
-
-		if config.UseMultisample {
-			var rbo uint32
-			gl.GenRenderbuffers(1, &rbo)
-			gl.BindRenderbuffer(gl.RENDERBUFFER, rbo)
-			gl.RenderbufferStorageMultisample(gl.RENDERBUFFER, config.Samples, gl.DEPTH_COMPONENT32F, config.Width, config.Height)
-			gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rbo)
-		} else {
-			gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTex.ID, 0)
-		}
-	}
-
-	// Проверяем завершённость Framebuffer
-	if status := gl.CheckFramebufferStatus(gl.FRAMEBUFFER); status != gl.FRAMEBUFFER_COMPLETE {
-		fb.Delete()
-		return nil, fmt.Errorf("framebuffer is not complete: %d", status)
-	}
-
-	fb.Unbind()
 
 	return fb, nil
 }
 
-// Bind привязывает Framebuffer
+func (f *Framebuffer) HasColor() bool {
+	return len(f.ColorTextures) > 0
+}
+
+// NewColorAttachment generates new color attachment (bind before use)
+func (f *Framebuffer) NewColorAttachment(colorFormat TextureFormat) error {
+	// create color attachment
+	colorTex, err := NewFramebufferColorTexture(f.Width, f.Height, colorFormat)
+	if err != nil {
+		return fmt.Errorf("failed to create color texture: %v", err)
+	}
+	// attach created texture
+	gl.FramebufferTexture2D(
+		gl.FRAMEBUFFER,
+		gl.COLOR_ATTACHMENT0+uint32(len(f.ColorTextures)),
+		gl.TEXTURE_2D, colorTex.ID,
+		0,
+	)
+	// add color attachment to slice
+	f.ColorTextures = append(f.ColorTextures, colorTex)
+	return nil
+}
+
+// SetDrawBuffers determines buffers to color drawing (bind before use)
+func (f *Framebuffer) SetDrawBuffers(buffersIDs []uint32) {
+	gl.DrawBuffers(int32(len(buffersIDs)), &buffersIDs[0])
+}
+
+// NewDepthStencilAttachment generates new depth stencil attachment (bind before use)
+func (f *Framebuffer) NewDepthStencilAttachment() error {
+	// create depth texture
+	depthTex, err := NewFramebufferDepthTexture(f.Width, f.Height)
+	if err != nil {
+		return fmt.Errorf("failed to create depth stencil texture: %v", err)
+	}
+	// change format to Depth24Stencil8
+	depthTex.Config.Format = FormatDepth24Stencil8
+	depthTex.bind()
+	depthTex.allocateStorage()
+	depthTex.unbind()
+
+	f.DepthTexture = depthTex
+	f.HasDepthStencil = true
+
+	// attach created texture
+	gl.FramebufferTexture2D(
+		gl.FRAMEBUFFER,
+		gl.DEPTH_STENCIL_ATTACHMENT,
+		gl.TEXTURE_2D,
+		depthTex.ID,
+		0,
+	)
+	return nil
+}
+
+// NewDepthAttachment generates new depth texture attachment (bind before use)
+func (f *Framebuffer) NewDepthAttachment() error {
+	// create depth texture
+	depthTex, err := NewFramebufferDepthTexture(f.Width, f.Height)
+	if err != nil {
+		return fmt.Errorf("failed to create depth texture: %v", err)
+	}
+	f.DepthTexture = depthTex
+	f.HasDepth = true
+
+	// attach created texture
+	gl.FramebufferTexture2D(
+		gl.FRAMEBUFFER,
+		gl.DEPTH_ATTACHMENT,
+		gl.TEXTURE_2D,
+		depthTex.ID,
+		0,
+	)
+	return nil
+}
+
+// Check framebuffer completness (bind before use)
+func (f *Framebuffer) Check() bool {
+	// check framebuffer completness
+	if status := gl.CheckFramebufferStatus(gl.FRAMEBUFFER); status != gl.FRAMEBUFFER_COMPLETE {
+		return false
+	}
+	return true
+}
+
+// Bind framebuffer
 func (fb *Framebuffer) Bind() {
 	gl.BindFramebuffer(gl.FRAMEBUFFER, fb.ID)
 	gl.Viewport(0, 0, fb.Width, fb.Height)
 }
 
-// Unbind отвязывает Framebuffer (возвращает к экрану)
+// Unbind framebuffer (back to main opengl framebuffer)
 func (fb *Framebuffer) Unbind() {
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 }
 
-// Delete удаляет Framebuffer и связанные текстуры
+// Delete deletes framebuffer and related textures
 func (fb *Framebuffer) Delete() {
-	if fb.ColorTexture != nil {
-		fb.ColorTexture.Delete()
+	if len(fb.ColorTextures) > 0 {
+		for _, t := range fb.ColorTextures {
+			t.Delete()
+		}
 	}
 	if fb.DepthTexture != nil {
 		fb.DepthTexture.Delete()
@@ -159,7 +145,7 @@ func (fb *Framebuffer) Delete() {
 	gl.DeleteFramebuffers(1, &fb.ID)
 }
 
-// Resize изменяет размер Framebuffer
+// Resize framebuffer color attachments
 func (fb *Framebuffer) Resize(width, height int32) {
 	if fb.Width == width && fb.Height == height {
 		return
@@ -168,31 +154,25 @@ func (fb *Framebuffer) Resize(width, height int32) {
 	fb.Width = width
 	fb.Height = height
 
-	if fb.ColorTexture != nil {
-		fb.ColorTexture.Resize(width, height)
+	if len(fb.ColorTextures) > 0 {
+		for _, t := range fb.ColorTextures {
+			t.Resize(width, height)
+		}
 	}
 	if fb.DepthTexture != nil {
 		fb.DepthTexture.Resize(width, height)
 	}
 }
 
-// BlitToScreen копирует содержимое Framebuffer на экран
-func (fb *Framebuffer) BlitToScreen() {
+// BlitToScreen copy framebuffer data to another framebuffer
+func (fb *Framebuffer) Blit(id uint32) {
 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, fb.ID)
-	gl.BindFramebuffer(gl.DRAW_FRAMEBUFFER, 0)
+	gl.BindFramebuffer(gl.DRAW_FRAMEBUFFER, id)
 	gl.BlitFramebuffer(0, 0, fb.Width, fb.Height, 0, 0, fb.Width, fb.Height, gl.COLOR_BUFFER_BIT, gl.LINEAR)
-	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, 0)
+	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, id)
 }
 
-// GetColorTextureID возвращает ID цветной текстуры
-func (fb *Framebuffer) GetColorTextureID() uint32 {
-	if fb.ColorTexture != nil {
-		return fb.ColorTexture.ID
-	}
-	return 0
-}
-
-// GetDepthTextureID возвращает ID текстуры глубины
+// GetDepthTextureID returns id of depth texture
 func (fb *Framebuffer) GetDepthTextureID() uint32 {
 	if fb.DepthTexture != nil {
 		return fb.DepthTexture.ID

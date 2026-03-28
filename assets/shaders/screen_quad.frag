@@ -15,6 +15,9 @@ struct color_grading_t {
 };
 
 uniform sampler2D u_color;
+// uniform sampler2D u_position;
+// uniform sampler2D u_noramal;
+// uniform sampler2D u_depth;
 uniform vignette_t u_vignette;
 uniform color_grading_t u_color_grading;
 // uniform float u_time;

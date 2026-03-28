@@ -34,8 +34,8 @@ func (r *PrefabRenderer) Prepare(w, h int, c *player.Camera) {
 	// set global uniforms
 	r.p.SetMat4("u_projection", c.GetProjectionMatrix(w, h))
 	r.p.SetMat4("u_view", c.GetViewMatrix())
-	r.p.Set3f("u_lightPos", c.Position)
-	r.p.Set3f("u_lightColor", mgl32.Vec3{0.761 / 2, 0.835 / 2, 0.988 / 2})
+	r.p.Set3f("u_light_pos", c.Position)
+	r.p.Set3f("u_light_color", mgl32.Vec3{0.761 / 2, 0.835 / 2, 0.988 / 2})
 }
 
 func (r *PrefabRenderer) Render(p *scene.Prefab) {
@@ -47,7 +47,7 @@ func (r *PrefabRenderer) Render(p *scene.Prefab) {
 	r.p.SetMat4(
 		"u_model",
 		math.GetTransformMatrixWithOrder(
-			math.OrderSRT,
+			math.OrderRTS,
 			p.Position,
 			p.Rotation,
 			p.Scaling,

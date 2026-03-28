@@ -206,11 +206,11 @@ func NewFontAtlasTexture(width, height int32, data []byte) (*Texture, error) {
 }
 
 // NewFramebufferColorTexture создаёт текстуру для использования с Framebuffer
-func NewFramebufferColorTexture(width, height int32, format TextureFormat, filter TextureFilter) (*Texture, error) {
+func NewFramebufferColorTexture(width, height int32, format TextureFormat) (*Texture, error) {
 	config := DefaultTextureConfig(width, height)
 	config.Format = format
-	config.FilterMin = filter
-	config.FilterMag = filter
+	config.FilterMin = FilterNearest
+	config.FilterMag = FilterNearest
 	config.WrapS = WrapClampToEdge
 	config.WrapT = WrapClampToEdge
 	config.GenerateMipmaps = false
@@ -359,7 +359,9 @@ func (t *Texture) Unbind(unit uint32) {
 
 // Delete удаляет текстуру
 func (t *Texture) Delete() {
-	gl.DeleteTextures(1, &t.ID)
+	if t.ID > 0 {
+		gl.DeleteTextures(1, &t.ID)
+	}
 }
 
 // setParams устанавливает параметры текстуры

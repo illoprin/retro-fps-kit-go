@@ -9,21 +9,29 @@ import (
 	postprocessing "github.com/illoprin/retro-fps-kit-go/src/post_processing"
 )
 
+type ImageTexture struct {
+	ID   uint32
+	Name string
+}
+
 type DebugMenu struct {
-	Visible          bool
-	DestroyingEffect bool
-	mixerConfig      *postprocessing.SceneMixerConfig
-	cg               *postprocessing.ColorGrading
-	c                *player.EditorController
+	Visible     bool
+	buffers     []ImageTexture
+	textures    []ImageTexture
+	mixerConfig *postprocessing.SceneMixerConfig
+	cg          *postprocessing.ColorGrading
+	c           *player.EditorController
 }
 
 func NewDebugMenu(
 	c *player.EditorController,
 	cfg *postprocessing.SceneMixerConfig,
 	cg *postprocessing.ColorGrading,
+	bufs []ImageTexture,
+	tex []ImageTexture,
 ) *DebugMenu {
 
-	return &DebugMenu{true, false, cfg, cg, c}
+	return &DebugMenu{true, bufs, tex, cfg, cg, c}
 }
 
 func (m *DebugMenu) Show() {
@@ -47,16 +55,12 @@ func (m *DebugMenu) showDebugWindow() {
 			m.barScene()
 		}
 
-		if imgui.BeginTabItem("Textures") {
-			m.barTextures()
-		}
-
 		if imgui.BeginTabItem("Post Processing") {
 			m.barPP()
 		}
 
-		if imgui.BeginTabItem("Framebuffers") {
-			m.barFramebuffers()
+		if imgui.BeginTabItem("Attachments") {
+			m.barAttachments()
 		}
 
 		imgui.EndTabBar()
@@ -92,8 +96,8 @@ func (m *DebugMenu) barScene() {
 		imgui.SliderFloat("Speed", &m.c.Speed, 1, 20)
 		imgui.SliderFloat("Sensitivity", &m.c.Sensitivity, 0.01, 1)
 	}
-	if imgui.CollapsingHeaderBoolPtr("Game objects", &camVty) {
-		imgui.Checkbox("Shotgun destroying effect", &m.DestroyingEffect)
+	goVty := true
+	if imgui.CollapsingHeaderBoolPtr("Game objects", &goVty) {
 	}
 	cVty := true
 	if imgui.CollapsingHeaderBoolPtr("Camera", &cVty) {
@@ -138,7 +142,15 @@ func (m *DebugMenu) barTextures() {
 	imgui.EndTabItem()
 }
 
-func (m *DebugMenu) barFramebuffers() {
-	imgui.Text("nil")
+func (m *DebugMenu) barAttachments() {
+	for _, b := range m.buffers {
+		imgui.Text(b.Name)
+
+		ref := imgui.NewEmptyTextureRef()
+		ref.SetTexID(imgui.TextureID(b.ID))
+
+		imgui.ImageV(*ref, imgui.Vec2{512, 512}, imgui.Vec2{0, 1}, imgui.Vec2{1, 0})
+	}
+
 	imgui.EndTabItem()
 }
