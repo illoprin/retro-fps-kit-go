@@ -182,6 +182,20 @@ func (e *Engine) initCustomImguiUI() {
 	// Post-processing textures (add more as needed)
 	passTextures := make([]imguimenus.ImageTexture, 0)
 	for _, p := range e.passPipeline {
+
+		if p.GetName() == "ssao" {
+			ssao := p.(*postprocessing.SSAOPass)
+			rawSSAO := imguimenus.ImageTexture{
+				ID:   ssao.GetRawSSAO().ID,
+				Name: "ssao.raw",
+			}
+			noise := imguimenus.ImageTexture{
+				ID:   ssao.GetNoise().ID,
+				Name: "ssao.noise",
+			}
+			passTextures = append(passTextures, rawSSAO, noise)
+		}
+
 		t := imguimenus.ImageTexture{
 			ID:   p.GetColor().ID,
 			Name: p.GetName(),
@@ -369,7 +383,13 @@ func (e *Engine) setupRenderingPipeline() error {
 	// setup post processing effects
 
 	// -- ssao
-	ssaoConfig := &postprocessing.SSAOConfig{}
+	ssaoConfig := &postprocessing.SSAOConfig{
+		Use:              true,
+		NoiseTextureSize: 4,
+		KernelSize:       32,
+		Radius:           0.5,
+		Bias:             0.025,
+	}
 	ssaoPass, err := postprocessing.NewSSAOPass(
 		e.window.GetConfig(), meshQuad, ssaoConfig,
 	)
@@ -545,6 +565,14 @@ func (e *Engine) performPostProcessingPipeline() *render.Texture {
 	for _, node := range e.passPipeline {
 		if !node.Use() {
 			continue
+		}
+		if node.GetName() == "ssao" {
+			cam := e.controller.GetCamera()
+			proj := cam.GetProjectionMatrix(
+				int(e.window.GetConfig().Width),
+				int(e.window.GetConfig().Height),
+			)
+			node.(*postprocessing.SSAOPass).SetProjectionMatrix(proj)
 		}
 		node.RenderPass([]*render.Texture{lastColor, normal, depth})
 		lastColor = node.GetColor()

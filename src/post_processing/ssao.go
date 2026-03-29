@@ -2,26 +2,39 @@ package postprocessing
 
 import (
 	"fmt"
+	"math/rand"
+	"strconv"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
+	mathutils "github.com/illoprin/retro-fps-kit-go/src/math"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
 	"github.com/illoprin/retro-fps-kit-go/src/window"
 )
 
 type SSAOConfig struct {
-	Use bool
+	Use              bool
+	NoiseTextureSize int32
+	KernelSize       int32
+	Radius           float32
+	Bias             float32
 }
 
 type SSAOPass struct {
-	ssao        *render.Framebuffer
-	blur        *render.Framebuffer
-	ssaoProgram *render.Program
-	blurProgram *render.Program
-	mesh        *render.Mesh
-	resources   []render.Resource
-	screenCfg   *window.ScreenConfig
-	cfg         *SSAOConfig
+	ssao              *render.Framebuffer
+	blur              *render.Framebuffer
+	composition       *render.Framebuffer
+	ssaoProgram       *render.Program
+	blurProgram       *render.Program
+	compositorProgram *render.Program
+	noiseTexture      *render.Texture
+	mesh              *render.Mesh
+	resources         []render.Resource
+	samples           []mgl32.Vec3
+	mprojection       mgl32.Mat4
+	screenCfg         *window.ScreenConfig
+	cfg               *SSAOConfig
 }
 
 func NewSSAOPass(
@@ -35,53 +48,19 @@ func NewSSAOPass(
 		mesh:      quad,
 	}
 
-	// init ssao buffer
-	ssao, err := render.NewFramebuffer(screenCfg.Width, screenCfg.Height)
-	if err != nil {
-		return nil, fmt.Errorf("ssao pass - failed to create ssao fbo - %w", err)
+	if err := p.initFramebuffers(); err != nil {
+		return nil, err
 	}
-	ssao.Bind()
-	if err := ssao.NewColorAttachment(render.FormatRGBA8); err != nil {
-		ssao.Delete()
-		return nil, fmt.Errorf("ssao pass - failed to create ssao fbo - %w", err)
-	}
-	if !ssao.Check() {
-		ssao.Delete()
-		return nil, fmt.Errorf("ssao pass - fbo not completed %w", err)
-	}
-	p.ssao = ssao
 
-	// init blur buffer
-	blur, err := render.NewFramebuffer(screenCfg.Width, screenCfg.Height)
-	if err != nil {
-		return nil, fmt.Errorf("ssao pass - failed to create blur fbo - %w", err)
+	if err := p.initPrograms(); err != nil {
+		return nil, err
 	}
-	p.blur = blur
 
-	// blur.Bind()
-	// blur.NewColorAttachment(render.FormatR8)
-
-	// init ssao drawing program
-	ssaoProgram, err := render.NewProgram(
-		assetmgr.GetShaderPath("quad.vert"),
-		assetmgr.GetShaderPath("ssao.frag"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("ssao pass - failed to load program - %w", err)
+	if err := p.initNoisy(); err != nil {
+		return nil, err
 	}
-	p.ssaoProgram = ssaoProgram
 
-	// init blur program
-	blurProgram, err := render.NewProgram(
-		assetmgr.GetShaderPath("quad.vert"),
-		assetmgr.GetShaderPath("ssao_blur.frag"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("ssao pass - failed to load program - %w", err)
-	}
-	p.blurProgram = blurProgram
-
-	p.resources = append(p.resources, ssao, blur, ssaoProgram, blurProgram)
+	p.resources = append(p.resources, p.ssao, p.blur, p.composition, p.ssaoProgram, p.blurProgram, p.compositorProgram, p.noiseTexture)
 	return p, nil
 }
 
@@ -93,10 +72,162 @@ func (p *SSAOPass) ResizeCallback() {
 	// resize attachments
 	p.blur.Resize(p.screenCfg.Width, p.screenCfg.Height)
 	p.ssao.Resize(p.screenCfg.Width, p.screenCfg.Height)
+	p.composition.Resize(p.screenCfg.Width, p.screenCfg.Height)
+}
+
+func (p *SSAOPass) initFramebuffers() error {
+	// init ssao buffer
+	ssao, err := render.NewFramebuffer(p.screenCfg.Width, p.screenCfg.Height)
+	if err != nil {
+		return fmt.Errorf("ssao pass - failed to create ssao fbo - %w", err)
+	}
+	ssao.Bind()
+	if err := ssao.NewColorAttachment(render.FormatR8); err != nil {
+		ssao.Delete()
+		return fmt.Errorf("ssao pass - failed to create ssao fbo - %w", err)
+	}
+	if !ssao.Check() {
+		ssao.Delete()
+		return fmt.Errorf("ssao pass - ssao fbo not completed %w", err)
+	}
+	p.ssao = ssao
+
+	// init blur buffer
+	blur, err := render.NewFramebuffer(p.screenCfg.Width, p.screenCfg.Height)
+	if err != nil {
+		return fmt.Errorf("ssao pass - failed to create blur fbo - %w", err)
+	}
+	blur.Bind()
+	if err := blur.NewColorAttachment(render.FormatR8); err != nil {
+		blur.Delete()
+		return fmt.Errorf("ssao pass - failed to create blur fbo - %w", err)
+	}
+	if !blur.Check() {
+		blur.Delete()
+		return fmt.Errorf("ssao pass - blur fbo not completed %w", err)
+	}
+	p.blur = blur
+
+	// init composition buffer
+	composition, err := render.NewFramebuffer(p.screenCfg.Width, p.screenCfg.Height)
+	if err != nil {
+		return fmt.Errorf("ssao pass - failed to create composition fbo - %w", err)
+	}
+	composition.Bind()
+	if err := composition.NewColorAttachment(render.FormatRGBA8); err != nil {
+		composition.Delete()
+		return fmt.Errorf("ssao pass - failed to create composition fbo - %w", err)
+	}
+	if !composition.Check() {
+		composition.Delete()
+		return fmt.Errorf("ssao pass - composition fbo not completed %w", err)
+	}
+	p.composition = composition
+	return nil
+}
+
+func (p *SSAOPass) initNoisy() error {
+	// samples (hemi-sphere random points)
+	p.samples = make([]mgl32.Vec3, p.cfg.KernelSize)
+	for i := 0; i < int(p.cfg.KernelSize); i++ {
+
+		// generate random hemi-sphere sample
+		sample := mgl32.Vec3{
+			rand.Float32()*2.0 - 1.0,
+			rand.Float32()*2.0 - 1.0,
+			rand.Float32(),
+		}
+		sample = sample.Normalize()
+		sample = sample.Mul(rand.Float32())
+
+		// distribution adjustment
+		//
+		// more samples closer to the center
+		scale := float32(i) / 64.0
+		scale = mathutils.Lerp(0.1, 1.0, scale*scale)
+		sample = sample.Mul(scale)
+
+		p.samples[i] = sample
+	}
+
+	p.ssaoProgram.Use()
+	for i := 0; i < int(p.cfg.KernelSize); i++ {
+		p.ssaoProgram.Set3f("u_samples["+strconv.Itoa(i)+"]", p.samples[i])
+	}
+
+	// noise tex (random rotations for hemi-sphere)
+	noiseSliceLen := p.cfg.NoiseTextureSize * p.cfg.NoiseTextureSize * 3
+	noiseRaw := make([]byte, noiseSliceLen)
+	for i := 0; i < int(noiseSliceLen/3); i++ {
+		pix := rand.Float32()*2 - 1
+		noiseRaw[i*3] = byte(pix * 255.0)
+		noiseRaw[i*3+1] = byte(pix * 255.0)
+		noiseRaw[i*3+2] = 0
+	}
+	noiseTextureConfig := render.TextureConfig{
+		Type:            render.TextureType2D,
+		Width:           p.cfg.NoiseTextureSize,
+		Height:          p.cfg.NoiseTextureSize,
+		Format:          render.FormatRGB8,
+		FilterMin:       render.FilterNearest,
+		FilterMag:       render.FilterNearest,
+		WrapS:           render.WrapRepeat,
+		WrapT:           render.WrapRepeat,
+		GenerateMipmaps: false,
+		Anisotropy:      0,
+	}
+	noiseTexture, err := render.NewTexture(noiseTextureConfig)
+	if err != nil {
+		return fmt.Errorf("ssao pass - failed to create noise texture %w", err)
+	}
+	p.noiseTexture = noiseTexture
+	p.noiseTexture.UploadRGB(0, 0, p.cfg.NoiseTextureSize, p.cfg.NoiseTextureSize, noiseRaw)
+	return nil
+}
+
+func (p *SSAOPass) initPrograms() error {
+	// init ssao drawing program
+	ssaoProgram, err := render.NewProgram(
+		assetmgr.GetShaderPath("quad.vert"),
+		assetmgr.GetShaderPath("ssao.frag"),
+	)
+	if err != nil {
+		return fmt.Errorf("ssao pass - failed to load ssao program - %w", err)
+	}
+	p.ssaoProgram = ssaoProgram
+
+	// init blur ao program
+	blurProgram, err := render.NewProgram(
+		assetmgr.GetShaderPath("quad.vert"),
+		assetmgr.GetShaderPath("ssao_blur.frag"),
+	)
+	if err != nil {
+		return fmt.Errorf("ssao pass - failed to load blur program - %w", err)
+	}
+	p.blurProgram = blurProgram
+
+	// init compositor program
+	compositorProgram, err := render.NewProgram(
+		assetmgr.GetShaderPath("quad.vert"),
+		assetmgr.GetShaderPath("ssao_compositor.frag"),
+	)
+	if err != nil {
+		return fmt.Errorf("ssao pass - failed to ssao compositor load program - %w", err)
+	}
+	p.compositorProgram = compositorProgram
+	return nil
 }
 
 func (p *SSAOPass) GetColor() *render.Texture {
+	return p.composition.ColorTextures[0]
+}
+
+func (p *SSAOPass) GetRawSSAO() *render.Texture {
 	return p.ssao.ColorTextures[0]
+}
+
+func (p *SSAOPass) GetNoise() *render.Texture {
+	return p.noiseTexture
 }
 
 // RenderPass
@@ -108,18 +239,75 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 		return
 	}
 
+	color := src[0]
+	normal := src[1]
+	depth := src[2]
+
+	// -- SSAO render pass
+
 	p.ssao.Bind()
 	p.ssaoProgram.Use()
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
-	src[0].Bind(0)
-	p.ssaoProgram.Set1i("u_color", 0)
+
+	// send uniforms
+	//
+	// normal texture
+	normal.Bind(0)
+	p.ssaoProgram.Set1i("u_normal", 0)
+	// depth texture
+	depth.Bind(1)
+	p.ssaoProgram.Set1i("u_depth", 1)
+	// noise texture
+	p.noiseTexture.Bind(2)
+	p.ssaoProgram.Set1i("u_noise", 2)
+	// inv projection
+	p.ssaoProgram.SetMat4("u_invprojection", p.mprojection.Inv())
+	p.ssaoProgram.SetMat4("u_projection", p.mprojection)
+	// samples
+	p.ssaoProgram.Set1i("u_kernel_size", p.cfg.KernelSize)
+	// noise texture size
+	noiseScale := mgl32.Vec2{
+		float32(p.screenCfg.Width) / float32(p.cfg.NoiseTextureSize),
+		float32(p.screenCfg.Height) / float32(p.cfg.NoiseTextureSize),
+	}
+	p.ssaoProgram.Set2f("u_noise_scale", noiseScale)
+	// radius and bias
+	p.ssaoProgram.Set1f("u_radius", p.cfg.Radius)
+	p.ssaoProgram.Set1f("u_bias", p.cfg.Bias)
+
 	p.mesh.Draw()
 
-	// draw ssao
-	// render quad
-	// do blur
-	// render quad
+	// -- Blur render pass
+
+	p.blur.Bind()
+	p.blurProgram.Use()
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	// bind and send raw ssao data
+	p.ssao.ColorTextures[0].Bind(0)
+	p.blurProgram.Set1i("u_raw_ssao", 0)
+
+	p.mesh.Draw()
+
+	// -- Compositor render pass
+
+	p.composition.Bind()
+	p.compositorProgram.Use()
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	// send uniforms
+	//
+	// color texture
+	color.Bind(0)
+	p.compositorProgram.Set1i("u_color", 0)
+	// ssao texture
+	p.blur.ColorTextures[0].Bind(1)
+	p.compositorProgram.Set1i("u_ssao", 1)
+
+	p.mesh.Draw()
+}
+
+func (p *SSAOPass) SetProjectionMatrix(m mgl32.Mat4) {
+	p.mprojection = m
 }
 
 func (p *SSAOPass) Use() bool {

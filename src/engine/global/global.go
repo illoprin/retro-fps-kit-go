@@ -12,6 +12,8 @@ var (
 
 const (
 	DefaultResolutionRatio float32 = 0.5
+	CamNear                float32 = 0.01
+	CamFar                 float32 = 100.0
 )
 
 func BoolToInt32(b bool) int32 {

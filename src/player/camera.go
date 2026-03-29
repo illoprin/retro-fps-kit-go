@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/illoprin/retro-fps-kit-go/src/engine/global"
 )
 
 // Camera represents a first-person style camera
@@ -60,7 +61,7 @@ func (c *Camera) GetViewMatrix() mgl32.Mat4 {
 // GetProjectionMatrix returns the perspective projection matrix
 func (c *Camera) GetProjectionMatrix(width, height int) mgl32.Mat4 {
 	aspect := float32(width) / float32(height)
-	return mgl32.Perspective(mgl32.DegToRad(c.Fov), aspect, 0.1, 100.0)
+	return mgl32.Perspective(mgl32.DegToRad(c.Fov), aspect, global.CamNear, global.CamFar)
 }
 
 // Getters

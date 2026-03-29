@@ -424,6 +424,12 @@ func (t *Texture) UploadRGBA(x, y, width, height int32, data []byte) {
 	gl.TexSubImage2D(target, 0, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(data))
 }
 
+// UploadRGBA загружает RGB данные в текстуру
+func (t *Texture) UploadRGB(x, y, width, height int32, data []byte) {
+	target := t.getTarget()
+	gl.TexSubImage2D(target, 0, x, y, width, height, gl.RGB, gl.UNSIGNED_BYTE, gl.Ptr(data))
+}
+
 // UploadR8 загружает одноканальные данные (8 бит) в текстуру
 func (t *Texture) UploadR8(x, y, width, height int32, data []byte) {
 	target := t.getTarget()
