@@ -29,7 +29,7 @@ void main() {
     vec2 uv = texcoord;
 
     // Читаем нормаль (уже в view space, предполагаем [0,1] → [-1,1])
-    vec3 normal = normalize(texture(u_normal, uv).xyz * 2.0 - 1.0);
+    vec3 normal = normalize(texture(u_normal, uv).xyz * vec3(2.0) - vec3(1.0));
 
     // Читаем depth и восстанавливаем позицию
     float depth = texture(u_depth, uv).r;
@@ -52,19 +52,22 @@ void main() {
 
         // Проецируем семпл в NDC → UV
         vec4 offset = vec4(samplePos, 1.0);
-        offset = u_projection * offset;
+        offset = u_projection * offset; // WARN (оптимизация) матричная операция (можно просто спроецировать xy)
         offset.xyz /= offset.w;
-        offset.xyz = offset.xyz * 0.5 + 0.5; // [−1,1] → [0,1]
+        offset.xyz = (offset.xyz + 1) / 2; // [−1,1] → [0,1]
 
         // Глубина сцены в точке семпла
         float sampleDepth = texture(u_depth, offset.xy).r;
+        // WARN оптимизация
         vec3 sampleScenePos = ReconstructPosition(offset.xy, sampleDepth);
 
         // Range check: исключаем семплы вне радиуса
-        float rangeCheck = smoothstep(0.0, 1.0, u_radius / abs(fragPos.z - sampleScenePos.z));
+        float fragSampleDist = distance(fragPos, sampleScenePos);
+        float rangeCheck = smoothstep(u_radius, u_radius * 0.5, fragSampleDist);
 
         // Семпл загораживает фрагмент, если он глубже (с учётом bias)
-        occlusion += (sampleScenePos.z >= samplePos.z + u_bias ? 1.0 : 0.0) * rangeCheck;
+        float occlusionValue = (sampleScenePos.z >= samplePos.z + u_bias ? 1.0 : 0.0);
+        occlusion += occlusionValue * rangeCheck;
     }
 
     occlusion = 1.0 - (occlusion / float(u_kernel_size));

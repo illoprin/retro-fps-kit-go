@@ -189,11 +189,11 @@ func (e *Engine) initCustomImguiUI() {
 				ID:   ssao.GetRawSSAO().ID,
 				Name: "ssao.raw",
 			}
-			noise := imguimenus.ImageTexture{
-				ID:   ssao.GetNoise().ID,
-				Name: "ssao.noise",
+			blurSSAO := imguimenus.ImageTexture{
+				ID:   ssao.GetBlurSSAO().ID,
+				Name: "ssao.blur",
 			}
-			passTextures = append(passTextures, rawSSAO, noise)
+			passTextures = append(passTextures, rawSSAO, blurSSAO)
 		}
 
 		t := imguimenus.ImageTexture{
@@ -386,9 +386,12 @@ func (e *Engine) setupRenderingPipeline() error {
 	ssaoConfig := &postprocessing.SSAOConfig{
 		Use:              true,
 		NoiseTextureSize: 4,
-		KernelSize:       32,
-		Radius:           0.5,
-		Bias:             0.025,
+		KernelSize:       40,
+		Radius:           1.23,
+		Bias:             0.059,
+		WhitePoint:       0.971,
+		BlackPoint:       0.145,
+		BlurSize:         2,
 	}
 	ssaoPass, err := postprocessing.NewSSAOPass(
 		e.window.GetConfig(), meshQuad, ssaoConfig,

@@ -204,8 +204,11 @@ func (m *DebugMenu) renderPostProcessingTab() {
 	if imgui.CollapsingHeaderBoolPtr("SSAO", &m.showSSAO) {
 		imgui.Checkbox("Use SSAO", &m.ssaoCfg.Use)
 		imgui.SliderFloat("Radius ", &m.ssaoCfg.Radius, 0.02, 2)
-		imgui.SliderFloat("Bias", &m.ssaoCfg.Bias, 0.0001, 0.1)
+		imgui.SliderFloat("Bias", &m.ssaoCfg.Bias, 0.0001, 0.5)
 		imgui.SliderInt("Samples", &m.ssaoCfg.KernelSize, 4, 64)
+		imgui.SliderFloat("Blackpoint", &m.ssaoCfg.BlackPoint, 0, 1)
+		imgui.SliderFloat("Whitepoint", &m.ssaoCfg.WhitePoint, 0, 1)
+		imgui.SliderInt("BlurSize", &m.ssaoCfg.BlurSize, 1, 8)
 	}
 }
 

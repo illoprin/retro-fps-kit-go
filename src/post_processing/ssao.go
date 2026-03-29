@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/mathgl/mgl32"
+	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
 	mathutils "github.com/illoprin/retro-fps-kit-go/src/math"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
@@ -19,6 +19,9 @@ type SSAOConfig struct {
 	KernelSize       int32
 	Radius           float32
 	Bias             float32
+	BlackPoint       float32
+	WhitePoint       float32
+	BlurSize         int32
 }
 
 type SSAOPass struct {
@@ -31,8 +34,8 @@ type SSAOPass struct {
 	noiseTexture      *render.Texture
 	mesh              *render.Mesh
 	resources         []render.Resource
-	samples           []mgl32.Vec3
-	mprojection       mgl32.Mat4
+	samples           []mgl.Vec3
+	mprojection       mgl.Mat4
 	screenCfg         *window.ScreenConfig
 	cfg               *SSAOConfig
 }
@@ -69,15 +72,27 @@ func (p *SSAOPass) GetName() string {
 }
 
 func (p *SSAOPass) ResizeCallback() {
+
+	realScreenSize := mgl.Vec3{
+		float32(p.screenCfg.Width) * p.screenCfg.ResolutionRatio,
+		float32(p.screenCfg.Height) * p.screenCfg.ResolutionRatio,
+	}
+
 	// resize attachments
-	p.blur.Resize(p.screenCfg.Width, p.screenCfg.Height)
-	p.ssao.Resize(p.screenCfg.Width, p.screenCfg.Height)
-	p.composition.Resize(p.screenCfg.Width, p.screenCfg.Height)
+	p.blur.Resize(int32(realScreenSize[0]), int32(realScreenSize[1]))
+	p.ssao.Resize(int32(realScreenSize[0]), int32(realScreenSize[1]))
+	p.composition.Resize(int32(realScreenSize[0]), int32(realScreenSize[1]))
 }
 
 func (p *SSAOPass) initFramebuffers() error {
+
+	realScreenSize := mgl.Vec3{
+		float32(p.screenCfg.Width) * p.screenCfg.ResolutionRatio,
+		float32(p.screenCfg.Height) * p.screenCfg.ResolutionRatio,
+	}
+
 	// init ssao buffer
-	ssao, err := render.NewFramebuffer(p.screenCfg.Width, p.screenCfg.Height)
+	ssao, err := render.NewFramebuffer(int32(realScreenSize[0]), int32(realScreenSize[1]))
 	if err != nil {
 		return fmt.Errorf("ssao pass - failed to create ssao fbo - %w", err)
 	}
@@ -93,7 +108,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	p.ssao = ssao
 
 	// init blur buffer
-	blur, err := render.NewFramebuffer(p.screenCfg.Width, p.screenCfg.Height)
+	blur, err := render.NewFramebuffer(int32(realScreenSize[0]), int32(realScreenSize[1]))
 	if err != nil {
 		return fmt.Errorf("ssao pass - failed to create blur fbo - %w", err)
 	}
@@ -109,7 +124,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	p.blur = blur
 
 	// init composition buffer
-	composition, err := render.NewFramebuffer(p.screenCfg.Width, p.screenCfg.Height)
+	composition, err := render.NewFramebuffer(int32(realScreenSize[0]), int32(realScreenSize[1]))
 	if err != nil {
 		return fmt.Errorf("ssao pass - failed to create composition fbo - %w", err)
 	}
@@ -128,11 +143,11 @@ func (p *SSAOPass) initFramebuffers() error {
 
 func (p *SSAOPass) initNoisy() error {
 	// samples (hemi-sphere random points)
-	p.samples = make([]mgl32.Vec3, p.cfg.KernelSize)
+	p.samples = make([]mgl.Vec3, p.cfg.KernelSize)
 	for i := 0; i < int(p.cfg.KernelSize); i++ {
 
 		// generate random hemi-sphere sample
-		sample := mgl32.Vec3{
+		sample := mgl.Vec3{
 			rand.Float32()*2.0 - 1.0,
 			rand.Float32()*2.0 - 1.0,
 			rand.Float32(),
@@ -226,8 +241,8 @@ func (p *SSAOPass) GetRawSSAO() *render.Texture {
 	return p.ssao.ColorTextures[0]
 }
 
-func (p *SSAOPass) GetNoise() *render.Texture {
-	return p.noiseTexture
+func (p *SSAOPass) GetBlurSSAO() *render.Texture {
+	return p.blur.ColorTextures[0]
 }
 
 // RenderPass
@@ -267,7 +282,7 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 	// samples
 	p.ssaoProgram.Set1i("u_kernel_size", p.cfg.KernelSize)
 	// noise texture size
-	noiseScale := mgl32.Vec2{
+	noiseScale := mgl.Vec2{
 		float32(p.screenCfg.Width) / float32(p.cfg.NoiseTextureSize),
 		float32(p.screenCfg.Height) / float32(p.cfg.NoiseTextureSize),
 	}
@@ -286,6 +301,9 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 	// bind and send raw ssao data
 	p.ssao.ColorTextures[0].Bind(0)
 	p.blurProgram.Set1i("u_raw_ssao", 0)
+	p.blurProgram.Set1f("u_blackpoint", p.cfg.BlackPoint)
+	p.blurProgram.Set1f("u_whitepoint", p.cfg.WhitePoint)
+	p.blurProgram.Set1i("u_blur_size", p.cfg.BlurSize)
 
 	p.mesh.Draw()
 
@@ -306,7 +324,7 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 	p.mesh.Draw()
 }
 
-func (p *SSAOPass) SetProjectionMatrix(m mgl32.Mat4) {
+func (p *SSAOPass) SetProjectionMatrix(m mgl.Mat4) {
 	p.mprojection = m
 }
 
