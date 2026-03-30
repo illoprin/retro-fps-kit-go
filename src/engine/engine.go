@@ -72,6 +72,8 @@ func NewEngine() (*Engine, error) {
 
 	e.printUserData()
 
+	e.setupGL()
+
 	if err := e.initImgui(); err != nil {
 		return nil, fmt.Errorf("failed to init imgui context - %v", err)
 	}
@@ -91,6 +93,29 @@ func NewEngine() (*Engine, error) {
 	e.initCustomImguiUI()
 
 	return e, nil
+}
+
+func (e *Engine) setupGL() {
+	gl.Enable(gl.DEBUG_OUTPUT)
+	// real-time single thread debugging
+	gl.Enable(gl.DEBUG_OUTPUT_SYNCHRONOUS)
+	gl.DebugMessageCallback(gl.DebugProc(func(
+		source uint32,
+		gltype uint32,
+		id uint32,
+		severity uint32,
+		length int32,
+		message string,
+		userParam unsafe.Pointer,
+	) {
+		if severity == gl.DEBUG_SEVERITY_NOTIFICATION {
+			return // trash filter
+		}
+
+		fmt.Printf("[GL][%d][%d] severity=%d: %s\n",
+			source, gltype, severity, message,
+		)
+	}), nil)
 }
 
 func (e *Engine) createWindow() error {
@@ -189,11 +214,24 @@ func (e *Engine) initCustomImguiUI() {
 				ID:   ssao.GetRawSSAO().ID,
 				Name: "ssao.raw",
 			}
+			noiseSSAO := imguimenus.ImageTexture{
+				ID:   ssao.GetNoise().ID,
+				Name: "ssao.noise",
+			}
 			blurSSAO := imguimenus.ImageTexture{
 				ID:   ssao.GetBlurSSAO().ID,
 				Name: "ssao.blur",
 			}
-			passTextures = append(passTextures, rawSSAO, blurSSAO)
+			passTextures = append(passTextures, rawSSAO, noiseSSAO, blurSSAO)
+		}
+
+		if p.GetName() == "crease" {
+			crease := p.(*postprocessing.CreaseOcclusionPass)
+			rawCrease := imguimenus.ImageTexture{
+				ID:   crease.GetOcclusion().ID,
+				Name: "crease.raw",
+			}
+			passTextures = append(passTextures, rawCrease)
 		}
 
 		t := imguimenus.ImageTexture{
@@ -204,14 +242,16 @@ func (e *Engine) initCustomImguiUI() {
 	}
 
 	ssao := e.passPipeline[0].(*postprocessing.SSAOPass)
-	colorGrading := e.passPipeline[1].(*postprocessing.ColorGradingPass)
-	vignette := e.passPipeline[2].(*postprocessing.VignettePass)
+	crease := e.passPipeline[1].(*postprocessing.CreaseOcclusionPass)
+	colorGrading := e.passPipeline[2].(*postprocessing.ColorGradingPass)
+	vignette := e.passPipeline[3].(*postprocessing.VignettePass)
 
 	e.debugMenu = imguimenus.NewDebugMenu(
 		e.window.GetConfig(), // window config
 		e.deferred,           // deferred render target (for wireframe)
 		e.controller,         // player controller
 		ssao.GetConfig().(*postprocessing.SSAOConfig),
+		crease.GetConfig().(*postprocessing.CreaseOcclusionConfig),
 		colorGrading.GetConfig().(*postprocessing.ColorGradingConfig),
 		vignette.GetConfig().(*postprocessing.VignetteConfig),
 		deferredTextures, // deferred textures
@@ -384,7 +424,7 @@ func (e *Engine) setupRenderingPipeline() error {
 
 	// -- ssao
 	ssaoConfig := &postprocessing.SSAOConfig{
-		Use:              true,
+		Use:              false,
 		NoiseTextureSize: 4,
 		KernelSize:       40,
 		Radius:           1.23,
@@ -395,6 +435,20 @@ func (e *Engine) setupRenderingPipeline() error {
 	}
 	ssaoPass, err := postprocessing.NewSSAOPass(
 		e.window.GetConfig(), meshQuad, ssaoConfig,
+	)
+	if err != nil {
+		return err
+	}
+
+	// -- crease occlusion
+	creaseConfig := &postprocessing.CreaseOcclusionConfig{
+		Use:       true,
+		Radius:    2,
+		DepthBias: 0.05,
+		Intensity: 2,
+	}
+	creasePass, err := postprocessing.NewCreaseOcclusionPass(
+		e.window.GetConfig(), meshQuad, creaseConfig,
 	)
 	if err != nil {
 		return err
@@ -436,7 +490,7 @@ func (e *Engine) setupRenderingPipeline() error {
 	// create post processing pipeline
 	e.passPipeline = append(
 		e.passPipeline,
-		ssaoPass, colorGradingPass, vignettePass,
+		ssaoPass, creasePass, colorGradingPass, vignettePass,
 	)
 
 	// append resources

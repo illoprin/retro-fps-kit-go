@@ -30,6 +30,7 @@ void main() {
 
     // Читаем нормаль (уже в view space, предполагаем [0,1] → [-1,1])
     vec3 normal = normalize(texture(u_normal, uv).xyz * vec3(2.0) - vec3(1.0));
+    // vec3 normal = normalize(texture(u_normal, uv).xyz);
 
     // Читаем depth и восстанавливаем позицию
     float depth = texture(u_depth, uv).r;

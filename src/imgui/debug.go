@@ -22,6 +22,7 @@ type DebugMenu struct {
 	colorGradingCfg *postprocessing.ColorGradingConfig
 	vignetteCfg     *postprocessing.VignetteConfig
 	ssaoCfg         *postprocessing.SSAOConfig
+	creaseCfg       *postprocessing.CreaseOcclusionConfig
 
 	// Textures for display
 	deferredTextures []ImageTexture
@@ -37,6 +38,7 @@ type DebugMenu struct {
 	showColorGrading bool
 	showVignette     bool
 	showSSAO         bool
+	showCrease       bool
 	showDeferredTex  bool
 	showPPTex        bool
 }
@@ -47,6 +49,7 @@ func NewDebugMenu(
 	deferred *renderers.DeferredRenderTarget,
 	controller *player.EditorController,
 	ssaoCfg *postprocessing.SSAOConfig,
+	creaseCfg *postprocessing.CreaseOcclusionConfig,
 	colorGradingCfg *postprocessing.ColorGradingConfig,
 	vignetteCfg *postprocessing.VignetteConfig,
 	deferredTextures []ImageTexture,
@@ -60,6 +63,7 @@ func NewDebugMenu(
 		colorGradingCfg:  colorGradingCfg,
 		vignetteCfg:      vignetteCfg,
 		ssaoCfg:          ssaoCfg,
+		creaseCfg:        creaseCfg,
 		deferredTextures: deferredTextures,
 		passTextures:     passTextures,
 
@@ -73,6 +77,7 @@ func NewDebugMenu(
 		showColorGrading: true,
 		showVignette:     true,
 		showSSAO:         true,
+		showCrease:       true,
 		showDeferredTex:  true,
 		showPPTex:        true,
 	}
@@ -182,6 +187,22 @@ func (m *DebugMenu) renderPostProcessingTab() {
 	// Resolution ratio
 	imgui.SliderFloat("Resolution Ratio", &m.windowCfg.ResolutionRatio, 0.01, 1)
 
+	if imgui.CollapsingHeaderBoolPtr("SSAO", &m.showSSAO) {
+		imgui.Checkbox("Use SSAO", &m.ssaoCfg.Use)
+		imgui.SliderFloat("Radius ", &m.ssaoCfg.Radius, 0.02, 2)
+		imgui.SliderFloat("Bias", &m.ssaoCfg.Bias, 0.0001, 0.5)
+		imgui.SliderInt("Samples", &m.ssaoCfg.KernelSize, 4, 64)
+		imgui.SliderFloat("Blackpoint", &m.ssaoCfg.BlackPoint, 0, 1)
+		imgui.SliderFloat("Whitepoint", &m.ssaoCfg.WhitePoint, 0, 1)
+		imgui.SliderInt("BlurSize", &m.ssaoCfg.BlurSize, 1, 8)
+	}
+
+	if imgui.CollapsingHeaderBoolPtr("Crease Occlusion", &m.showCrease) {
+		imgui.Checkbox("Use Crease", &m.creaseCfg.Use)
+		imgui.SliderFloat("Radius", &m.creaseCfg.Radius, 2, 4)
+		imgui.SliderFloat("Bias ", &m.creaseCfg.DepthBias, 0.001, 0.5)
+		imgui.SliderFloat("Intensity", &m.creaseCfg.Intensity, 0.1, 3)
+	}
 	if imgui.CollapsingHeaderBoolPtr("Color Grading", &m.showColorGrading) {
 		imgui.Checkbox("Use Color Grading", &m.colorGradingCfg.Use)
 		imgui.SliderFloat("Gamma", &m.colorGradingCfg.Gamma, 1, 3)
@@ -201,15 +222,6 @@ func (m *DebugMenu) renderPostProcessingTab() {
 		imgui.SliderFloat("Softness", &m.vignetteCfg.Softness, 0.01, 1)
 	}
 
-	if imgui.CollapsingHeaderBoolPtr("SSAO", &m.showSSAO) {
-		imgui.Checkbox("Use SSAO", &m.ssaoCfg.Use)
-		imgui.SliderFloat("Radius ", &m.ssaoCfg.Radius, 0.02, 2)
-		imgui.SliderFloat("Bias", &m.ssaoCfg.Bias, 0.0001, 0.5)
-		imgui.SliderInt("Samples", &m.ssaoCfg.KernelSize, 4, 64)
-		imgui.SliderFloat("Blackpoint", &m.ssaoCfg.BlackPoint, 0, 1)
-		imgui.SliderFloat("Whitepoint", &m.ssaoCfg.WhitePoint, 0, 1)
-		imgui.SliderInt("BlurSize", &m.ssaoCfg.BlurSize, 1, 8)
-	}
 }
 
 // renderTextures displays image textures slice

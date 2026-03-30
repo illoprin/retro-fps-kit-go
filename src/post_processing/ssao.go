@@ -241,6 +241,10 @@ func (p *SSAOPass) GetRawSSAO() *render.Texture {
 	return p.ssao.ColorTextures[0]
 }
 
+func (p *SSAOPass) GetNoise() *render.Texture {
+	return p.noiseTexture
+}
+
 func (p *SSAOPass) GetBlurSSAO() *render.Texture {
 	return p.blur.ColorTextures[0]
 }
