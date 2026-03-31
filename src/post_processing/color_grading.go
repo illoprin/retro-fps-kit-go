@@ -44,8 +44,10 @@ func NewColorGradingPass(
 		cfg:       cfg,
 	}
 
+	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
+
 	// create color framebuffer
-	fbo, err := render.NewFramebuffer(screenCfg.Width, screenCfg.Height)
+	fbo, err := render.NewFramebuffer(fbWidth, fbHeight)
 	if err != nil {
 		return nil, fmt.Errorf("color grading pass - failed to create framebuffer %w", err)
 	}
@@ -109,7 +111,8 @@ func (p *ColorGradingPass) RenderPass(src []*render.Texture) {
 }
 
 func (p *ColorGradingPass) ResizeCallback() {
-	p.fbo.Resize(p.screenCfg.Width, p.screenCfg.Height)
+	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
+	p.fbo.Resize(fbWidth, fbHeight)
 }
 
 func (p *ColorGradingPass) GetConfig() interface{} {

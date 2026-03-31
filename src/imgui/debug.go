@@ -86,8 +86,12 @@ func NewDebugMenu(
 // Show renders the debug window if visible
 func (m *DebugMenu) Show() {
 	if m.Visible {
-		imgui.SetNextWindowSizeConstraints(imgui.Vec2{200, 250}, imgui.Vec2{1000, 700})
+		imgui.SetNextWindowSizeConstraints(imgui.Vec2{300, 600}, imgui.Vec2{500, 1000})
+		imgui.SetNextWindowPosV(imgui.Vec2{30, 30}, imgui.CondFirstUseEver, imgui.Vec2{0, 0})
 		m.showDebugWindow()
+		imgui.SetNextWindowPosV(imgui.Vec2{1000, 30}, imgui.CondFirstUseEver, imgui.Vec2{0, 0})
+		imgui.SetNextWindowSizeConstraints(imgui.Vec2{400, 600}, imgui.Vec2{1000, 700})
+		m.showTexturesWindow()
 	}
 }
 
@@ -112,19 +116,29 @@ func (m *DebugMenu) showDebugWindow() {
 			imgui.EndTabItem()
 		}
 
-		if imgui.BeginTabItem("Deferred Textures") {
+		imgui.EndTabBar()
+	}
+
+	imgui.End()
+
+}
+
+// window shows different render targets
+func (m *DebugMenu) showTexturesWindow() {
+	imgui.Begin("Render Targets")
+
+	if imgui.BeginTabBar("TexturesTabBar") {
+		if imgui.BeginTabItem("Deferred") {
 			m.renderTextures(m.deferredTextures)
 			imgui.EndTabItem()
 		}
 
-		if imgui.BeginTabItem("PP Textures") {
+		if imgui.BeginTabItem("Post Processing") {
 			m.renderTextures(m.passTextures)
 			imgui.EndTabItem()
 		}
-
 		imgui.EndTabBar()
 	}
-
 	imgui.End()
 }
 
@@ -188,64 +202,40 @@ func (m *DebugMenu) renderPostProcessingTab() {
 	imgui.SliderFloat("Resolution Ratio", &m.windowCfg.ResolutionRatio, 0.01, 1)
 
 	if imgui.CollapsingHeaderBoolPtr("SSAO", &m.showSSAO) {
-		imgui.Checkbox("Use SSAO", &m.ssaoCfg.Use)
-		imgui.SliderFloat("Radius ", &m.ssaoCfg.Radius, 0.02, 2)
-		imgui.SliderFloat("Bias", &m.ssaoCfg.Bias, 0.0001, 0.5)
-		imgui.SliderInt("Samples", &m.ssaoCfg.KernelSize, 4, 64)
-		imgui.SliderFloat("Blackpoint", &m.ssaoCfg.BlackPoint, 0, 1)
-		imgui.SliderFloat("Whitepoint", &m.ssaoCfg.WhitePoint, 0, 1)
-		imgui.SliderInt("BlurSize", &m.ssaoCfg.BlurSize, 1, 8)
+		imgui.Checkbox("ao_Use", &m.ssaoCfg.Use)
+		imgui.SliderFloat("ao_Radius ", &m.ssaoCfg.Radius, 0.02, 2)
+		imgui.SliderFloat("ao_Bias", &m.ssaoCfg.Bias, 0.0001, 0.5)
+		imgui.SliderInt("ao_Samples", &m.ssaoCfg.KernelSize, 4, 64)
+		imgui.SliderFloat("ao_Blackpoint", &m.ssaoCfg.BlackPoint, 0, 1)
+		imgui.SliderFloat("ao_Whitepoint", &m.ssaoCfg.WhitePoint, 0, 1)
+		imgui.SliderInt("ao_BlurSize", &m.ssaoCfg.BlurSize, 1, 8)
 	}
 
-	if imgui.CollapsingHeaderBoolPtr("Crease Occlusion", &m.showCrease) {
-		imgui.Checkbox("Use Crease", &m.creaseCfg.Use)
-		imgui.SliderFloat("Radius", &m.creaseCfg.Radius, 2, 4)
-		imgui.SliderFloat("Bias ", &m.creaseCfg.DepthBias, 0.001, 0.5)
-		imgui.SliderFloat("Intensity", &m.creaseCfg.Intensity, 0.1, 3)
+	if imgui.CollapsingHeaderBoolPtr("Crease", &m.showCrease) {
+		imgui.Checkbox("c_Use", &m.creaseCfg.Use)
+		imgui.SliderFloat("c_Radius", &m.creaseCfg.Radius, 5, 100)
+		imgui.SliderFloat("c_Bias ", &m.creaseCfg.DepthBias, 0.0001, 0.1)
+		imgui.SliderFloat("c_Intensity", &m.creaseCfg.Intensity, 0.01, 10)
+		imgui.SliderInt("c_KernelSize", &m.creaseCfg.KernelSize, 1, 256)
 	}
+
 	if imgui.CollapsingHeaderBoolPtr("Color Grading", &m.showColorGrading) {
-		imgui.Checkbox("Use Color Grading", &m.colorGradingCfg.Use)
-		imgui.SliderFloat("Gamma", &m.colorGradingCfg.Gamma, 1, 3)
-		imgui.SliderFloat("Exposure", &m.colorGradingCfg.Exposure, 0.5, 4)
-		imgui.SliderFloat("Contrast", &m.colorGradingCfg.Contrast, 0.8, 3)
-		imgui.SliderFloat("Saturation", &m.colorGradingCfg.Saturation, 0, 2)
-		imgui.SliderFloat("Brightness", &m.colorGradingCfg.Brightness, 0.5, 10)
-		imgui.ColorEdit3("Shadows", &m.colorGradingCfg.ShadowsColor)
-		imgui.ColorEdit3("Midtones", &m.colorGradingCfg.MidColor)
-		imgui.ColorEdit3("Highlights", &m.colorGradingCfg.HighlightColor)
-		imgui.SliderFloat("Color Strength", &m.colorGradingCfg.ColorStrength, 0, 1.1)
+		imgui.Checkbox("cg_Use", &m.colorGradingCfg.Use)
+		imgui.SliderFloat("cg_Gamma", &m.colorGradingCfg.Gamma, 1, 3)
+		imgui.SliderFloat("cg_Exposure", &m.colorGradingCfg.Exposure, 0.5, 4)
+		imgui.SliderFloat("cg_Contrast", &m.colorGradingCfg.Contrast, 0.8, 3)
+		imgui.SliderFloat("cg_Saturation", &m.colorGradingCfg.Saturation, 0, 2)
+		imgui.SliderFloat("cg_Brightness", &m.colorGradingCfg.Brightness, 0.5, 10)
+		imgui.ColorEdit3("cg_Shadows", &m.colorGradingCfg.ShadowsColor)
+		imgui.ColorEdit3("cg_Midtones", &m.colorGradingCfg.MidColor)
+		imgui.ColorEdit3("cg_Highlights", &m.colorGradingCfg.HighlightColor)
+		imgui.SliderFloat("cg_ColorStrength", &m.colorGradingCfg.ColorStrength, 0, 1.1)
 	}
 
 	if imgui.CollapsingHeaderBoolPtr("Vignette", &m.showVignette) {
-		imgui.Checkbox("Use Vignette", &m.vignetteCfg.Use)
-		imgui.SliderFloat("Radius", &m.vignetteCfg.Radius, 0.2, 2)
-		imgui.SliderFloat("Softness", &m.vignetteCfg.Softness, 0.01, 1)
+		imgui.Checkbox("v_Use", &m.vignetteCfg.Use)
+		imgui.SliderFloat("v_Radius", &m.vignetteCfg.Radius, 0.2, 2)
+		imgui.SliderFloat("v_Softness", &m.vignetteCfg.Softness, 0.01, 1)
 	}
 
-}
-
-// renderTextures displays image textures slice
-func (m *DebugMenu) renderTextures(textures []ImageTexture) {
-
-	if len(textures) == 0 {
-		imgui.Text("No textures available")
-		return
-	}
-
-	for _, tex := range textures {
-		imgui.Text(tex.Name)
-
-		// Create texture reference for ImGui
-		textureRef := imgui.NewEmptyTextureRef()
-		textureRef.SetTexID(imgui.TextureID(tex.ID))
-
-		// Calculate display size (maintain aspect ratio)
-		displaySize := float32(512)
-		aspect := float32(m.windowCfg.Aspect)
-
-		imgui.ImageV(*textureRef,
-			imgui.Vec2{aspect * displaySize, displaySize},
-			imgui.Vec2{0, 1},
-			imgui.Vec2{1, 0})
-	}
 }

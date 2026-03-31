@@ -7,7 +7,7 @@ import (
 )
 
 type EditorController struct {
-	camera *Camera
+	camera *Camera3D
 
 	i *window.InputManager
 
@@ -78,6 +78,6 @@ func (c *EditorController) processMouseScroll(yoffset float64) {
 }
 
 // GetCamera returns camera object
-func (c *EditorController) GetCamera() *Camera {
+func (c *EditorController) GetCamera() *Camera3D {
 	return c.camera
 }

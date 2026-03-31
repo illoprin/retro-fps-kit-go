@@ -385,6 +385,13 @@ func (t *Texture) setParams() {
 		gl.TexParameteri(target, gl.TEXTURE_WRAP_R, wrapR)
 	}
 
+	if t.Config.Format == FormatDepth16 ||
+		t.Config.Format == FormatDepth24 ||
+		t.Config.Format == FormatDepth24Stencil8 ||
+		t.Config.Format == FormatDepth32F {
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.NONE)
+	}
+
 	// Анизотропная фильтрация (если доступна)
 	if t.Config.Anisotropy > 0 {
 		var maxAnisotropy float32
@@ -421,28 +428,24 @@ func (t *Texture) allocateStorage() {
 // UploadRGBA загружает RGBA данные в текстуру
 func (t *Texture) UploadRGBA(x, y, width, height int32, data []byte) {
 	target := t.getTarget()
-	t.bind()
 	gl.TexSubImage2D(target, 0, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(data))
 }
 
 // UploadRGBA загружает RGB данные в текстуру
 func (t *Texture) UploadRGB(x, y, width, height int32, data []byte) {
 	target := t.getTarget()
-	t.bind()
 	gl.TexSubImage2D(target, 0, x, y, width, height, gl.RGB, gl.UNSIGNED_BYTE, gl.Ptr(data))
 }
 
 // UploadR8 загружает одноканальные данные (8 бит) в текстуру
 func (t *Texture) UploadR8(x, y, width, height int32, data []byte) {
 	target := t.getTarget()
-	t.bind()
 	gl.TexSubImage2D(target, 0, x, y, width, height, gl.RED, gl.UNSIGNED_BYTE, gl.Ptr(data))
 }
 
 // UploadDepth загружает данные глубины
 func (t *Texture) UploadDepth(x, y, width, height int32, data []float32) {
 	target := t.getTarget()
-	t.bind()
 	gl.TexSubImage2D(target, 0, x, y, width, height, gl.DEPTH_COMPONENT, gl.FLOAT, gl.Ptr(data))
 }
 
@@ -451,7 +454,6 @@ func (t *Texture) UploadLayer(layer, x, y, width, height int32, data []byte) {
 	if t.Type != TextureType2DArray {
 		panic("UploadLayer only works with TextureType2DArray")
 	}
-	t.bind()
 	gl.TexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, x, y, layer, width, height, 1,
 		t.getFormat(), t.getDataType(), gl.Ptr(data))
 }

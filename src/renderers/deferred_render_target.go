@@ -38,10 +38,8 @@ func NewDeferredRenderTarget(
 func (t *DeferredRenderTarget) setupFramebuffer() error {
 
 	// init new framebuffer
-	deferredFBO, err := render.NewFramebuffer(
-		int32(float32(t.scConfig.Width)*t.scConfig.ResolutionRatio),
-		int32(float32(t.scConfig.Height)*t.scConfig.ResolutionRatio),
-	)
+	fbWidth, fbHeight := t.scConfig.GetScreenSize()
+	deferredFBO, err := render.NewFramebuffer(fbWidth, fbHeight)
 	if err != nil {
 		return err
 	}
@@ -53,8 +51,12 @@ func (t *DeferredRenderTarget) setupFramebuffer() error {
 	err = deferredFBO.NewColorAttachment(render.FormatRGBA8)
 
 	// normal
-	err = deferredFBO.NewColorAttachment(render.FormatRGBA16F)
-	deferredFBO.SetDrawBuffers([]int{0, 1})
+	err = deferredFBO.NewColorAttachment(render.FormatRGB16F)
+
+	// position
+	err = deferredFBO.NewColorAttachment(render.FormatRGB32F)
+
+	deferredFBO.SetDrawBuffers([]int{0, 1, 2})
 
 	// depth
 	err = deferredFBO.NewDepthAttachment()
@@ -73,6 +75,8 @@ func (t *DeferredRenderTarget) setupFramebuffer() error {
 	t.DeferredFBO = deferredFBO
 
 	gl.ClearColor(0, 0, 0, 0)
+	gl.CullFace(gl.BACK)
+	gl.FrontFace(gl.CCW)
 
 	return nil
 }
@@ -80,15 +84,8 @@ func (t *DeferredRenderTarget) setupFramebuffer() error {
 func (t *DeferredRenderTarget) BindForNewFrame() {
 	t.DeferredFBO.Bind()
 
-	gl.Viewport(0, 0,
-		int32(float32(t.scConfig.Width)*t.scConfig.ResolutionRatio),
-		int32(float32(t.scConfig.Height)*t.scConfig.ResolutionRatio),
-	)
-
 	gl.Enable(gl.DEPTH_TEST)
 	gl.Enable(gl.CULL_FACE)
-	gl.CullFace(gl.BACK)
-	gl.FrontFace(gl.CCW)
 
 	// set wireframe if needed
 	if t.Wireframe {
@@ -103,10 +100,8 @@ func (t *DeferredRenderTarget) BindForNewFrame() {
 }
 
 func (t *DeferredRenderTarget) ResizeCallback() {
-	t.DeferredFBO.Resize(
-		int32(float32(t.scConfig.Width)*t.scConfig.ResolutionRatio),
-		int32(float32(t.scConfig.Height)*t.scConfig.ResolutionRatio),
-	)
+	fbWidth, fbHeight := t.scConfig.GetScreenSize()
+	t.DeferredFBO.Resize(fbWidth, fbHeight)
 }
 
 func (t *DeferredRenderTarget) Delete() {

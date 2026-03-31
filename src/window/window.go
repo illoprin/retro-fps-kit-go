@@ -12,6 +12,11 @@ type ScreenConfig struct {
 	Aspect              float32
 }
 
+func (s *ScreenConfig) GetScreenSize() (int32, int32) {
+	return int32(float32(s.Width) * s.ResolutionRatio),
+		int32(float32(s.Height) * s.ResolutionRatio)
+}
+
 type Window struct {
 	*glfw.Window
 	cfg              *ScreenConfig

@@ -36,31 +36,31 @@ func NewFramebuffer(width, height int32) (*Framebuffer, error) {
 	return fb, nil
 }
 
-func (f *Framebuffer) HasColor() bool {
-	return len(f.ColorTextures) > 0
+func (fb *Framebuffer) HasColor() bool {
+	return len(fb.ColorTextures) > 0
 }
 
 // NewColorAttachment generates new color attachment (bind before use)
-func (f *Framebuffer) NewColorAttachment(colorFormat TextureFormat) error {
+func (fb *Framebuffer) NewColorAttachment(colorFormat TextureFormat) error {
 	// create color attachment
-	colorTex, err := NewFramebufferColorTexture(f.Width, f.Height, colorFormat)
+	colorTex, err := NewFramebufferColorTexture(fb.Width, fb.Height, colorFormat)
 	if err != nil {
 		return fmt.Errorf("failed to create color texture: %v", err)
 	}
 	// attach created texture
 	gl.FramebufferTexture2D(
 		gl.FRAMEBUFFER,
-		gl.COLOR_ATTACHMENT0+uint32(len(f.ColorTextures)),
+		gl.COLOR_ATTACHMENT0+uint32(len(fb.ColorTextures)),
 		gl.TEXTURE_2D, colorTex.ID,
 		0,
 	)
 	// add color attachment to slice
-	f.ColorTextures = append(f.ColorTextures, colorTex)
+	fb.ColorTextures = append(fb.ColorTextures, colorTex)
 	return nil
 }
 
 // SetDrawBuffers determines buffers to color drawing (bind before use)
-func (f *Framebuffer) SetDrawBuffers(colorAttachmentIndices []int) {
+func (fb *Framebuffer) SetDrawBuffers(colorAttachmentIndices []int) {
 
 	// create color attachments list
 	attachmentsList := make([]uint32, len(colorAttachmentIndices))
@@ -73,9 +73,9 @@ func (f *Framebuffer) SetDrawBuffers(colorAttachmentIndices []int) {
 }
 
 // NewDepthStencilAttachment generates new depth stencil attachment (bind before use)
-func (f *Framebuffer) NewDepthStencilAttachment() error {
+func (fb *Framebuffer) NewDepthStencilAttachment() error {
 	// create depth texture
-	depthTex, err := NewFramebufferDepthTexture(f.Width, f.Height)
+	depthTex, err := NewFramebufferDepthTexture(fb.Width, fb.Height)
 	if err != nil {
 		return fmt.Errorf("failed to create depth stencil texture: %v", err)
 	}
@@ -85,8 +85,8 @@ func (f *Framebuffer) NewDepthStencilAttachment() error {
 	depthTex.allocateStorage()
 	depthTex.unbind()
 
-	f.DepthTexture = depthTex
-	f.HasDepthStencil = true
+	fb.DepthTexture = depthTex
+	fb.HasDepthStencil = true
 
 	// attach created texture
 	gl.FramebufferTexture2D(
@@ -100,14 +100,14 @@ func (f *Framebuffer) NewDepthStencilAttachment() error {
 }
 
 // NewDepthAttachment generates new depth texture attachment (bind before use)
-func (f *Framebuffer) NewDepthAttachment() error {
+func (fb *Framebuffer) NewDepthAttachment() error {
 	// create depth texture
-	depthTex, err := NewFramebufferDepthTexture(f.Width, f.Height)
+	depthTex, err := NewFramebufferDepthTexture(fb.Width, fb.Height)
 	if err != nil {
 		return fmt.Errorf("failed to create depth texture: %v", err)
 	}
-	f.DepthTexture = depthTex
-	f.HasDepth = true
+	fb.DepthTexture = depthTex
+	fb.HasDepth = true
 
 	// attach created texture
 	gl.FramebufferTexture2D(
@@ -121,9 +121,30 @@ func (f *Framebuffer) NewDepthAttachment() error {
 }
 
 // Check framebuffer completness (bind before use)
-func (f *Framebuffer) Check() bool {
+func (fb *Framebuffer) Check() bool {
 	// check framebuffer completness
-	if status := gl.CheckFramebufferStatus(gl.FRAMEBUFFER); status != gl.FRAMEBUFFER_COMPLETE {
+	gl.BindFramebuffer(gl.FRAMEBUFFER, fb.ID)
+	status := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
+
+	var statusStr string
+	switch status {
+	case gl.FRAMEBUFFER_COMPLETE:
+		statusStr = "FRAMEBUFFER_COMPLETE"
+	case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+		statusStr = "FRAMEBUFFER_INCOMPLETE_ATTACHMENT"
+	case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+		statusStr = "FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT"
+	case gl.FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+		statusStr = "FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER"
+	case gl.FRAMEBUFFER_UNSUPPORTED:
+		statusStr = "FRAMEBUFFER_UNSUPPORTED"
+	case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+		statusStr = "FRAMEBUFFER_INCOMPLETE_MULTISAMPLE"
+	default:
+		statusStr = "UNKNOWN_ERROR"
+	}
+	if status != gl.FRAMEBUFFER_COMPLETE {
+		fmt.Printf("fbo %d broken, current status is %s", fb.ID, statusStr)
 		return false
 	}
 	return true
@@ -157,7 +178,7 @@ func (fb *Framebuffer) Delete() {
 
 // Resize framebuffer color attachments
 func (fb *Framebuffer) Resize(width, height int32) {
-	if fb.Width == width && fb.Height == height {
+	if (fb.Width == width && fb.Height == height) || (width <= 0 || height <= 0) {
 		return
 	}
 
@@ -172,6 +193,8 @@ func (fb *Framebuffer) Resize(width, height int32) {
 	if fb.DepthTexture != nil {
 		fb.DepthTexture.Resize(width, height)
 	}
+
+	fb.Check()
 }
 
 // BlitToScreen copy framebuffer data to another framebuffer

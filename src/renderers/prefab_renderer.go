@@ -25,7 +25,7 @@ func NewPrefabRenderer() (*PrefabRenderer, error) {
 	return &PrefabRenderer{program}, nil
 }
 
-func (r *PrefabRenderer) Prepare(w, h int, c *player.Camera) {
+func (r *PrefabRenderer) Prepare(w, h int, c *player.Camera3D) {
 	// prepare shader
 	r.p.Use()
 

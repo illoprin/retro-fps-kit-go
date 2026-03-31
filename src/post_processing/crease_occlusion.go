@@ -2,6 +2,9 @@ package postprocessing
 
 import (
 	"fmt"
+	"math"
+	"math/rand"
+	"strconv"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	mgl "github.com/go-gl/mathgl/mgl32"
@@ -10,11 +13,17 @@ import (
 	"github.com/illoprin/retro-fps-kit-go/src/window"
 )
 
+const (
+	distributionCoefficient = 4.0
+	kernelSize              = 256
+)
+
 type CreaseOcclusionConfig struct {
-	Use       bool
-	Radius    float32
-	DepthBias float32
-	Intensity float32
+	Use        bool
+	Radius     float32
+	DepthBias  float32
+	Intensity  float32
+	KernelSize int32 // max - 256
 }
 
 type CreaseOcclusionPass struct {
@@ -23,6 +32,8 @@ type CreaseOcclusionPass struct {
 	creaseProgram     *render.Program
 	compositorProgram *render.Program
 	mesh              *render.Mesh
+	samples           []mgl.Vec2
+	projection        mgl.Mat4
 	resources         []render.Resource
 	screenCfg         *window.ScreenConfig
 	cfg               *CreaseOcclusionConfig
@@ -47,6 +58,8 @@ func NewCreaseOcclusionPass(
 		return nil, err
 	}
 
+	p.createAndSendSamples()
+
 	p.resources = append(p.resources, p.crease, p.composition, p.creaseProgram, p.compositorProgram)
 	return p, nil
 }
@@ -57,32 +70,25 @@ func (p *CreaseOcclusionPass) GetName() string {
 
 func (p *CreaseOcclusionPass) ResizeCallback() {
 
-	realScreenSize := mgl.Vec3{
-		float32(p.screenCfg.Width) * p.screenCfg.ResolutionRatio,
-		float32(p.screenCfg.Height) * p.screenCfg.ResolutionRatio,
-	}
-
+	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
 	// resize attachments
-	p.crease.Resize(int32(realScreenSize[0]), int32(realScreenSize[1]))
-	p.composition.Resize(int32(realScreenSize[0]), int32(realScreenSize[1]))
+	p.crease.Resize(fbWidth, fbHeight)
+	p.composition.Resize(fbWidth, fbHeight)
 }
 
 func (p *CreaseOcclusionPass) initFramebuffers() error {
 
-	realScreenSize := mgl.Vec3{
-		float32(p.screenCfg.Width) * p.screenCfg.ResolutionRatio,
-		float32(p.screenCfg.Height) * p.screenCfg.ResolutionRatio,
-	}
+	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
 
 	// init crease buffer
-	crease, err := render.NewFramebuffer(int32(realScreenSize[0]), int32(realScreenSize[1]))
+	crease, err := render.NewFramebuffer(fbWidth, fbHeight)
 	if err != nil {
-		return fmt.Errorf("crease pass - failed to create ssao fbo - %w", err)
+		return fmt.Errorf("crease pass - failed to create crease fbo - %w", err)
 	}
 	crease.Bind()
 	if err := crease.NewColorAttachment(render.FormatR8); err != nil {
 		crease.Delete()
-		return fmt.Errorf("crease pass - failed to create ssao fbo - %w", err)
+		return fmt.Errorf("crease pass - failed to create crease fbo - %w", err)
 	}
 	if !crease.Check() {
 		crease.Delete()
@@ -91,47 +97,22 @@ func (p *CreaseOcclusionPass) initFramebuffers() error {
 	p.crease = crease
 
 	// init composition buffer
-	composition, err := render.NewFramebuffer(int32(realScreenSize[0]), int32(realScreenSize[1]))
+	composition, err := render.NewFramebuffer(fbWidth, fbHeight)
 	if err != nil {
-		return fmt.Errorf("ssao pass - failed to create composition fbo - %w", err)
+		return fmt.Errorf("crease pass - failed to create composition fbo - %w", err)
 	}
 	composition.Bind()
 	if err := composition.NewColorAttachment(render.FormatRGBA8); err != nil {
 		composition.Delete()
-		return fmt.Errorf("ssao pass - failed to create composition fbo - %w", err)
+		return fmt.Errorf("crease pass - failed to create composition fbo - %w", err)
 	}
 	if !composition.Check() {
 		composition.Delete()
-		return fmt.Errorf("ssao pass - composition fbo not completed %w", err)
+		return fmt.Errorf("crease pass - composition fbo not completed %w", err)
 	}
 	p.composition = composition
 	return nil
 }
-
-// func (p *CreaseOcclusionPass) initNoisy() error {
-// 	// samples (hemi-sphere random points)
-// 	p.samples = make([]mgl.Vec3, p.cfg.KernelSize)
-// 	for i := 0; i < int(p.cfg.KernelSize); i++ {
-
-// 		// generate random hemi-sphere sample
-// 		sample := mgl.Vec3{
-// 			rand.Float32()*2.0 - 1.0,
-// 			rand.Float32()*2.0 - 1.0,
-// 			rand.Float32(),
-// 		}
-// 		sample = sample.Normalize()
-// 		sample = sample.Mul(rand.Float32())
-// 		// distribution adjustment
-// 		//
-// 		// more samples closer to the center
-// 		scale := float32(i) / 64.0
-// 		scale = mathutils.Lerp(0.1, 1.0, scale*scale)
-// 		sample = sample.Mul(scale)
-
-// 		p.samples[i] = sample
-// 	}
-// 	return nil
-// }
 
 func (p *CreaseOcclusionPass) initPrograms() error {
 	// init ssao drawing program
@@ -156,6 +137,31 @@ func (p *CreaseOcclusionPass) initPrograms() error {
 	return nil
 }
 
+func (p *CreaseOcclusionPass) createAndSendSamples() {
+	// samples (random points [-1, 1] closer to center)
+	p.creaseProgram.Use()
+	p.samples = make([]mgl.Vec2, kernelSize)
+	for i := 0; i < kernelSize; i++ {
+		u := rand.Float64()
+		v := rand.Float64()
+
+		a := u * 2 * math.Pi
+		r := math.Pow(v, distributionCoefficient)
+
+		sample := mgl.Vec2{
+			float32(math.Cos(a) * r),
+			float32(math.Sin(a) * r),
+		}
+
+		p.samples[i] = sample
+		p.creaseProgram.Set2f("u_samples["+strconv.Itoa(i)+"]", sample)
+	}
+}
+
+func (p *CreaseOcclusionPass) SetProjectionMatrix(m mgl.Mat4) {
+	p.projection = m
+}
+
 func (p *CreaseOcclusionPass) GetColor() *render.Texture {
 	return p.composition.ColorTextures[0]
 }
@@ -176,6 +182,7 @@ func (p *CreaseOcclusionPass) RenderPass(src []*render.Texture) {
 	color := src[0]
 	normal := src[1]
 	depth := src[2]
+	position := src[3]
 
 	// -- Crease render pass
 	p.crease.Bind()
@@ -187,12 +194,17 @@ func (p *CreaseOcclusionPass) RenderPass(src []*render.Texture) {
 	// bind and send depth
 	depth.Bind(1)
 	p.creaseProgram.Set1i("u_depth", 1)
+	// bind and send position
+	position.Bind(2)
+	p.creaseProgram.Set1i("u_position", 2)
 	// send radius
 	p.creaseProgram.Set1f("u_radius", p.cfg.Radius)
 	// send depth bias
 	p.creaseProgram.Set1f("u_depthbias", p.cfg.DepthBias)
 	// send intensity
 	p.creaseProgram.Set1f("u_intensity", p.cfg.Intensity)
+	// send kernel size
+	p.creaseProgram.Set1i("u_kernel_size", p.cfg.KernelSize)
 
 	p.mesh.Draw()
 

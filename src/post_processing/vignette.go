@@ -36,8 +36,10 @@ func NewVignettePass(
 		cfg:       cfg,
 	}
 
+	fbWidth, fbHeight := screenCfg.GetScreenSize()
+
 	// create color framebuffer
-	fbo, err := render.NewFramebuffer(screenCfg.Width, screenCfg.Height)
+	fbo, err := render.NewFramebuffer(fbWidth, fbHeight)
 	if err != nil {
 		return nil, fmt.Errorf("vignette pass - failed to create framebuffer %w", err)
 	}
@@ -94,7 +96,8 @@ func (p *VignettePass) RenderPass(src []*render.Texture) {
 }
 
 func (p *VignettePass) ResizeCallback() {
-	p.fbo.Resize(p.screenCfg.Width, p.screenCfg.Height)
+	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
+	p.fbo.Resize(fbWidth, fbHeight)
 }
 
 func (p *VignettePass) Use() bool {

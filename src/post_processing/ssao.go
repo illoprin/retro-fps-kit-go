@@ -35,7 +35,7 @@ type SSAOPass struct {
 	mesh              *render.Mesh
 	resources         []render.Resource
 	samples           []mgl.Vec3
-	mprojection       mgl.Mat4
+	proj              mgl.Mat4
 	screenCfg         *window.ScreenConfig
 	cfg               *SSAOConfig
 }
@@ -72,27 +72,21 @@ func (p *SSAOPass) GetName() string {
 }
 
 func (p *SSAOPass) ResizeCallback() {
-
-	realScreenSize := mgl.Vec3{
-		float32(p.screenCfg.Width) * p.screenCfg.ResolutionRatio,
-		float32(p.screenCfg.Height) * p.screenCfg.ResolutionRatio,
-	}
+	// get fb size
+	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
 
 	// resize attachments
-	p.blur.Resize(int32(realScreenSize[0]), int32(realScreenSize[1]))
-	p.ssao.Resize(int32(realScreenSize[0]), int32(realScreenSize[1]))
-	p.composition.Resize(int32(realScreenSize[0]), int32(realScreenSize[1]))
+	p.blur.Resize(fbWidth, fbHeight)
+	p.ssao.Resize(fbWidth, fbHeight)
+	p.composition.Resize(fbWidth, fbHeight)
 }
 
 func (p *SSAOPass) initFramebuffers() error {
 
-	realScreenSize := mgl.Vec3{
-		float32(p.screenCfg.Width) * p.screenCfg.ResolutionRatio,
-		float32(p.screenCfg.Height) * p.screenCfg.ResolutionRatio,
-	}
+	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
 
 	// init ssao buffer
-	ssao, err := render.NewFramebuffer(int32(realScreenSize[0]), int32(realScreenSize[1]))
+	ssao, err := render.NewFramebuffer(fbWidth, fbHeight)
 	if err != nil {
 		return fmt.Errorf("ssao pass - failed to create ssao fbo - %w", err)
 	}
@@ -108,7 +102,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	p.ssao = ssao
 
 	// init blur buffer
-	blur, err := render.NewFramebuffer(int32(realScreenSize[0]), int32(realScreenSize[1]))
+	blur, err := render.NewFramebuffer(fbWidth, fbHeight)
 	if err != nil {
 		return fmt.Errorf("ssao pass - failed to create blur fbo - %w", err)
 	}
@@ -124,7 +118,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	p.blur = blur
 
 	// init composition buffer
-	composition, err := render.NewFramebuffer(int32(realScreenSize[0]), int32(realScreenSize[1]))
+	composition, err := render.NewFramebuffer(fbWidth, fbHeight)
 	if err != nil {
 		return fmt.Errorf("ssao pass - failed to create composition fbo - %w", err)
 	}
@@ -196,6 +190,7 @@ func (p *SSAOPass) initNoisy() error {
 		return fmt.Errorf("ssao pass - failed to create noise texture %w", err)
 	}
 	p.noiseTexture = noiseTexture
+	p.noiseTexture.Bind(0)
 	p.noiseTexture.UploadRGB(0, 0, p.cfg.NoiseTextureSize, p.cfg.NoiseTextureSize, noiseRaw)
 	return nil
 }
@@ -261,12 +256,13 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 	color := src[0]
 	normal := src[1]
 	depth := src[2]
+	position := src[3]
 
 	// -- SSAO render pass
 
 	p.ssao.Bind()
-	p.ssaoProgram.Use()
 	gl.Clear(gl.COLOR_BUFFER_BIT)
+	p.ssaoProgram.Use()
 	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
 
 	// send uniforms
@@ -277,12 +273,14 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 	// depth texture
 	depth.Bind(1)
 	p.ssaoProgram.Set1i("u_depth", 1)
+	// position texture
+	position.Bind(2)
+	p.ssaoProgram.Set1i("u_position", 2)
 	// noise texture
-	p.noiseTexture.Bind(2)
-	p.ssaoProgram.Set1i("u_noise", 2)
-	// inv projection
-	p.ssaoProgram.SetMat4("u_invprojection", p.mprojection.Inv())
-	p.ssaoProgram.SetMat4("u_projection", p.mprojection)
+	p.noiseTexture.Bind(3)
+	p.ssaoProgram.Set1i("u_noise", 3)
+	// projection
+	p.ssaoProgram.Set2f("u_proj_info", mgl.Vec2{p.proj.At(0, 0), p.proj.At(1, 1)})
 	// samples
 	p.ssaoProgram.Set1i("u_kernel_size", p.cfg.KernelSize)
 	// noise texture size
@@ -300,8 +298,8 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 	// -- Blur render pass
 
 	p.blur.Bind()
-	p.blurProgram.Use()
 	gl.Clear(gl.COLOR_BUFFER_BIT)
+	p.blurProgram.Use()
 	// bind and send raw ssao data
 	p.ssao.ColorTextures[0].Bind(0)
 	p.blurProgram.Set1i("u_raw_ssao", 0)
@@ -314,8 +312,8 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 	// -- Compositor render pass
 
 	p.composition.Bind()
-	p.compositorProgram.Use()
 	gl.Clear(gl.COLOR_BUFFER_BIT)
+	p.compositorProgram.Use()
 	// send uniforms
 	//
 	// color texture
@@ -329,7 +327,7 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 }
 
 func (p *SSAOPass) SetProjectionMatrix(m mgl.Mat4) {
-	p.mprojection = m
+	p.proj = m
 }
 
 func (p *SSAOPass) Use() bool {

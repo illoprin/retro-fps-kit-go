@@ -1,8 +1,8 @@
 #version 410 core
 
 layout(location = 0) out vec4 out_fragcolor;
-layout(location = 1) out vec4 out_normal;
-layout(location = 2) out vec4 out_position;
+layout(location = 1) out vec3 out_normal;
+layout(location = 2) out vec3 out_position;
 
 in vec2 uv;
 in vec3 normal;
@@ -15,6 +15,8 @@ uniform vec3 u_light_color;
 uniform float u_light_intensity = 3;
 uniform float u_light_radius = 37;
 uniform vec3 u_color;
+
+uniform mat4 u_view;
 
 // Light Attenuation Algo
 float getLightAttenuation(float d, float r) {
@@ -30,7 +32,7 @@ void main() {
 	vec3 ambient = ambientStrength * u_light_color;
 	
 	// diffuse
-	vec3 lightDirection = u_light_pos - position;
+	vec3 lightDirection = u_light_pos - position.xyz;
 	vec3 norm = normalize(normal);
 	vec3 lightDirectionNorm = normalize(lightDirection);
 	float diff = max(dot(lightDirectionNorm, norm), 0.0);
@@ -49,7 +51,11 @@ void main() {
 	}
 
 	// setup outs
-	out_normal = vec4(normalize(normal), result.a);
-	out_position = vec4(position, result.a);
+	//
+	// normal in view space
+	out_normal = normalize(mat3(u_view) * normal);
+	// position in view space
+	out_position = (u_view * vec4(position, 1.0)).xyz;
+	// color
 	out_fragcolor = result;
 }

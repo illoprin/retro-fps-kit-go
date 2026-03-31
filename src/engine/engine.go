@@ -82,11 +82,11 @@ func NewEngine() (*Engine, error) {
 		return nil, fmt.Errorf("failed to init imgui renderer - %v", err)
 	}
 
-	if err := e.setupGame(); err != nil {
+	if err := e.initGame(); err != nil {
 		return nil, fmt.Errorf("failed to init game - %v", err)
 	}
 
-	if err := e.setupRenderingPipeline(); err != nil {
+	if err := e.initRenderingPipeline(); err != nil {
 		return nil, fmt.Errorf("failed to init rendering pipeline - %v", err)
 	}
 
@@ -199,6 +199,10 @@ func (e *Engine) initCustomImguiUI() {
 			Name: "Normal",
 		},
 		{
+			ID:   e.deferred.DeferredFBO.ColorTextures[2].ID,
+			Name: "Position",
+		},
+		{
 			ID:   e.deferred.DeferredFBO.DepthTexture.ID,
 			Name: "Depth",
 		},
@@ -273,7 +277,7 @@ func (e *Engine) keyCallback(key glfw.Key, scancode int, action glfw.Action, mod
 	}
 }
 
-func (e *Engine) setupGame() error {
+func (e *Engine) initGame() error {
 
 	e.controller = player.NewEditorController(
 		e.input, mgl32.Vec3{0, 0, 3}, 10.5, 0.085,
@@ -392,7 +396,7 @@ func (e *Engine) setupGame() error {
 	return nil
 }
 
-func (e *Engine) setupRenderingPipeline() error {
+func (e *Engine) initRenderingPipeline() error {
 
 	// init prefab renderer
 	prefabRenderer, err := renderers.NewPrefabRenderer()
@@ -424,13 +428,13 @@ func (e *Engine) setupRenderingPipeline() error {
 
 	// -- ssao
 	ssaoConfig := &postprocessing.SSAOConfig{
-		Use:              false,
-		NoiseTextureSize: 4,
-		KernelSize:       40,
-		Radius:           1.23,
-		Bias:             0.059,
+		Use:              true,
+		NoiseTextureSize: 6,
+		KernelSize:       30,
+		Radius:           0.5,
+		Bias:             0.005,
 		WhitePoint:       0.971,
-		BlackPoint:       0.145,
+		BlackPoint:       0.39,
 		BlurSize:         2,
 	}
 	ssaoPass, err := postprocessing.NewSSAOPass(
@@ -442,10 +446,11 @@ func (e *Engine) setupRenderingPipeline() error {
 
 	// -- crease occlusion
 	creaseConfig := &postprocessing.CreaseOcclusionConfig{
-		Use:       true,
-		Radius:    2,
-		DepthBias: 0.05,
-		Intensity: 2,
+		Use:        false,
+		Radius:     25,
+		DepthBias:  0.001,
+		Intensity:  0.8,
+		KernelSize: 256,
 	}
 	creasePass, err := postprocessing.NewCreaseOcclusionPass(
 		e.window.GetConfig(), meshQuad, creaseConfig,
@@ -501,7 +506,6 @@ func (e *Engine) setupRenderingPipeline() error {
 }
 
 func (e *Engine) framebufferSizeCallback(w *glfw.Window, width, height int) {
-
 	e.resizeRenderTargets()
 }
 
@@ -532,6 +536,7 @@ func (e *Engine) Run() {
 		// render geometry
 		e.deferred.BindForNewFrame()
 		e.render()
+		e.deferred.DeferredFBO.Unbind()
 
 		// perform post processing
 		result := e.performPostProcessingPipeline()
@@ -541,6 +546,8 @@ func (e *Engine) Run() {
 
 		// render imgui on top of screen
 		e.renderImgui()
+
+		e.window.SwapBuffers()
 
 		// update global post rendering states
 		stats.UpdateGlobal()
@@ -607,31 +614,31 @@ func (e *Engine) renderImgui() {
 	drawData := imgui.CurrentDrawData()
 	stats.UpdateForImgui(drawData)
 	implgl3.RenderDrawData(drawData)
-	e.window.SwapBuffers()
 }
 
 func (e *Engine) performPostProcessingPipeline() *render.Texture {
 	// get deferred textures
 	color := e.deferred.DeferredFBO.ColorTextures[0]
 	normal := e.deferred.DeferredFBO.ColorTextures[1]
+	position := e.deferred.DeferredFBO.ColorTextures[2]
 	depth := e.deferred.DeferredFBO.DepthTexture
 
 	lastColor := color
 
+	cam := e.controller.GetCamera()
 	// perform
 	for _, node := range e.passPipeline {
 		if !node.Use() {
 			continue
 		}
 		if node.GetName() == "ssao" {
-			cam := e.controller.GetCamera()
-			proj := cam.GetProjectionMatrix(
-				int(e.window.GetConfig().Width),
-				int(e.window.GetConfig().Height),
-			)
-			node.(*postprocessing.SSAOPass).SetProjectionMatrix(proj)
+			ssaoPass := node.(*postprocessing.SSAOPass)
+			ssaoPass.SetProjectionMatrix(cam.Projection)
+		} else if node.GetName() == "crease" {
+			creasePass := node.(*postprocessing.CreaseOcclusionPass)
+			creasePass.SetProjectionMatrix(cam.Projection)
 		}
-		node.RenderPass([]*render.Texture{lastColor, normal, depth})
+		node.RenderPass([]*render.Texture{lastColor, normal, depth, position})
 		lastColor = node.GetColor()
 	}
 
