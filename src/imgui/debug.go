@@ -199,7 +199,7 @@ func (m *DebugMenu) renderPostProcessingTab() {
 	imgui.Checkbox("Wireframe", &m.deferred.Wireframe)
 
 	// Resolution ratio
-	imgui.SliderFloat("Resolution Ratio", &m.windowCfg.ResolutionRatio, 0.01, 1)
+	imgui.SliderFloat("Resolution Ratio", &m.windowCfg.ResolutionRatio, 0.2, 1)
 
 	if imgui.CollapsingHeaderBoolPtr("SSAO", &m.showSSAO) {
 		imgui.Checkbox("ao_Use", &m.ssaoCfg.Use)
@@ -217,6 +217,9 @@ func (m *DebugMenu) renderPostProcessingTab() {
 		imgui.SliderFloat("c_Bias ", &m.creaseCfg.DepthBias, 0.0001, 0.1)
 		imgui.SliderFloat("c_Intensity", &m.creaseCfg.Intensity, 0.01, 10)
 		imgui.SliderInt("c_KernelSize", &m.creaseCfg.KernelSize, 1, 256)
+		imgui.SliderInt("c_BlurSize", &m.creaseCfg.BlurSize, 1, 8)
+		imgui.SliderFloat("c_WhitePoint", &m.creaseCfg.WhitePoint, 0.0, 1.0)
+		imgui.SliderFloat("c_BlackPoint", &m.creaseCfg.BlackPoint, 0.0, 1.0)
 	}
 
 	if imgui.CollapsingHeaderBoolPtr("Color Grading", &m.showColorGrading) {

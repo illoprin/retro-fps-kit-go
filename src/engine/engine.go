@@ -235,7 +235,11 @@ func (e *Engine) initCustomImguiUI() {
 				ID:   crease.GetOcclusion().ID,
 				Name: "crease.raw",
 			}
-			passTextures = append(passTextures, rawCrease)
+			creaseBlur := imguimenus.ImageTexture{
+				ID:   crease.GetBlur().ID,
+				Name: "crease.blur",
+			}
+			passTextures = append(passTextures, rawCrease, creaseBlur)
 		}
 
 		t := imguimenus.ImageTexture{
@@ -280,7 +284,7 @@ func (e *Engine) keyCallback(key glfw.Key, scancode int, action glfw.Action, mod
 func (e *Engine) initGame() error {
 
 	e.controller = player.NewEditorController(
-		e.input, mgl32.Vec3{0, 0, 3}, 10.5, 0.085,
+		e.input, mgl32.Vec3{0, 0, 3}, 10.5, 0.25,
 	)
 
 	e.input.SetKeyCallback(e.keyCallback)
@@ -417,28 +421,51 @@ func (e *Engine) initRenderingPipeline() error {
 	meshQuad := render.NewMesh()
 	meshQuad.SetupBasicQuad()
 
+	// FIX blit latest buffer to initial fbo
 	screen, err := renderers.NewScreen(meshQuad, e.window.GetConfig())
 	if err != nil {
 		return err
 	}
 	e.screen = screen
 
+	// auxiliary resources texture
+	noiseTexture, err := postprocessing.CreateNoiseTexture()
+	if err != nil {
+		return err
+	}
+	// blur - uses ssao and cavity
+	overlayBlurProgram, err := render.NewProgram(
+		assetmgr.GetShaderPath("quad.vert"),
+		assetmgr.GetShaderPath("mask_blur.frag"),
+	)
+	if err != nil {
+		return err
+	}
+	// compositor - uses ssao and cavity
+	overlayCompositorProgram, err := render.NewProgram(
+		assetmgr.GetShaderPath("quad.vert"),
+		assetmgr.GetShaderPath("mask_compositor.frag"),
+	)
+	if err != nil {
+		return err
+	}
+
 	// setup effects
 	// setup post processing effects
 
 	// -- ssao
 	ssaoConfig := &postprocessing.SSAOConfig{
-		Use:              true,
-		NoiseTextureSize: 6,
-		KernelSize:       30,
-		Radius:           0.5,
-		Bias:             0.005,
-		WhitePoint:       0.971,
-		BlackPoint:       0.39,
-		BlurSize:         2,
+		Use:        true,
+		KernelSize: 30,
+		Radius:     0.5,
+		Bias:       0.005,
+		WhitePoint: 0.971,
+		BlackPoint: 0.39,
+		BlurSize:   2,
 	}
 	ssaoPass, err := postprocessing.NewSSAOPass(
 		e.window.GetConfig(), meshQuad, ssaoConfig,
+		noiseTexture, overlayBlurProgram, overlayCompositorProgram,
 	)
 	if err != nil {
 		return err
@@ -447,13 +474,17 @@ func (e *Engine) initRenderingPipeline() error {
 	// -- crease occlusion
 	creaseConfig := &postprocessing.CreaseOcclusionConfig{
 		Use:        false,
-		Radius:     25,
+		Radius:     12,
 		DepthBias:  0.001,
-		Intensity:  0.8,
-		KernelSize: 256,
+		Intensity:  1.7,
+		KernelSize: 22,
+		WhitePoint: 1.0,
+		BlackPoint: 0.2,
+		BlurSize:   2,
 	}
 	creasePass, err := postprocessing.NewCreaseOcclusionPass(
 		e.window.GetConfig(), meshQuad, creaseConfig,
+		noiseTexture, overlayBlurProgram, overlayCompositorProgram,
 	)
 	if err != nil {
 		return err
@@ -499,7 +530,15 @@ func (e *Engine) initRenderingPipeline() error {
 	)
 
 	// append resources
-	e.resources = append(e.resources, meshQuad, screen, deferred, prefabRenderer)
+	e.resources = append(e.resources,
+		meshQuad,
+		screen,
+		deferred,
+		prefabRenderer,
+		noiseTexture,
+		overlayBlurProgram,
+		overlayCompositorProgram,
+	)
 
 	e.window.SetResizeCallback(e.framebufferSizeCallback)
 	return nil

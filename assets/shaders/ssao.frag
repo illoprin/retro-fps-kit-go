@@ -5,11 +5,10 @@ out float out_frag_color;
 in vec2 texcoord;
 
 uniform sampler2D u_normal; // view space
-uniform sampler2D u_depth;
 uniform sampler2D u_position; // view space
 uniform sampler2D u_noise;
 
-uniform vec2 u_proj_info; // projection[0][0]; projection[1][1]
+uniform vec2 u_proj_info; // cam_projection[0][0]; cam_projection[1][1]
 uniform vec3 u_samples[64];
 uniform int u_kernel_size;
 uniform vec2 u_noise_scale;
@@ -19,15 +18,12 @@ uniform float u_bias;
 
 void main() {
 
-  // Читаем нормаль (уже в view space, предполагаем [0,1] → [-1,1])
-  // vec3 normal = normalize(texture(u_normal, uv).xyz * vec3(2.0) - vec3(1.0));
-  // get world normal from gbuffer
+  // Читаем нормаль (уже в view space)
   vec3 normal = texture(u_normal, texcoord).xyz;
-  // transform world normal to view space
-  // vec3 normal = normalize(mat3(u_view) * worldNormal);
 
-  // Читаем depth и восстанавливаем позицию
-  float depth = texture(u_depth, texcoord).r;
+  if (length(normal) < 0.1) {out_frag_color = 1.0; return; };
+
+  // Читаем позицию (можно заменить на восстановление ReconstructPos)
   vec3 position = texture(u_position, texcoord).rgb;
 
   // Случайный вектор из noise текстуры (тайлинг по экрану)
