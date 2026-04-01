@@ -5,11 +5,12 @@ import (
 	"math/rand"
 	"strconv"
 
-	"github.com/go-gl/gl/v4.1-core/gl"
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
 	mathutils "github.com/illoprin/retro-fps-kit-go/src/math"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
+	"github.com/illoprin/retro-fps-kit-go/src/render/context"
+	"github.com/illoprin/retro-fps-kit-go/src/renderers"
 	"github.com/illoprin/retro-fps-kit-go/src/window"
 )
 
@@ -181,52 +182,50 @@ func (p *SSAOPass) initPrograms() error {
 	return nil
 }
 
+// returns composition color
 func (p *SSAOPass) GetColor() *render.Texture {
-	return p.composition.ColorTextures[0]
+	return p.composition.GetColorTexture(0)
 }
 
-func (p *SSAOPass) GetRawSSAO() *render.Texture {
-	return p.ssao.ColorTextures[0]
+// returns raw ssao color
+func (p *SSAOPass) GetOcclusion() *render.Texture {
+	return p.ssao.GetColorTexture(0)
 }
 
+// returns kernel rotation noise
 func (p *SSAOPass) GetNoise() *render.Texture {
 	return p.noiseTexture
 }
 
-func (p *SSAOPass) GetBlurSSAO() *render.Texture {
-	return p.blur.ColorTextures[0]
+// returns blurred ssao color
+func (p *SSAOPass) GetBlur() *render.Texture {
+	return p.blur.GetColorTexture(0)
+}
+
+// returns result fbo
+func (p *SSAOPass) GetResultFramebuffer() *render.Framebuffer {
+	return p.composition
 }
 
 // RenderPass
-// 0 - color
-// 1 - normal
-// 2 - depth
-func (p *SSAOPass) RenderPass(src []*render.Texture) {
-	if len(src) < 3 {
-		return
-	}
-
-	color := src[0]
-	normal := src[1]
-	position := src[3]
+func (p *SSAOPass) RenderPass(src *renderers.DeferredRenderResult) {
 
 	// -- SSAO render pass
 
 	p.ssao.Bind()
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	context.ClearColorBuffer()
 	p.ssaoProgram.Use()
-	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
 
 	// send uniforms
 	//
 	// normal texture
-	normal.Bind(0)
+	src.Normal.BindToSlot(0)
 	p.ssaoProgram.Set1i("u_normal", 0)
 	// position texture
-	position.Bind(1)
+	src.Position.BindToSlot(1)
 	p.ssaoProgram.Set1i("u_position", 1)
 	// noise texture
-	p.noiseTexture.Bind(2)
+	p.noiseTexture.BindToSlot(2)
 	p.ssaoProgram.Set1i("u_noise", 2)
 	// projection
 	p.ssaoProgram.Set2f("u_proj_info", mgl.Vec2{p.proj.At(0, 0), p.proj.At(1, 1)})
@@ -247,10 +246,10 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 	// -- Blur render pass
 
 	p.blur.Bind()
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	context.ClearColorBuffer()
 	p.blurProgram.Use()
 	// bind and send raw ssao data
-	p.ssao.ColorTextures[0].Bind(0)
+	p.ssao.GetColorTexture(0).BindToSlot(0)
 	p.blurProgram.Set1i("u_overlay", 0)
 	// blur size
 	p.blurProgram.Set1i("u_blur_size", p.cfg.BlurSize)
@@ -260,15 +259,15 @@ func (p *SSAOPass) RenderPass(src []*render.Texture) {
 	// -- Compositor render pass
 
 	p.composition.Bind()
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	context.ClearColorBuffer()
 	p.compositorProgram.Use()
 	// send uniforms
 	//
 	// color texture
-	color.Bind(0)
+	src.Color.BindToSlot(0)
 	p.compositorProgram.Set1i("u_color", 0)
 	// ssao texture
-	p.blur.ColorTextures[0].Bind(1)
+	p.blur.GetColorTexture(0).BindToSlot(1)
 	p.compositorProgram.Set1i("u_overlay", 1)
 	// levels cfg
 	p.compositorProgram.Set1f("u_blackpoint", p.cfg.BlackPoint)

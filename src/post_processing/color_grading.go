@@ -3,9 +3,10 @@ package postprocessing
 import (
 	"fmt"
 
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
+	"github.com/illoprin/retro-fps-kit-go/src/render/context"
+	"github.com/illoprin/retro-fps-kit-go/src/renderers"
 	"github.com/illoprin/retro-fps-kit-go/src/window"
 )
 
@@ -82,21 +83,22 @@ func (p *ColorGradingPass) GetName() string {
 	return "color_grading"
 }
 
-// get framebuffer color
+// get result color
 func (p *ColorGradingPass) GetColor() *render.Texture {
-	return p.fbo.ColorTextures[0]
+	return p.fbo.GetColorTexture(0)
+}
+
+// returns result fbo
+func (p *ColorGradingPass) GetResultFramebuffer() *render.Framebuffer {
+	return p.fbo
 }
 
 // RenderPass texture index 0 - color
-func (p *ColorGradingPass) RenderPass(src []*render.Texture) {
-	if len(src) == 0 {
-		return
-	}
+func (p *ColorGradingPass) RenderPass(src *renderers.DeferredRenderResult) {
 	p.fbo.Bind()
 	p.program.Use()
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
-	src[0].Bind(0)
+	context.ClearColorBuffer()
+	src.Color.BindToSlot(0)
 	p.program.Set1i("u_color", 0)
 	p.program.Set1f("u_brightness", p.cfg.Brightness)
 	p.program.Set1f("u_saturation", p.cfg.Saturation)

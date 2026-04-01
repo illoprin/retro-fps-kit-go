@@ -21,6 +21,27 @@ var (
 	}
 )
 
+type MeshType uint32
+
+const (
+	StaticDraw MeshType = iota
+	DynamicDraw
+	StreamDraw
+)
+
+func getVBOType(t MeshType) uint32 {
+	switch t {
+	case StaticDraw:
+		return gl.STATIC_DRAW
+	case DynamicDraw:
+		return gl.DYNAMIC_DRAW
+	case StreamDraw:
+		return gl.STREAM_DRAW
+	default:
+		return gl.STATIC_DRAW
+	}
+}
+
 type Mesh struct {
 	vbo, ebo, vao, count, instances uint32
 }
@@ -59,7 +80,7 @@ func (m *Mesh) SetupBasicQuad() {
 	m.count = uint32(len(basicQuadIndices))
 }
 
-func (m *Mesh) SetupFromModel(model *model.Model, usage uint32) {
+func (m *Mesh) SetupFromModel(model *model.Model, t MeshType) {
 
 	// check model
 	if model == nil {
@@ -78,7 +99,7 @@ func (m *Mesh) SetupFromModel(model *model.Model, usage uint32) {
 	gl.BufferData(
 		gl.ARRAY_BUFFER,
 		len(model.Vertices)*8*int(global.SizeOfFloat),
-		gl.Ptr(model.Vertices), usage,
+		gl.Ptr(model.Vertices), getVBOType(t),
 	)
 
 	// EBO
@@ -126,6 +147,7 @@ func (m *Mesh) Draw() {
 		return
 	}
 	gl.BindVertexArray(m.vao)
+	// NOTE придумать обёртку над draw mode (triangles, points и тд)
 	gl.DrawElements(gl.TRIANGLES, int32(m.count), gl.UNSIGNED_INT, nil)
 	global.DrawCalls++
 	global.DrawVertices += m.count

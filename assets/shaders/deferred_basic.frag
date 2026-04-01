@@ -8,13 +8,19 @@ in vec2 uv;
 in vec3 normal;
 in vec3 position;
 
+// color
 uniform sampler2D u_texture;
 uniform bool u_useTexture;
+uniform vec3 u_color;
+
+// lights
 uniform vec3 u_light_pos;
 uniform vec3 u_light_color;
 uniform float u_light_intensity = 3;
 uniform float u_light_radius = 37;
-uniform vec3 u_color;
+
+// fog
+uniform vec3 u_fogColor = vec3(0.17, 0.23, 0.29);
 
 uniform mat4 u_view;
 
@@ -26,7 +32,7 @@ float getLightAttenuation(float d, float r) {
 	return (1 / (constant + linear * d + quadratic * pow(d, 2)));
 }
 
-void main() {
+vec3 getLights() {
 	// ambient
 	float ambientStrength = 0.2;
 	vec3 ambient = ambientStrength * u_light_color;
@@ -41,14 +47,41 @@ void main() {
 	float attenuation = getLightAttenuation(d, u_light_radius);
 
 	vec3 diffuse = diff * u_light_color * attenuation * u_light_intensity;
+	return (ambient + diffuse);
+}
 
-	vec4 result = vec4((ambient + diffuse) * u_color, 1.0);
-
-	// apply texture if needed
+vec4 getColor() {
 	if (u_useTexture) {
-		vec4 texColor = texture(u_texture, uv);
-		result *= texColor;
+		vec4 color = texture(u_texture, uv);
+		if (color.a < 0.1) discard;
+		return color;
 	}
+	return vec4(u_color,1.0);
+}
+
+float getFogFactor(float dist, float density) {
+    float fog = exp(-density * dist);
+    return clamp(fog, 0.0, 1.0);
+}
+
+vec3 getFog(vec3 src) {
+	float distance = gl_FragCoord.z / gl_FragCoord.w;
+	float fogFactor = getFogFactor(distance, 0.05); 
+	return mix(u_fogColor, src, fogFactor);
+}
+
+void main() {
+	vec4 result;
+
+	// -- texture/color
+	result = getColor();
+
+	// -- fog
+	result.rgb = getFog(result.rgb);
+	
+	// -- lights
+	result.rgb *= getLights();
+
 
 	// setup outs
 	//

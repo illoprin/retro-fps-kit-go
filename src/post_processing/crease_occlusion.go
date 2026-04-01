@@ -6,10 +6,11 @@ import (
 	"math/rand"
 	"strconv"
 
-	"github.com/go-gl/gl/v4.1-core/gl"
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
+	"github.com/illoprin/retro-fps-kit-go/src/render/context"
+	"github.com/illoprin/retro-fps-kit-go/src/renderers"
 	"github.com/illoprin/retro-fps-kit-go/src/window"
 )
 
@@ -172,44 +173,44 @@ func (p *CreaseOcclusionPass) SetProjectionMatrix(m mgl.Mat4) {
 	p.projection = m
 }
 
+// returns result color
 func (p *CreaseOcclusionPass) GetColor() *render.Texture {
-	return p.composition.ColorTextures[0]
+	return p.composition.GetColorTexture(0)
 }
 
+// returns result fbo
+func (p *CreaseOcclusionPass) GetResultFramebuffer() *render.Framebuffer {
+	return p.composition
+}
+
+// returns blurred crease color
 func (p *CreaseOcclusionPass) GetBlur() *render.Texture {
-	return p.blur.ColorTextures[0]
+	return p.blur.GetColorTexture(0)
 }
 
+// returns raw crease color
 func (p *CreaseOcclusionPass) GetOcclusion() *render.Texture {
-	return p.crease.ColorTextures[0]
+	return p.crease.GetColorTexture(0)
 }
 
 // RenderPass
 // 0 - color
 // 1 - normal
 // 2 - depth
-func (p *CreaseOcclusionPass) RenderPass(src []*render.Texture) {
-	if len(src) < 3 {
-		return
-	}
-
-	color := src[0]
-	normal := src[1]
-	depth := src[2]
-
+func (p *CreaseOcclusionPass) RenderPass(src *renderers.DeferredRenderResult) {
 	// -- Crease render pass
 	p.crease.Bind()
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	context.ClearColorBuffer()
 	p.creaseProgram.Use()
 
 	// bind and send normal
-	normal.Bind(0)
+	src.Normal.BindToSlot(0)
 	p.creaseProgram.Set1i("u_normal", 0)
 	// bind and send depth
-	depth.Bind(1)
+	src.Depth.BindToSlot(1)
 	p.creaseProgram.Set1i("u_depth", 1)
 	// send noise texture (random samples rotations)
-	p.noise.Bind(2)
+	p.noise.BindToSlot(2)
 	p.creaseProgram.Set1i("u_noise", 2)
 
 	// send radius
@@ -234,11 +235,11 @@ func (p *CreaseOcclusionPass) RenderPass(src []*render.Texture) {
 	// -- Blur render pass
 	p.blur.Bind()
 	p.blurProgram.Use()
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	context.ClearColorBuffer()
 	// send uniforms
 	//
 	// crease texture
-	p.crease.ColorTextures[0].Bind(0)
+	p.crease.GetColorTexture(0).BindToSlot(0)
 	p.blurProgram.Set1i("u_overlay", 0)
 	// blur size
 	p.blurProgram.Set1i("u_blur_size", p.cfg.BlurSize)
@@ -248,14 +249,14 @@ func (p *CreaseOcclusionPass) RenderPass(src []*render.Texture) {
 	// -- Compositor render pass
 	p.composition.Bind()
 	p.compositorProgram.Use()
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	context.ClearColorBuffer()
 	// send uniforms
 	//
 	// color texture
-	color.Bind(0)
+	src.Color.BindToSlot(0)
 	p.compositorProgram.Set1i("u_color", 0)
 	// occlusion texture
-	p.blur.ColorTextures[0].Bind(1)
+	p.blur.GetColorTexture(0).BindToSlot(1)
 	p.compositorProgram.Set1i("u_overlay", 1)
 	// levels cfg
 	p.compositorProgram.Set1f("u_blackpoint", p.cfg.BlackPoint)

@@ -38,7 +38,7 @@ func CreateNoiseTexture() (*render.Texture, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ssao pass - failed to create noise texture %w", err)
 	}
-	noiseTexture.Bind(0)
+	noiseTexture.Bind()
 	noiseTexture.UploadRGB(0, 0, noiseSize, noiseSize, noiseRaw)
 	return noiseTexture, nil
 }

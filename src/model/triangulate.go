@@ -4,8 +4,8 @@ import (
 	"math"
 )
 
-// Vertex2D represents a 2D vertex with additional 3D info
-type Vertex2D struct {
+// vertex2D represents a 2D vertex with additional 3D info
+type vertex2D struct {
 	X, Y     float64
 	Original ModelVertex
 	Index    int
@@ -20,9 +20,9 @@ func TriangulatePolygon(vertices []ModelVertex) ([]ModelVertex, []uint32) {
 	}
 
 	// Create working copy with 2D coordinates (ignoring Z for triangulation)
-	workingVerts := make([]Vertex2D, len(vertices))
+	workingVerts := make([]vertex2D, len(vertices))
 	for i, v := range vertices {
-		workingVerts[i] = Vertex2D{
+		workingVerts[i] = vertex2D{
 			X:        float64(v.X),
 			Y:        float64(v.Y),
 			Original: v,
@@ -143,7 +143,7 @@ func TriangulatePolygon(vertices []ModelVertex) ([]ModelVertex, []uint32) {
 }
 
 // Check if polygon vertices are in counter-clockwise order
-func isCounterClockwise(vertices []Vertex2D) bool {
+func isCounterClockwise(vertices []vertex2D) bool {
 	sum := 0.0
 	for i := 0; i < len(vertices); i++ {
 		j := (i + 1) % len(vertices)
@@ -153,14 +153,14 @@ func isCounterClockwise(vertices []Vertex2D) bool {
 }
 
 // Reverse vertex order
-func reverseVertices(vertices []Vertex2D) {
+func reverseVertices(vertices []vertex2D) {
 	for i, j := 0, len(vertices)-1; i < j; i, j = i+1, j-1 {
 		vertices[i], vertices[j] = vertices[j], vertices[i]
 	}
 }
 
 // Check if vertex 'curr' is an ear
-func isEar(vertices []Vertex2D, prev, curr, next int, vertexList []int) bool {
+func isEar(vertices []vertex2D, prev, curr, next int, vertexList []int) bool {
 	p := vertices[prev]
 	c := vertices[curr]
 	n := vertices[next]
@@ -185,14 +185,14 @@ func isEar(vertices []Vertex2D, prev, curr, next int, vertexList []int) bool {
 }
 
 // Check if angle at vertex b is convex (less than 180 degrees)
-func isConvex(a, b, c Vertex2D) bool {
+func isConvex(a, b, c vertex2D) bool {
 	// Cross product for 2D (z-component)
 	cross := (b.X-a.X)*(c.Y-a.Y) - (b.Y-a.Y)*(c.X-a.X)
 	return cross > 0
 }
 
 // Check if point p is inside triangle (a,b,c)
-func isPointInTriangle(p, a, b, c Vertex2D) bool {
+func isPointInTriangle(p, a, b, c vertex2D) bool {
 	// Barycentric coordinate method
 	denom := (b.Y-c.Y)*(a.X-c.X) + (c.X-b.X)*(a.Y-c.Y)
 	if denom == 0 {

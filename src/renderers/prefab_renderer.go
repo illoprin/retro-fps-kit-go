@@ -54,7 +54,7 @@ func (r *PrefabRenderer) Render(p *scene.Prefab) {
 	)
 	r.p.Set1i("u_useTexture", 0)
 	if p.Textured {
-		p.Texture.Bind(0)
+		p.Texture.BindToSlot(0)
 		r.p.Set1i("u_useTexture", 1)
 		r.p.Set1i("u_texture", 0)
 	}

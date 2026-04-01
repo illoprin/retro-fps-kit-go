@@ -10,7 +10,6 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	implglfw "github.com/AllenDang/cimgui-go/impl/glfw"
 	implgl3 "github.com/AllenDang/cimgui-go/impl/opengl3"
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
@@ -20,6 +19,7 @@ import (
 	"github.com/illoprin/retro-fps-kit-go/src/player"
 	postprocessing "github.com/illoprin/retro-fps-kit-go/src/post_processing"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
+	"github.com/illoprin/retro-fps-kit-go/src/render/context"
 	"github.com/illoprin/retro-fps-kit-go/src/renderers"
 	"github.com/illoprin/retro-fps-kit-go/src/scene"
 	"github.com/illoprin/retro-fps-kit-go/src/window"
@@ -38,6 +38,9 @@ type Engine struct {
 	controller *player.EditorController
 	imguiFont  *imgui.Font
 
+	// application state (level, game menu, editor)
+	currentState EngineState
+
 	// geometry render pass
 	resources      []render.Resource
 	deferred       *renderers.DeferredRenderTarget
@@ -46,9 +49,6 @@ type Engine struct {
 
 	// post processing render pass
 	passPipeline []postprocessing.PostProcessingPass
-
-	// screen render pass
-	screen *renderers.ScreenRenderer
 }
 
 func NewEngine() (*Engine, error) {
@@ -66,13 +66,12 @@ func NewEngine() (*Engine, error) {
 		return nil, fmt.Errorf("failed to init window - %v", err)
 	}
 
-	if err := gl.Init(); err != nil {
-		return nil, fmt.Errorf("failed to init opengl - %v", err)
+	if err := context.InitContext(); err != nil {
+		return nil, err
 	}
 
-	e.printUserData()
-
-	e.setupGL()
+	context.LogUserHardware()
+	context.SetupDebugOutput()
 
 	if err := e.initImgui(); err != nil {
 		return nil, fmt.Errorf("failed to init imgui context - %v", err)
@@ -95,29 +94,6 @@ func NewEngine() (*Engine, error) {
 	return e, nil
 }
 
-func (e *Engine) setupGL() {
-	gl.Enable(gl.DEBUG_OUTPUT)
-	// real-time single thread debugging
-	gl.Enable(gl.DEBUG_OUTPUT_SYNCHRONOUS)
-	gl.DebugMessageCallback(gl.DebugProc(func(
-		source uint32,
-		gltype uint32,
-		id uint32,
-		severity uint32,
-		length int32,
-		message string,
-		userParam unsafe.Pointer,
-	) {
-		if severity == gl.DEBUG_SEVERITY_NOTIFICATION {
-			return // trash filter
-		}
-
-		fmt.Printf("[GL][%d][%d] severity=%d: %s\n",
-			source, gltype, severity, message,
-		)
-	}), nil)
-}
-
 func (e *Engine) createWindow() error {
 	// create window
 	var err error
@@ -132,12 +108,6 @@ func (e *Engine) createWindow() error {
 	e.input = window.NewManager(e.window.Window)
 
 	return nil
-}
-
-func (e *Engine) printUserData() {
-	fmt.Println(gl.GoStr(gl.GetString(gl.RENDERER)))
-	fmt.Println(gl.GoStr(gl.GetString(gl.VERSION)))
-	fmt.Println(gl.GoStr(gl.GetString(gl.SHADING_LANGUAGE_VERSION)))
 }
 
 func (e *Engine) initImgui() error {
@@ -189,21 +159,23 @@ func (e *Engine) initImguiRenderer() error {
 
 func (e *Engine) initCustomImguiUI() {
 
+	deferredResult := e.deferred.GetResult()
+
 	deferredTextures := []imguimenus.ImageTexture{
 		{
-			ID:   e.deferred.DeferredFBO.ColorTextures[0].ID,
+			ID:   deferredResult.Color.ID,
 			Name: "Color",
 		},
 		{
-			ID:   e.deferred.DeferredFBO.ColorTextures[1].ID,
+			ID:   deferredResult.Normal.ID,
 			Name: "Normal",
 		},
 		{
-			ID:   e.deferred.DeferredFBO.ColorTextures[2].ID,
+			ID:   deferredResult.Position.ID,
 			Name: "Position",
 		},
 		{
-			ID:   e.deferred.DeferredFBO.DepthTexture.ID,
+			ID:   deferredResult.Depth.ID,
 			Name: "Depth",
 		},
 	}
@@ -215,7 +187,7 @@ func (e *Engine) initCustomImguiUI() {
 		if p.GetName() == "ssao" {
 			ssao := p.(*postprocessing.SSAOPass)
 			rawSSAO := imguimenus.ImageTexture{
-				ID:   ssao.GetRawSSAO().ID,
+				ID:   ssao.GetOcclusion().ID,
 				Name: "ssao.raw",
 			}
 			noiseSSAO := imguimenus.ImageTexture{
@@ -223,7 +195,7 @@ func (e *Engine) initCustomImguiUI() {
 				Name: "ssao.noise",
 			}
 			blurSSAO := imguimenus.ImageTexture{
-				ID:   ssao.GetBlurSSAO().ID,
+				ID:   ssao.GetBlur().ID,
 				Name: "ssao.blur",
 			}
 			passTextures = append(passTextures, rawSSAO, noiseSSAO, blurSSAO)
@@ -324,23 +296,23 @@ func (e *Engine) initGame() error {
 
 	// shotgun mesh
 	meshShotgun := render.NewMesh()
-	meshShotgun.SetupFromModel(shotgunModel, gl.STATIC_DRAW)
+	meshShotgun.SetupFromModel(shotgunModel, render.StaticDraw)
 
 	// floor mesh
 	meshFloor := render.NewMesh()
-	meshFloor.SetupFromModel(floorModel, gl.STATIC_DRAW)
+	meshFloor.SetupFromModel(floorModel, render.StaticDraw)
 
 	// ceiling mesh
 	meshCeiling := render.NewMesh()
-	meshCeiling.SetupFromModel(ceilingModel, gl.STATIC_DRAW)
+	meshCeiling.SetupFromModel(ceilingModel, render.StaticDraw)
 
 	// walls mesh
 	meshWalls := render.NewMesh()
-	meshWalls.SetupFromModel(wallsModel, gl.STATIC_DRAW)
+	meshWalls.SetupFromModel(wallsModel, render.StaticDraw)
 
 	// walls mesh
 	meshTable := render.NewMesh()
-	meshTable.SetupFromModel(tableModel, gl.STATIC_DRAW)
+	meshTable.SetupFromModel(tableModel, render.StaticDraw)
 
 	// colors texture
 	texColors, err := render.NewTextureFromImage(assetmgr.GetTexturePath("colors.png"), true, true)
@@ -421,13 +393,6 @@ func (e *Engine) initRenderingPipeline() error {
 	meshQuad := render.NewMesh()
 	meshQuad.SetupBasicQuad()
 
-	// FIX blit latest buffer to initial fbo
-	screen, err := renderers.NewScreen(meshQuad, e.window.GetConfig())
-	if err != nil {
-		return err
-	}
-	e.screen = screen
-
 	// auxiliary resources texture
 	noiseTexture, err := postprocessing.CreateNoiseTexture()
 	if err != nil {
@@ -474,13 +439,13 @@ func (e *Engine) initRenderingPipeline() error {
 	// -- crease occlusion
 	creaseConfig := &postprocessing.CreaseOcclusionConfig{
 		Use:        false,
-		Radius:     12,
+		Radius:     17,
 		DepthBias:  0.001,
-		Intensity:  1.7,
-		KernelSize: 22,
+		Intensity:  3.5,
+		KernelSize: 32,
 		WhitePoint: 1.0,
-		BlackPoint: 0.2,
-		BlurSize:   2,
+		BlackPoint: 0.26,
+		BlurSize:   3,
 	}
 	creasePass, err := postprocessing.NewCreaseOcclusionPass(
 		e.window.GetConfig(), meshQuad, creaseConfig,
@@ -532,7 +497,6 @@ func (e *Engine) initRenderingPipeline() error {
 	// append resources
 	e.resources = append(e.resources,
 		meshQuad,
-		screen,
 		deferred,
 		prefabRenderer,
 		noiseTexture,
@@ -575,13 +539,17 @@ func (e *Engine) Run() {
 		// render geometry
 		e.deferred.BindForNewFrame()
 		e.render()
-		e.deferred.DeferredFBO.Unbind()
+		context.BindFramebuffer(nil)
+
+		// setup context for 2D rendering
+		context.SetupForPolygonFill()
+		context.DisableDepth()
 
 		// perform post processing
-		result := e.performPostProcessingPipeline()
+		_, resultFbo := e.performPostProcessingPipeline()
 
-		// render screen quad
-		e.screen.RenderScreenQuad(result)
+		// blit to main framebuffer
+		resultFbo.Blit(0, e.window.GetConfig().Width, e.window.GetConfig().Height)
 
 		// render imgui on top of screen
 		e.renderImgui()
@@ -655,16 +623,16 @@ func (e *Engine) renderImgui() {
 	implgl3.RenderDrawData(drawData)
 }
 
-func (e *Engine) performPostProcessingPipeline() *render.Texture {
+// performPostProcessingPipeline applies post processing and returns result texture and framebuffer
+func (e *Engine) performPostProcessingPipeline() (*render.Texture, *render.Framebuffer) {
 	// get deferred textures
-	color := e.deferred.DeferredFBO.ColorTextures[0]
-	normal := e.deferred.DeferredFBO.ColorTextures[1]
-	position := e.deferred.DeferredFBO.ColorTextures[2]
-	depth := e.deferred.DeferredFBO.DepthTexture
+	deferredRes := e.deferred.GetResult()
 
-	lastColor := color
+	var resultFbo *render.Framebuffer = e.deferred.GetFramebuffer()
 
+	// get actual camera
 	cam := e.controller.GetCamera()
+
 	// perform
 	for _, node := range e.passPipeline {
 		if !node.Use() {
@@ -677,11 +645,12 @@ func (e *Engine) performPostProcessingPipeline() *render.Texture {
 			creasePass := node.(*postprocessing.CreaseOcclusionPass)
 			creasePass.SetProjectionMatrix(cam.Projection)
 		}
-		node.RenderPass([]*render.Texture{lastColor, normal, depth, position})
-		lastColor = node.GetColor()
+		node.RenderPass(deferredRes)
+		deferredRes.Color = node.GetColor()
+		resultFbo = node.GetResultFramebuffer()
 	}
 
-	return lastColor
+	return deferredRes.Color, resultFbo
 }
 
 func (e *Engine) Destroy() {

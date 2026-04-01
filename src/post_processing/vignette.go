@@ -3,9 +3,10 @@ package postprocessing
 import (
 	"fmt"
 
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/illoprin/retro-fps-kit-go/src/engine/assetmgr"
 	"github.com/illoprin/retro-fps-kit-go/src/render"
+	"github.com/illoprin/retro-fps-kit-go/src/render/context"
+	"github.com/illoprin/retro-fps-kit-go/src/renderers"
 	"github.com/illoprin/retro-fps-kit-go/src/window"
 )
 
@@ -74,21 +75,22 @@ func (p *VignettePass) GetName() string {
 	return "vignette"
 }
 
-// get framebuffer color
+// returns result  color
 func (p *VignettePass) GetColor() *render.Texture {
-	return p.fbo.ColorTextures[0]
+	return p.fbo.GetColorTexture(0)
+}
+
+// returns result framebuffer
+func (p *VignettePass) GetResultFramebuffer() *render.Framebuffer {
+	return p.fbo
 }
 
 // RenderPass texture index 0 is color
-func (p *VignettePass) RenderPass(src []*render.Texture) {
-	if len(src) == 0 {
-		return
-	}
+func (p *VignettePass) RenderPass(src *renderers.DeferredRenderResult) {
 	p.fbo.Bind()
 	p.program.Use()
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
-	src[0].Bind(0)
+	context.ClearColorBuffer()
+	src.Color.BindToSlot(0)
 	p.program.Set1i("u_color", 0)
 	p.program.Set1f("u_radius", p.cfg.Radius)
 	p.program.Set1f("u_softness", p.cfg.Softness)

@@ -120,7 +120,7 @@ func NewTexture(config TextureConfig) (*Texture, error) {
 		Config: config,
 	}
 
-	texture.bind()
+	texture.Bind()
 	texture.setParams()
 	texture.allocateStorage()
 	texture.unbind()
@@ -171,7 +171,7 @@ func NewTextureFromImage(path string, generateMipmaps bool, nearest bool) (*Text
 		return nil, err
 	}
 
-	texture.bind()
+	texture.Bind()
 	texture.UploadRGBA(0, 0, int32(width), int32(height), rgba.Pix)
 
 	if generateMipmaps {
@@ -198,7 +198,7 @@ func NewFontAtlasTexture(width, height int32, data []byte) (*Texture, error) {
 		return nil, err
 	}
 
-	texture.bind()
+	texture.Bind()
 	texture.UploadR8(0, 0, width, height, data)
 	texture.unbind()
 
@@ -219,9 +219,9 @@ func NewFramebufferColorTexture(width, height int32, format TextureFormat) (*Tex
 }
 
 // NewFramebufferDepthTexture создаёт текстуру глубины для Framebuffer
-func NewFramebufferDepthTexture(width, height int32) (*Texture, error) {
+func NewFramebufferDepthTexture(width, height int32, format TextureFormat) (*Texture, error) {
 	config := DefaultTextureConfig(width, height)
-	config.Format = FormatDepth32F
+	config.Format = format
 	config.FilterMin = FilterNearest
 	config.FilterMag = FilterNearest
 	config.WrapS = WrapClampToEdge
@@ -276,7 +276,7 @@ func NewCubeMapFromImages(paths [6]string, generateMipmaps bool) (*Texture, erro
 		return nil, err
 	}
 
-	texture.bind()
+	texture.Bind()
 
 	// Загружаем все 6 граней
 	cubeMapTargets := []uint32{
@@ -322,7 +322,7 @@ func NewCubeMapFromImages(paths [6]string, generateMipmaps bool) (*Texture, erro
 }
 
 // bind привязывает текстуру
-func (t *Texture) bind() {
+func (t *Texture) Bind() {
 	switch t.Type {
 	case TextureType2D:
 		gl.BindTexture(gl.TEXTURE_2D, t.ID)
@@ -346,9 +346,9 @@ func (t *Texture) unbind() {
 }
 
 // Bind привязывает текстуру к указанному юниту
-func (t *Texture) Bind(unit uint32) {
+func (t *Texture) BindToSlot(unit uint32) {
 	gl.ActiveTexture(gl.TEXTURE0 + unit)
-	t.bind()
+	t.Bind()
 }
 
 // Unbind отвязывает текстуру от указанного юнита
@@ -464,19 +464,9 @@ func (t *Texture) GenerateMipmaps() {
 	gl.GenerateMipmap(target)
 }
 
-// GetID возвращает ID текстуры
-func (t *Texture) GetID() uint32 {
-	return t.ID
-}
-
-// GetWidth возвращает ширину текстуры
-func (t *Texture) GetWidth() int32 {
-	return t.Config.Width
-}
-
-// GetHeight возвращает высоту текстуры
-func (t *Texture) GetHeight() int32 {
-	return t.Config.Height
+// GetWidth возвращает размер текстуры
+func (t *Texture) GetSize() (int32, int32) {
+	return t.Config.Width, t.Config.Height
 }
 
 // Resize изменяет размер текстуры (только для Framebuffer текстур)
@@ -488,7 +478,7 @@ func (t *Texture) Resize(width, height int32) {
 	t.Config.Width = width
 	t.Config.Height = height
 
-	t.bind()
+	t.Bind()
 	t.allocateStorage()
 	t.unbind()
 }
