@@ -25,7 +25,8 @@ func NewFramebuffersUI(
 ) *FramebuffersUI {
 
 	f := &FramebuffersUI{
-		screen: screenCfg,
+		screen:  screenCfg,
+		Visible: true,
 	}
 
 	// get deferred textures

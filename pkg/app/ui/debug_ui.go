@@ -47,6 +47,9 @@ func NewDebugUI(
 		showCamera:      true,
 		showDrawCalls:   true,
 		showVertices:    true,
+
+		// set visibility
+		Visible: true,
 	}
 
 	// prepare passes array
@@ -106,7 +109,7 @@ func (m *DebugUI) showDebugWindow() {
 func (m *DebugUI) showStatsTab() {
 
 	imgui.Text(fmt.Sprintf("FPS: %.2f", m.monitor.GetFPS()))
-	imgui.Text(fmt.Sprintf("Frame Time: %.3f ms", m.monitor.GetFrameTime()))
+	imgui.Text(fmt.Sprintf("Frame Time: %.3f ms", m.monitor.GetFrameTime()*1000))
 
 	imgui.Separator()
 
@@ -123,6 +126,12 @@ func (d *DebugUI) SetActiveCamera(c *camera.Camera3D) {
 func (m *DebugUI) showSceneTab() {
 
 	if imgui.CollapsingHeaderBoolPtr("Camera", &m.showCamera) {
+
+		if m.activeCamera == nil {
+			imgui.Text("No active 3D camera data was received")
+			return
+		}
+
 		imgui.PushItemFlag(imgui.ItemFlags(imgui.ItemFlagsReadOnly), true)
 		front := m.activeCamera.GetFront()
 		p, y := m.activeCamera.GetRotation()

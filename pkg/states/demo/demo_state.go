@@ -1,4 +1,4 @@
-package game
+package demo
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-kit-go/pkg/app"
 	"github.com/illoprin/retro-fps-kit-go/pkg/app/controllers"
+	"github.com/illoprin/retro-fps-kit-go/pkg/core/camera"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/files"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/model"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/pipeline"
@@ -23,18 +24,18 @@ type DemoState struct {
 	controller *controllers.EditorController
 }
 
-func NewGame() *DemoState {
+func NewDemo() *DemoState {
 	return &DemoState{
 		resources: make([]rhi.Resource, 0),
 		prefabs:   make([]*prefab.Prefab, 0),
 	}
 }
 
-func (g *DemoState) Init(api app.AppAPI) error {
-	g.api = api
+func (s *DemoState) Init(api app.AppAPI) error {
+	s.api = api
 
-	g.controller = controllers.NewEditorController(
-		api.GetInputManager(), mgl.Vec3{0, 0, 3}, 10.5, 0.25,
+	s.controller = controllers.NewEditorController(
+		api.GetInputManager(), mgl.Vec3{0, 2, 3}, 10.5, 0.25,
 	)
 
 	// init prefab renderer
@@ -42,7 +43,7 @@ func (g *DemoState) Init(api app.AppAPI) error {
 	if err != nil {
 		return fmt.Errorf("failed to create prefab renderer - %w", err)
 	} else {
-		g.renderer = renderer
+		s.renderer = renderer
 	}
 
 	// create obj parser
@@ -129,8 +130,8 @@ func (g *DemoState) Init(api app.AppAPI) error {
 	}
 
 	// add resources
-	g.resources = append(
-		g.resources,
+	s.resources = append(
+		s.resources,
 		meshShotgun,
 		meshFloor,
 		meshWalls,
@@ -144,8 +145,8 @@ func (g *DemoState) Init(api app.AppAPI) error {
 	)
 
 	// add prefabs
-	g.prefabs = append(
-		g.prefabs,
+	s.prefabs = append(
+		s.prefabs,
 		prefab.NewPrefab(meshShotgun, texColors),
 		prefab.NewPrefab(meshFloor, texTiles),
 		prefab.NewPrefab(meshWalls, texBrick),
@@ -156,14 +157,14 @@ func (g *DemoState) Init(api app.AppAPI) error {
 	return nil
 }
 
-func (g *DemoState) Update(deltaTime float32) {
-	shotgun := g.prefabs[0]
+func (s *DemoState) Update(deltaTime float32) {
+	shotgun := s.prefabs[0]
 	shotgun.Position = mgl.Vec3{0, 1.446, 0}
 	shotgun.Scaling = mgl.Vec3{0.25, 0.25, 0.25}
 	shotgun.Rotation[1] = -90
 
-	input := g.api.GetInputManager()
-	window := g.api.GetWindow()
+	input := s.api.GetInputManager()
+	window := s.api.GetWindow()
 
 	canUpdateController := false
 
@@ -173,61 +174,66 @@ func (g *DemoState) Update(deltaTime float32) {
 	if window.GetCursorDisabled() {
 		canUpdateController = true
 	} else {
-		if !g.api.GUIWantCaptureMouse() && input.IsMouseButtonPressed(glfw.MouseButton1) {
+		if !s.api.GUIWantCaptureMouse() && input.IsMouseButtonPressed(glfw.MouseButton1) {
 			canUpdateController = true
 		}
 	}
 
 	if canUpdateController {
-		g.controller.Update(deltaTime)
+		s.controller.Update(deltaTime)
 	}
 }
 
-func (g *DemoState) RenderGeometry() {
+func (s *DemoState) RenderGBuffer() {
 	// render scene
-	winConfig := g.api.GetWindow().GetConfig()
-	g.renderer.Prepare(
+	winConfig := s.api.GetWindow().GetConfig()
+	s.renderer.Prepare(
 		int(winConfig.Width),
 		int(winConfig.Height),
-		g.controller.GetCamera(),
+		s.controller.GetCamera(),
 	)
-	for _, p := range g.prefabs {
-		g.renderer.Render(p)
+	for _, p := range s.prefabs {
+		s.renderer.Render(p)
 	}
 }
 
-func (g *DemoState) OnKey(key glfw.Key, action glfw.Action, mods glfw.ModifierKey) {
-	window := g.api.GetWindow()
+func (s *DemoState) GetCamera() *camera.Camera3D {
+	return s.controller.GetCamera()
+}
+
+func (s *DemoState) OnKey(key glfw.Key, action glfw.Action, mods glfw.ModifierKey) {
+	window := s.api.GetWindow()
 
 	if action == glfw.Press {
-		window.ToggleCursor()
+		if key == glfw.KeyF8 {
+			window.ToggleCursor()
+		}
 	}
+}
+
+func (s *DemoState) OnMouseButton(button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
 
 }
 
-func (g *DemoState) OnMouseButton(button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
+func (s *DemoState) OnMouseMove(dX, dY, posX, posY float64) {
 
 }
 
-func (g *DemoState) OnMouseMove(dX, dY, posX, posY float64) {
+func (s *DemoState) OnMouseScroll(dx, dy float64) {
 
 }
 
-func (g *DemoState) OnMouseScroll(dx, dy float64) {
-
-}
-
-func (g *DemoState) HasFPSController() bool {
+func (s *DemoState) HasFPSController() bool {
 	return true
 }
 
-func (g *DemoState) OnResize(w, h, sw, sh int32) {
+func (s *DemoState) OnResize(w, h, sw, sh int32) {
 
 }
 
-func (g *DemoState) Destroy() {
-	g.renderer.Delete()
-	for _, r := range g.resources {
+func (s *DemoState) Destroy() {
+	s.renderer.Delete()
+	for _, r := range s.resources {
 		if r != nil {
 			r.Delete()
 		}

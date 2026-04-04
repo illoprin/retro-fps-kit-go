@@ -1,6 +1,8 @@
 package window
 
 import (
+	"log"
+
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
@@ -154,6 +156,8 @@ func (m *InputManager) handleScroll(w *glfw.Window, xoff, yoff float64) {
 	if m.mouseScrollCallback != nil {
 		m.mouseScrollCallback(xoff, yoff)
 	}
+
+	log.Printf("input manager - scroll y offset %.2f\n", yoff)
 }
 
 // Update resets frame-based states (called once per frame)

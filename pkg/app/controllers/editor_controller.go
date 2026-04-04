@@ -33,7 +33,7 @@ func NewEditorController(i *window.InputManager, pos mgl32.Vec3, speed, sensitiv
 func (c *EditorController) Update(dt float32) {
 	c.processKeyboard(dt)
 	c.processMouse(c.i.GetMouseDelta())
-	yOffset, _ := c.i.GetMouseScroll()
+	_, yOffset := c.i.GetMouseScroll()
 	c.processMouseScroll(yOffset)
 	c.camera.Update()
 }
@@ -70,11 +70,11 @@ func (c *EditorController) processMouse(dx, dy float64) {
 // processMouseScroll handles mouse wheel for zoom (FOV adjustment)
 func (c *EditorController) processMouseScroll(yoffset float64) {
 	c.camera.Fov -= float32(yoffset)
-	if c.camera.Fov < 1.0 {
-		c.camera.Fov = 1.0
+	if c.camera.Fov < 20.0 {
+		c.camera.Fov = 20.0
 	}
-	if c.camera.Fov > 100.0 {
-		c.camera.Fov = 100.0
+	if c.camera.Fov > 120.0 {
+		c.camera.Fov = 120.0
 	}
 }
 

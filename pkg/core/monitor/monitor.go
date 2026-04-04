@@ -16,7 +16,7 @@ type Monitor struct {
 
 	// last frame data
 	lastFPS       atomic.Value // float64
-	lastFrameTime atomic.Value // float64 (ms)
+	lastFrameTime atomic.Value // float64 (seconds)
 	lastDrawCalls atomic.Uint64
 	lastVertices  atomic.Uint64
 	lastTriangles atomic.Uint64
@@ -74,7 +74,7 @@ func (m *Monitor) Update() {
 		seconds := elapsed.Seconds()
 
 		fps := float64(frames) / seconds
-		avgFrameTime := (seconds / float64(frames)) * 1000
+		avgFrameTime := (seconds / float64(frames))
 
 		m.lastFPS.Store(fps)
 		m.lastFrameTime.Store(avgFrameTime)

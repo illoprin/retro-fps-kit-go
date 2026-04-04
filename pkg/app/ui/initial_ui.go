@@ -40,17 +40,24 @@ func (ui *InitialUI) OnKey(key glfw.Key, action glfw.Action) {
 	if action == glfw.Press {
 		if key == glfw.KeyF1 {
 			ui.debugUI.Visible = !ui.debugUI.Visible
-		}
-		if key == glfw.KeyF4 {
 			ui.fbosUI.Visible = !ui.fbosUI.Visible
 		}
 	}
+}
+
+func (ui *InitialUI) GetDebugUI() *DebugUI {
+	return ui.debugUI
+}
+
+func (ui *InitialUI) GetFramebuffersUI() *FramebuffersUI {
+	return ui.fbosUI
 }
 
 func (ui *InitialUI) Draw() {
 	// apply custom font
 	imgui.PushFont(ui.font, 16.0)
 	ui.debugUI.Show()
+	ui.fbosUI.Show()
 	// detach custom font
 	imgui.PopFont()
 }

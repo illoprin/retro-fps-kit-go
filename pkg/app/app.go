@@ -248,6 +248,7 @@ func (e *App) Run() {
 
 		// update current context
 		if e.activeState != nil {
+			// FIX get real delta time
 			e.activeState.Update(float32(e.monitor.GetFrameTime()))
 		}
 
@@ -259,6 +260,7 @@ func (e *App) Run() {
 		// -- Render
 
 		context.BindFramebuffer(nil)
+		context.ClearColorBuffer()
 
 		// perform custom indirect rendering of current state (if needs)
 		if state, ok := e.activeState.(IndirectDrawer); ok {
@@ -280,6 +282,8 @@ func (e *App) Run() {
 			context.SetupForFlat()
 			// perform post processing
 			_, lastRenderTarget = e.performPostProcessingPipeline()
+			// send camera info to debug ui
+			e.iUI.GetDebugUI().SetActiveCamera(state.GetCamera())
 		}
 
 		context.BindFramebuffer(lastRenderTarget)
@@ -290,8 +294,13 @@ func (e *App) Run() {
 			state.RenderFlat(lastRenderTarget)
 		}
 
-		// blit last render target to initial framebuffer
-		lastRenderTarget.Blit(0, e.window.GetConfig().Width, e.window.GetConfig().Height, rhi.FilterNearest)
+		if lastRenderTarget != nil {
+			// blit last render target to initial framebuffer
+			lastRenderTarget.Blit(
+				0, e.window.GetConfig().Width, e.window.GetConfig().Height,
+				rhi.FilterNearest,
+			)
+		}
 
 		// render imgui on top of screen
 		ui.Render()
@@ -429,7 +438,7 @@ func (e *App) initImguiContext() error {
 	ui.Init()
 
 	// init imgui renderer
-	if err := ui.InitImgui(e.window); err != nil {
+	if err := ui.InitImguiRenderer(e.window.Window); err != nil {
 		return fmt.Errorf("failed to init imgui renderer - %v", err)
 	}
 	return nil

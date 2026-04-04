@@ -6,7 +6,7 @@ import (
 
 	implglfw "github.com/AllenDang/cimgui-go/impl/glfw"
 	implgl3 "github.com/AllenDang/cimgui-go/impl/opengl3"
-	"github.com/illoprin/retro-fps-kit-go/pkg/core/window"
+	"github.com/go-gl/glfw/v3.3/glfw"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 )
@@ -24,7 +24,7 @@ func Init() {
 	imgui.StyleColorsDark()
 }
 
-func InitImgui(win *window.Window) error {
+func InitImguiRenderer(win *glfw.Window) error {
 	// setup imgui renderer
 	// a crutch to get the C pointer to GLFWWindow
 	type glfwWindow struct {

@@ -138,7 +138,7 @@ func (p *CavityPass) initFramebuffers() error {
 func (p *CavityPass) initPrograms() error {
 	// init cavity drawing program
 	cavityProgram, err := rhi.NewProgram(
-		files.GetShaderPath("quad.vert"),
+		files.GetShaderPath("screen.vert"),
 		files.GetShaderPath("cavity.frag"),
 	)
 	if err != nil {
