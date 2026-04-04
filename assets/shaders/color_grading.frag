@@ -20,7 +20,7 @@ vec3 acesTonemap(vec3 x) {
   const float c = 2.43;
   const float d = 0.59;
   const float e = 0.14;
-	vec3 result = (x * (a * x + b)) / (x * (c * x + d) + e); 
+  vec3 result = (x * (a * x + b)) / (x * (c * x + d) + e);
   return clamp(result, 0.0, 1.0);
 }
 
@@ -51,15 +51,14 @@ vec3 applyColorGrading(vec3 color) {
   color = max(color, 0.0);
 
   // color tint
-
   // 3. Color tinting
-  if (u_color_strength > 0.0) {
+  if(u_color_strength > 0.0) {
     vec3 tint;
-    if (color.r < 0.333) {
+    if(color.r < 0.333) {
       // Shadows
       float t = color.r / 0.333;
       tint = mix(u_shadow_color, u_mid_color, t);
-    } else if (color.r < 0.666) {
+    } else if(color.r < 0.666) {
       // Midtones
       float t = (color.r - 0.333) / 0.333;
       tint = mix(u_mid_color, u_highlight_color, t);

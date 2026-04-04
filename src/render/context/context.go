@@ -5,7 +5,7 @@ import (
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/illoprin/retro-fps-kit-go/src/render"
+	"github.com/illoprin/retro-fps-kit-go/src/render/rhi"
 )
 
 func InitContext() error {
@@ -56,16 +56,13 @@ func SetClearColor(r, g, b, a float32) {
 	gl.ClearColor(r, g, b, a)
 }
 
-func DisableDepth() {
-	gl.Disable(gl.DEPTH_TEST)
-}
-
 func SetupForWireframe() {
 	gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
 	gl.Disable(gl.CULL_FACE)
 }
 
-func SetupForPolygonFill() {
+func SetupForFlat() {
+	gl.Disable(gl.DEPTH_TEST)
 	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
 }
 
@@ -94,10 +91,18 @@ func SetupViewport(xo, yo, w, h int32) {
 	gl.Viewport(xo, yo, w, h)
 }
 
-func BindFramebuffer(fb *render.Framebuffer) {
-	if fb == nil {
-		gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
+func BindFramebuffer(f *rhi.Framebuffer) {
+	if f != nil {
+		f.Bind()
 		return
 	}
-	fb.Bind()
+	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
+}
+
+func SaveState() {
+	// FIX Implement
+}
+
+func RestoreState() {
+	// FIX Implement
 }

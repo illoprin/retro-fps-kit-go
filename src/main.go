@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/illoprin/retro-fps-kit-go/src/engine"
+	"github.com/illoprin/retro-fps-kit-go/src/states/game"
 )
 
 func main() {
@@ -12,6 +13,12 @@ func main() {
 	}
 	defer e.Destroy()
 
-	e.Run()
+	game := game.NewGame()
+	if game.Init(e) != nil {
+		panic(err)
+	}
 
+	e.SetActiveState(game)
+
+	e.Run()
 }
