@@ -57,16 +57,9 @@ func NewEyeAdaptionPass(
 	}
 
 	// create luma framebuffer
-	luma, err := rhi.NewFramebuffer(1, 1)
-	if err != nil {
-		return nil, fmt.Errorf("eye adaption pass - failed to create luma fbo %w", err)
-	}
+	luma := rhi.NewFramebuffer(1, 1)
 	luma.Bind()
-	err = luma.NewColorAttachment(rhi.FormatR32F)
-	if err != nil {
-		luma.Delete()
-		return nil, fmt.Errorf("eye adaption pass - failed to create luma fbo - %w", err)
-	}
+	luma.NewColorAttachment(rhi.FormatR32F)
 	if !luma.Check() {
 		luma.Delete()
 		return nil, fmt.Errorf("eye adaption pass - incomplete luma fbo")
@@ -75,16 +68,9 @@ func NewEyeAdaptionPass(
 
 	// create result framebuffer
 	sW, sH := screenCfg.GetScreenSize()
-	ldr, err := rhi.NewFramebuffer(sW, sH)
-	if err != nil {
-		return nil, fmt.Errorf("eye adaption pass - failed to create ldr fbo %w", err)
-	}
+	ldr := rhi.NewFramebuffer(sW, sH)
 	ldr.Bind()
-	err = ldr.NewColorAttachment(rhi.FormatRGBA8)
-	if err != nil {
-		ldr.Delete()
-		return nil, fmt.Errorf("eye adaption pass - failed to create ldr fbo - %w", err)
-	}
+	ldr.NewColorAttachment(rhi.FormatRGBA8)
 	if !ldr.Check() {
 		ldr.Delete()
 		return nil, fmt.Errorf("eye adaption pass - incomplete ldr fbo")
@@ -111,9 +97,9 @@ func NewEyeAdaptionPass(
 	}
 	p.ldrProgram = ldrProgram
 
-	p.buildAndSendSamples()
-
 	p.resources = append(p.resources, luma, ldr, lumaProgram, ldrProgram)
+
+	p.buildAndSendSamples()
 
 	return p, nil
 
@@ -144,13 +130,13 @@ func (p *EyeAdaptionPass) RenderPass(src *pipeline.DeferredRenderResult) {
 
 	// -- LUMA render pass (get average luma)
 
-	p.luma.Bind()
+	p.luma.BindForDrawing()
 	context.ClearColorBuffer()
 	p.lumaProgram.Use()
 	// send radius
 	p.lumaProgram.Set1f("u_radius", p.cfg.Radius)
 	// send source color
-	src.Color.BindToSlot(0)
+	src.Color.BindToUnit(0)
 	p.lumaProgram.Set1i("u_color", 0)
 
 	p.mesh.Draw()
@@ -163,17 +149,17 @@ func (p *EyeAdaptionPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.luma.ReadPixels(0, 0, 1, 1, 0, rhi.FormatR32F, unsafe.Pointer(&currentLuma))
 	alpha := p.cfg.AdaptionSpeed
 	currentExposure := p.cfg.AvgGray / max(currentLuma, 0.001)
-	smoothedExposure := mgl.Clamp(p.prevExposure*(1.0-alpha)+currentExposure*alpha, 0.0, 5.0)
+	smoothedExposure := mgl.Clamp(p.prevExposure*(1.0-alpha)+currentExposure*alpha, 0.05, 2.0)
 	p.prevExposure = smoothedExposure
 
 	// -- Result render pass (apply average exposure)
 
 	// send average luma
-	p.ldr.Bind()
+	p.ldr.BindForDrawing()
 	context.ClearColorBuffer()
 	p.ldrProgram.Use()
 	// send color
-	src.Color.BindToSlot(0)
+	src.Color.BindToUnit(0)
 	p.ldrProgram.Set1i("u_color", 0)
 	// apply exposure
 	p.ldrProgram.Set1f("u_exposure", smoothedExposure)

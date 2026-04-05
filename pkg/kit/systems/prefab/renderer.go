@@ -1,12 +1,12 @@
-package pipeline
+package prefabsystem
 
 import (
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/camera"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/files"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/math"
+	"github.com/illoprin/retro-fps-kit-go/pkg/kit/entities/prefab"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/rhi"
-	"github.com/illoprin/retro-fps-kit-go/pkg/scene/prefab"
 )
 
 type PrefabRenderer struct {
@@ -54,7 +54,7 @@ func (r *PrefabRenderer) Render(p *prefab.Prefab) {
 	)
 	r.p.Set1i("u_useTexture", 0)
 	if p.Textured {
-		p.Texture.BindToSlot(0)
+		p.Texture.BindToUnit(0)
 		r.p.Set1i("u_useTexture", 1)
 		r.p.Set1i("u_texture", 0)
 	}

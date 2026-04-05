@@ -68,17 +68,38 @@ const (
 	FormatDepth24Stencil8
 )
 
-type DrawType uint32
+type BufferType uint32
 
 const (
-	StaticDraw DrawType = iota
+	StaticDraw BufferType = iota
 	DynamicDraw
 	StreamDraw
 )
 
+type DataType uint32
+
 const (
-	sizeOfFloat uint32 = 4
+	UnsignedByte DataType = iota
+	UnsignedInteger
+	Integer
+	Float32
 )
+
+// GetDataType - returns buffer data type
+func GetDataType(t DataType) uint32 {
+	switch t {
+	case UnsignedByte:
+		return gl.UNSIGNED_BYTE
+	case UnsignedInteger:
+		return gl.UNSIGNED_INT
+	case Integer:
+		return gl.INT
+	case Float32:
+		return gl.FLOAT
+	default:
+		return gl.FLOAT
+	}
+}
 
 type RenderStats struct {
 	DrawCalls uint64
@@ -93,6 +114,20 @@ func (r *RenderStats) Reset() {
 }
 
 var FrameStats RenderStats
+
+// getVBOType returns GL draw type
+func GetBufferType(t BufferType) uint32 {
+	switch t {
+	case StaticDraw:
+		return gl.STATIC_DRAW
+	case DynamicDraw:
+		return gl.DYNAMIC_DRAW
+	case StreamDraw:
+		return gl.STREAM_DRAW
+	default:
+		return gl.STATIC_DRAW
+	}
+}
 
 // GetInternalFormat - returns GPU store type
 func GetInternalFormat(format TextureFormat) int32 {
@@ -160,8 +195,8 @@ func GetFormat(format TextureFormat) uint32 {
 	}
 }
 
-// GetDataType - returns source data format
-func GetDataType(format TextureFormat) uint32 {
+// GetTextureDataType - returns texture source data type (int, byte and etc...)
+func GetTextureDataType(format TextureFormat) uint32 {
 	switch format {
 	case FormatRGBA8, FormatRGB8, FormatR8:
 		return gl.UNSIGNED_BYTE

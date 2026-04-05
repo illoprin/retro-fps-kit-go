@@ -1,4 +1,4 @@
-package model
+package modeldata
 
 // ModelVertex describes one vertex of object (pos, uv, normal)
 type ModelVertex struct {

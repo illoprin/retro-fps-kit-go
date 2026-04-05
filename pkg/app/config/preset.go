@@ -11,7 +11,7 @@ const (
 
 var (
 	SSAOConfig = &passes.SSAOConfig{
-		Use:        true,
+		Use:        false,
 		KernelSize: 30,
 		Radius:     0.5,
 		Bias:       0.005,
@@ -24,11 +24,11 @@ var (
 		Use:           true,
 		Radius:        300,
 		AvgGray:       0.23,
-		AdaptionSpeed: 0.01,
+		AdaptionSpeed: 0.005,
 	}
 
 	CavityConfig = &passes.CavityConfig{
-		Use:        false,
+		Use:        true,
 		Radius:     17,
 		DepthBias:  0.001,
 		Intensity:  3.5,

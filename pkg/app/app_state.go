@@ -43,6 +43,12 @@ type GBufferDrawer interface {
 	GetCamera() *camera.Camera3D
 }
 
+// Optional: If state uses imgui objects
+type UIDrawer interface {
+	// RenderImgui - renders imgui objects
+	RenderImgui()
+}
+
 // Optional: UI, Menu, HUD
 type FlatDrawer interface {
 	// RenderFlat - renders 2D on top of scene

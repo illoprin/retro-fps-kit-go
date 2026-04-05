@@ -139,13 +139,11 @@ func (a *App) initRenderingPipeline() error {
 
 	// init screen quad mesh
 	meshQuad := rhi.NewMesh()
-	meshQuad.SetupBasicQuad()
+	rhi.SetupBasicQuadMesh(meshQuad)
 
-	// auxiliary resources texture
-	noiseTexture, err := passes.CreateNoiseTexture()
-	if err != nil {
-		return err
-	}
+	// auxiliary resources
+	noiseTexture := passes.CreateNoiseTexture()
+
 	// blur - uses ssao and cavity
 	blurProg, err := rhi.NewProgram(
 		files.GetShaderPath("screen.vert"),
@@ -268,6 +266,10 @@ func (a *App) Run() {
 		ui.NewFrame()
 		// draw custom ui
 		a.iUI.Draw()
+		// render state ui (if needs)
+		if s, ok := a.activeState.(UIDrawer); ok {
+			s.RenderImgui()
+		}
 		// finalize
 		ui.FinalizeFrame()
 		// ------

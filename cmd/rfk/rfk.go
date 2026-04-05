@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/illoprin/retro-fps-kit-go/pkg/app"
-	"github.com/illoprin/retro-fps-kit-go/pkg/states/demo"
 )
 
 func main() {
@@ -12,12 +11,12 @@ func main() {
 	}
 	defer e.Destroy()
 
-	demo := demo.NewDemo()
-	if demo.Init(e) != nil {
-		panic(err)
-	}
+	// demo := demo.NewDemo()
+	// if demo.Init(e) != nil {
+	// 	panic(err)
+	// }
 
-	e.SetActiveState(demo)
+	// e.SetActiveState(demo)
 
 	e.Run()
 }

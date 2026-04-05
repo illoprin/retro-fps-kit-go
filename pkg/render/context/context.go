@@ -146,7 +146,7 @@ func SetupViewport(xo, yo, w, h int32) {
 
 func BindFramebuffer(f *rhi.Framebuffer) {
 	if f != nil {
-		f.Bind()
+		f.BindForDrawing()
 		return
 	}
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)

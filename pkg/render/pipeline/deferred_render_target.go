@@ -46,50 +46,30 @@ func (t *DeferredRenderTarget) setupFramebuffer() error {
 
 	// init new framebuffer
 	fbWidth, fbHeight := t.scConfig.GetScreenSize()
-	deferredFBO, err := rhi.NewFramebuffer(fbWidth, fbHeight)
-	if err != nil {
-		return err
-	}
+	deferredFBO := rhi.NewFramebuffer(fbWidth, fbHeight)
 
 	// init color and depth attachments
 	deferredFBO.Bind()
 
 	// color
-	err = deferredFBO.NewColorAttachment(rhi.FormatRGB16F) // HDR
-	if err != nil {
-		deferredFBO.Delete()
-		return err
-	}
+	deferredFBO.NewColorAttachment(rhi.FormatRGB16F) // HDR
 
 	// normal
-	err = deferredFBO.NewColorAttachment(rhi.FormatRGB16F)
-	if err != nil {
-		deferredFBO.Delete()
-		return err
-	}
+	deferredFBO.NewColorAttachment(rhi.FormatRGB16F)
 
 	// position
-	err = deferredFBO.NewColorAttachment(rhi.FormatRGB32F)
-	if err != nil {
-		deferredFBO.Delete()
-		return err
-	}
+	deferredFBO.NewColorAttachment(rhi.FormatRGB32F)
 
 	deferredFBO.SetDrawBuffers([]int{0, 1, 2, 3})
 
 	// depth
-	err = deferredFBO.NewDepthAttachment()
-	if err != nil {
-		deferredFBO.Delete()
-		return err
-	}
+	deferredFBO.NewDepthAttachment()
 
 	// check framebuffer completness
 	if !deferredFBO.Check() {
 		deferredFBO.Delete()
 		return fmt.Errorf("fbo not completed")
 	}
-	deferredFBO.Unbind()
 
 	t.fbo = deferredFBO
 
@@ -100,7 +80,7 @@ func (t *DeferredRenderTarget) setupFramebuffer() error {
 }
 
 func (t *DeferredRenderTarget) BindForNewFrame() {
-	t.fbo.Bind()
+	t.fbo.BindForDrawing()
 
 	// set wireframe if needed
 	if t.Wireframe {

@@ -29,14 +29,10 @@ type Framebuffer struct {
 	HasDepthStencil bool
 }
 
-// NewFramebuffer создаёт новый Framebuffer
-func NewFramebuffer(width, height int32) (*Framebuffer, error) {
+// NewFramebuffer creates new fbo object
+func NewFramebuffer(width, height int32) *Framebuffer {
 	var id uint32
 	gl.GenFramebuffers(1, &id)
-
-	if id == 0 {
-		return nil, fmt.Errorf("failed to create framebuffer")
-	}
 
 	fb := &Framebuffer{
 		ID:            id,
@@ -45,7 +41,7 @@ func NewFramebuffer(width, height int32) (*Framebuffer, error) {
 		colorTextures: make([](*Texture), 0),
 	}
 
-	return fb, nil
+	return fb
 }
 
 func (fb *Framebuffer) HasColor() bool {
@@ -53,12 +49,9 @@ func (fb *Framebuffer) HasColor() bool {
 }
 
 // NewColorAttachment generates new color attachment (bind before use)
-func (fb *Framebuffer) NewColorAttachment(format TextureFormat) error {
+func (fb *Framebuffer) NewColorAttachment(format TextureFormat) {
 	// create color attachment
-	colorTex, err := NewFramebufferColorTexture(fb.Width, fb.Height, format)
-	if err != nil {
-		return fmt.Errorf("failed to create color texture: %v", err)
-	}
+	colorTex := NewFramebufferColorTexture(fb.Width, fb.Height, format)
 	// attach created texture
 	gl.FramebufferTexture2D(
 		gl.FRAMEBUFFER,
@@ -68,7 +61,6 @@ func (fb *Framebuffer) NewColorAttachment(format TextureFormat) error {
 	)
 	// add color attachment to slice
 	fb.colorTextures = append(fb.colorTextures, colorTex)
-	return nil
 }
 
 // SetDrawBuffers determines buffers to color drawing (bind before use)
@@ -90,12 +82,9 @@ func (fb *Framebuffer) SetDrawBuffers(colorAttachmentIndices []int) {
 }
 
 // NewDepthStencilAttachment generates new depth stencil attachment (bind before use)
-func (fb *Framebuffer) NewDepthStencilAttachment() error {
+func (fb *Framebuffer) NewDepthStencilAttachment() {
 	// create depth texture
-	depthTex, err := NewFramebufferDepthTexture(fb.Width, fb.Height, FormatDepth24Stencil8)
-	if err != nil {
-		return fmt.Errorf("failed to create depth stencil texture: %v", err)
-	}
+	depthTex := NewFramebufferDepthTexture(fb.Width, fb.Height, FormatDepth24Stencil8)
 
 	fb.depthTexture = depthTex
 	fb.HasDepthStencil = true
@@ -108,16 +97,12 @@ func (fb *Framebuffer) NewDepthStencilAttachment() error {
 		depthTex.ID,
 		0,
 	)
-	return nil
 }
 
 // NewDepthAttachment generates new depth texture attachment (bind before use)
-func (fb *Framebuffer) NewDepthAttachment() error {
+func (fb *Framebuffer) NewDepthAttachment() {
 	// create depth texture
-	depthTex, err := NewFramebufferDepthTexture(fb.Width, fb.Height, FormatDepth24)
-	if err != nil {
-		return fmt.Errorf("failed to create depth texture: %v", err)
-	}
+	depthTex := NewFramebufferDepthTexture(fb.Width, fb.Height, FormatDepth24)
 	fb.depthTexture = depthTex
 	fb.HasDepth = true
 
@@ -129,7 +114,6 @@ func (fb *Framebuffer) NewDepthAttachment() error {
 		depthTex.ID,
 		0,
 	)
-	return nil
 }
 
 // Check framebuffer completness (bind before use)
@@ -162,15 +146,14 @@ func (fb *Framebuffer) Check() bool {
 	return true
 }
 
-// Bind framebuffer
-func (fb *Framebuffer) Bind() {
-	gl.BindFramebuffer(gl.FRAMEBUFFER, fb.ID)
-	gl.Viewport(0, 0, fb.Width, fb.Height)
+func (f *Framebuffer) Bind() {
+	gl.BindFramebuffer(gl.FRAMEBUFFER, f.ID)
 }
 
-// Unbind framebuffer (back to main opengl framebuffer)
-func (fb *Framebuffer) Unbind() {
-	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
+// Bind framebuffer for drawing (glViewport set)
+func (fb *Framebuffer) BindForDrawing() {
+	gl.BindFramebuffer(gl.FRAMEBUFFER, fb.ID)
+	gl.Viewport(0, 0, fb.Width, fb.Height)
 }
 
 // Delete deletes framebuffer and related textures
@@ -232,18 +215,18 @@ func (fb *Framebuffer) Blit(id uint32, dstWidth, dstHeight int32, filter Texture
 func (fb *Framebuffer) ReadPixels(
 	x, y, width, height int32,
 	attachmentIndex uint32, f TextureFormat,
-	dst unsafe.Pointer,
+	destination unsafe.Pointer,
 ) {
 	if width > fb.Width || height > fb.Height ||
 		x < 0 || y < 0 ||
 		int(attachmentIndex) >= len(fb.colorTextures) {
 		return
 	}
-	dataType := GetDataType(f)
+	dataType := GetTextureDataType(f)
 	format := GetFormat(f)
 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, fb.ID)
 	gl.ReadBuffer(gl.COLOR_ATTACHMENT0 + attachmentIndex)
-	gl.ReadPixels(x, y, width, height, format, dataType, dst)
+	gl.ReadPixels(x, y, width, height, format, dataType, destination)
 }
 
 // GetdepthTextureID returns id of depth texture

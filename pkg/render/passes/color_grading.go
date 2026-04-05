@@ -48,20 +48,13 @@ func NewColorGradingPass(
 	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
 
 	// create color framebuffer
-	fbo, err := rhi.NewFramebuffer(fbWidth, fbHeight)
-	if err != nil {
-		return nil, fmt.Errorf("color grading pass - failed to create framebuffer %w", err)
-	}
+	fbo := rhi.NewFramebuffer(fbWidth, fbHeight)
 	fbo.Bind()
-	if err := fbo.NewColorAttachment(rhi.FormatRGBA8); err != nil {
-		fbo.Delete()
-		return nil, fmt.Errorf("color grading pass - failed to create color attachment %w", err)
-	}
+	fbo.NewColorAttachment(rhi.FormatRGBA8)
 	if !fbo.Check() {
 		fbo.Delete()
-		return nil, fmt.Errorf("color grading pass - fbo not completed %w", err)
+		return nil, fmt.Errorf("color grading pass - fbo not completed")
 	}
-	fbo.Unbind()
 	p.fbo = fbo
 
 	// create program
@@ -95,10 +88,10 @@ func (p *ColorGradingPass) GetResultFramebuffer() *rhi.Framebuffer {
 
 // RenderPass texture index 0 - color
 func (p *ColorGradingPass) RenderPass(src *pipeline.DeferredRenderResult) {
-	p.fbo.Bind()
+	p.fbo.BindForDrawing()
 	p.program.Use()
 	context.ClearColorBuffer()
-	src.Color.BindToSlot(0)
+	src.Color.BindToUnit(0)
 	p.program.Set1i("u_color", 0)
 	p.program.Set1f("u_brightness", p.cfg.Brightness)
 	p.program.Set1f("u_saturation", p.cfg.Saturation)

@@ -1,57 +1,112 @@
-lvl Dungeon Entrance
-author illoprin
-music assets/music/dark_ambient.ogg
+# define name
 
-using assets/textures/brick.png as "brick"
-using assets/textures/floor_stone.png as "floor"
-using assets/textures/sky.png as "sky"
-using assets/models/torch.obj as "torch"
-using assets/textures/wood.png as "wood_door"
+name: "Dungeon Entrance"
+author: illoprin
+music: dark_synth.ogg
+ambience: dark_ambient.ogg
 
-[VERTS]
-0 0
-512 0
-512 512
-0 512
-512 1024
-1024 1024
-1024 0
+# define textures
+textures:
+  - path: dark_brick.png
+    as: brick
 
-[WALLS]
-# Комната 1
-0, 1, false, "brick", -1
-1, 2, false, "brick", -1
-2, 3, false, "brick", -1
-3, 0, false, "brick", -1
+  # indexed animated sprite (lava_0, lava_1, lava_2)
+  - path: animated/lava/lava_0.png
+    frames: 3
+    as: lava
 
-# Портал в коридор
-2, 4, true, ("brick", "brick"), 1
+  - path: tiles.png
+    as: floor
 
-# Коридор (сектор 1)
-4, 5, false, "brick", -1
-5, 6, false, "brick", -1
-6, 1, false, "brick", -1
-1, 2, false, "brick", -1  # Эта стена уже была, но здесь она дублируется? 
-# Внимание: В реальном парсере стены не должны дублироваться.
-# Для корректности укажем стены сектора 1 отдельным списком после сектора 0.
-# Исправим индексы в [SECTORS] соответственно.
+  - path: stone.png
+    as: stone
 
-# Правильный список WALLS (сквозной):
-# W0: 0-1 (S0)
-# W1: 1-2 (S0)
-# W2: 2-3 (S0)
-# W3: 3-0 (S0)
-# W4: 2-4 (Portal S0->S1)
-# W5: 4-5 (S1)
-# W6: 5-6 (S1)
-# W7: 6-1 (S1)
-# W8: 1-2 (S1) - дубль, но технически это часть S1
+  - path: wood.png
+    as: dark_wood
 
-[SECTORS]
-0, 3, 0.0, 128.0, "floor", "ceil_white", 200, 1
-4, 8, -32.0, 96.0, "floor", "ceil_white", 150, 2
+models:
+  - path: torch.obj
+    as: torch
+    tex: torch.png # texture
+    emi: torch_emissive.png # emissive tex
 
-[ENTITIES]
-PlayerStart, 0, 256.0, 256.0, 0.0, 0.0
-Model, 0, 128.0, 384.0, 0.0, "torch", 1.0
-Trigger, 0, 400.0, 400.0, 0.0, 2, "open_door"
+  - path: table.obj
+    as: table
+    texture: table.png
+
+# define verts (x, y)
+verts:
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+
+# define walls
+walls:
+  - v1: 0 # first vertex
+    v2: 1 # second vertex
+    tex: brick # texture
+    portal: NULL # if portal - index of sector
+
+  - v1: 2 # first vertex
+    v2:
+      3 # second vertex
+      # below tex # upper tex
+    tex: ["brick", "dark_wood"] # two textures if portal
+    portal: 2 # if portal - index of sector
+
+# define sectors
+
+sectors:
+  - w_ptr: 0 # pointer to start wall
+    w_num: 4 # number of walls
+    f_h: -.5 # floor height
+    c_h: 3.5 # ceiling height
+    f_tex: lava # floor texture
+    c_tex: stone # ceiling texture
+
+# define lights
+
+# point lights
+p_lights:
+  - c: [1, 1, 0.8] # color
+    i: 4 # intensity
+    r: 10 # radius
+
+# spot lights
+s_lights:
+  - c: [0.5, 1, 1] # color
+    f: [1, 1, 1] # forward vector
+    r: 4.3 # attenuation
+    in: 45 # inner angle
+    out: 90 # outer angle
+    i: 3 # intensity
+
+# ambient light
+a_light:
+  - c: [.7, .7, 1] # color
+    i: 0.32 # intensity
+
+# define entities
+
+entities:
+  # define player start
+  - name: player_start
+    pos: [10, 0, 1.5]
+
+  # use prefabs (based on models)
+  - name: torch
+    model: torch
+    pos: [2, 2, 1]
+    rot: [0, 90, 0]
+    scl: [.25, .25, .25]

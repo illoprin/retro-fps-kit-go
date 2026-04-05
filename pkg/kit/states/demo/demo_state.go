@@ -11,17 +11,17 @@ import (
 	"github.com/illoprin/retro-fps-kit-go/pkg/app/controllers"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/camera"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/files"
-	"github.com/illoprin/retro-fps-kit-go/pkg/core/model"
-	"github.com/illoprin/retro-fps-kit-go/pkg/render/pipeline"
+	modeldata "github.com/illoprin/retro-fps-kit-go/pkg/kit/assets/model"
+	"github.com/illoprin/retro-fps-kit-go/pkg/kit/entities/prefab"
+	prefabsystem "github.com/illoprin/retro-fps-kit-go/pkg/kit/systems/prefab"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/rhi"
-	"github.com/illoprin/retro-fps-kit-go/pkg/scene/prefab"
 )
 
 type DemoState struct {
 	api        app.AppAPI
 	prefabs    [](*prefab.Prefab)
 	resources  []rhi.Resource
-	renderer   *pipeline.PrefabRenderer
+	renderer   *prefabsystem.PrefabRenderer
 	controller *controllers.EditorController
 	lastTime   time.Time
 }
@@ -42,7 +42,7 @@ func (s *DemoState) Init(api app.AppAPI) error {
 	)
 
 	// init prefab renderer
-	renderer, err := pipeline.NewPrefabRenderer()
+	renderer, err := prefabsystem.NewPrefabRenderer()
 	if err != nil {
 		return fmt.Errorf("failed to create prefab renderer - %w", err)
 	} else {
@@ -50,7 +50,7 @@ func (s *DemoState) Init(api app.AppAPI) error {
 	}
 
 	// create obj parser
-	parser := model.NewOBJParser()
+	parser := modeldata.NewOBJParser()
 
 	// shotgun model
 	shotgunModel, err := parser.ParseFile(files.GetModelPath("shotgun.obj"))
@@ -84,50 +84,52 @@ func (s *DemoState) Init(api app.AppAPI) error {
 
 	// shotgun mesh
 	meshShotgun := rhi.NewMesh()
-	meshShotgun.SetupFromModel(shotgunModel, rhi.StaticDraw)
+	modeldata.SetupMeshFromModel(meshShotgun, shotgunModel)
 
 	// floor mesh
 	meshFloor := rhi.NewMesh()
-	meshFloor.SetupFromModel(floorModel, rhi.StaticDraw)
+	modeldata.SetupMeshFromModel(meshShotgun, floorModel)
 
 	// ceiling mesh
 	meshCeiling := rhi.NewMesh()
-	meshCeiling.SetupFromModel(ceilingModel, rhi.StaticDraw)
+	modeldata.SetupMeshFromModel(meshShotgun, ceilingModel)
 
 	// walls mesh
 	meshWalls := rhi.NewMesh()
-	meshWalls.SetupFromModel(wallsModel, rhi.StaticDraw)
+	modeldata.SetupMeshFromModel(meshShotgun, wallsModel)
 
 	// walls mesh
 	meshTable := rhi.NewMesh()
-	meshTable.SetupFromModel(tableModel, rhi.StaticDraw)
+	modeldata.SetupMeshFromModel(meshShotgun, tableModel)
+
+	texConfig := rhi.DefaultTexture2DConfig(0, 0)
 
 	// colors texture
-	texColors, err := rhi.NewTextureFromImage(files.GetTexturePath("colors.png"), true, true)
+	texColors, err := rhi.NewTextureFromImage(files.GetTexturePath("colors.png"), texConfig)
 	if err != nil {
 		log.Printf("failed to load texture %v", err)
 	}
 
 	// brick texture
-	texBrick, err := rhi.NewTextureFromImage(files.GetTexturePath("dark_brick.png"), true, true)
+	texBrick, err := rhi.NewTextureFromImage(files.GetTexturePath("dark_brick.png"), texConfig)
 	if err != nil {
 		log.Printf("failed to load texture %v", err)
 	}
 
 	// rock texture
-	texRock, err := rhi.NewTextureFromImage(files.GetTexturePath("gray_rock.png"), true, true)
+	texRock, err := rhi.NewTextureFromImage(files.GetTexturePath("gray_rock.png"), texConfig)
 	if err != nil {
 		log.Printf("failed to load texture %v", err)
 	}
 
 	// rock texture
-	texWood, err := rhi.NewTextureFromImage(files.GetTexturePath("wood.png"), true, true)
+	texWood, err := rhi.NewTextureFromImage(files.GetTexturePath("wood.png"), texConfig)
 	if err != nil {
 		log.Printf("failed to load texture %v", err)
 	}
 
 	// tiles texture
-	texTiles, err := rhi.NewTextureFromImage(files.GetTexturePath("gray_tiles.png"), true, true)
+	texTiles, err := rhi.NewTextureFromImage(files.GetTexturePath("gray_tiles.png"), texConfig)
 	if err != nil {
 		log.Printf("failed to load texture %v", err)
 	}

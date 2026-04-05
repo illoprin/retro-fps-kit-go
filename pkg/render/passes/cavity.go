@@ -95,12 +95,9 @@ func (p *CavityPass) initFramebuffers() error {
 	var err error
 
 	// init cavity buffer
-	cavity, err := rhi.NewFramebuffer(fbWidth, fbHeight)
-	if err != nil {
-		return fmt.Errorf("cavity pass - failed to create cavity fbo - %w", err)
-	}
+	cavity := rhi.NewFramebuffer(fbWidth, fbHeight)
 	cavity.Bind()
-	err = cavity.NewColorAttachment(rhi.FormatR8)
+	cavity.NewColorAttachment(rhi.FormatR8)
 	if !cavity.Check() || err != nil {
 		cavity.Delete()
 		return fmt.Errorf("cavity pass - cavity fbo not completed %w", err)
@@ -108,12 +105,9 @@ func (p *CavityPass) initFramebuffers() error {
 	p.cavity = cavity
 
 	// init blur buffer
-	blur, err := rhi.NewFramebuffer(fbWidth, fbHeight)
-	if err != nil {
-		return fmt.Errorf("cavity pass - failed to create blur fbo - %w", err)
-	}
+	blur := rhi.NewFramebuffer(fbWidth, fbHeight)
 	blur.Bind()
-	err = blur.NewColorAttachment(rhi.FormatR8)
+	blur.NewColorAttachment(rhi.FormatR8)
 	if !blur.Check() || err != nil {
 		blur.Delete()
 		return fmt.Errorf("cavity pass - blur fbo not completed %w", err)
@@ -121,12 +115,9 @@ func (p *CavityPass) initFramebuffers() error {
 	p.blur = blur
 
 	// init composition buffer
-	composition, err := rhi.NewFramebuffer(fbWidth, fbHeight)
-	if err != nil {
-		return fmt.Errorf("cavity pass - failed to create composition fbo - %w", err)
-	}
+	composition := rhi.NewFramebuffer(fbWidth, fbHeight)
 	composition.Bind()
-	err = composition.NewColorAttachment(rhi.FormatRGBA8)
+	composition.NewColorAttachment(rhi.FormatRGBA8)
 	if !composition.Check() || err != nil {
 		composition.Delete()
 		return fmt.Errorf("cavity pass - composition fbo not completed %w", err)
@@ -199,18 +190,18 @@ func (p *CavityPass) GetOcclusion() *rhi.Texture {
 // 2 - depth
 func (p *CavityPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	// -- cavity render pass
-	p.cavity.Bind()
+	p.cavity.BindForDrawing()
 	context.ClearColorBuffer()
 	p.cavityProgram.Use()
 
 	// bind and send normal
-	src.Normal.BindToSlot(0)
+	src.Normal.BindToUnit(0)
 	p.cavityProgram.Set1i("u_normal", 0)
 	// bind and send depth
-	src.Depth.BindToSlot(1)
+	src.Depth.BindToUnit(1)
 	p.cavityProgram.Set1i("u_depth", 1)
 	// send noise texture (random samples rotations)
-	p.noise.BindToSlot(2)
+	p.noise.BindToUnit(2)
 	p.cavityProgram.Set1i("u_noise", 2)
 
 	// send radius
@@ -233,13 +224,13 @@ func (p *CavityPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.mesh.Draw()
 
 	// -- Blur render pass
-	p.blur.Bind()
+	p.blur.BindForDrawing()
 	p.blurProgram.Use()
 	context.ClearColorBuffer()
 	// send uniforms
 	//
 	// cavity texture
-	p.cavity.GetColorTexture(0).BindToSlot(0)
+	p.cavity.GetColorTexture(0).BindToUnit(0)
 	p.blurProgram.Set1i("u_overlay", 0)
 	// blur size
 	p.blurProgram.Set1i("u_blur_size", p.cfg.BlurSize)
@@ -247,16 +238,16 @@ func (p *CavityPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.mesh.Draw()
 
 	// -- Compositor render pass
-	p.composition.Bind()
+	p.composition.BindForDrawing()
 	p.compositorProgram.Use()
 	context.ClearColorBuffer()
 	// send uniforms
 	//
 	// color texture
-	src.Color.BindToSlot(0)
+	src.Color.BindToUnit(0)
 	p.compositorProgram.Set1i("u_color", 0)
 	// occlusion texture
-	p.blur.GetColorTexture(0).BindToSlot(1)
+	p.blur.GetColorTexture(0).BindToUnit(1)
 	p.compositorProgram.Set1i("u_overlay", 1)
 	// levels cfg
 	p.compositorProgram.Set1f("u_blackpoint", p.cfg.BlackPoint)

@@ -5,7 +5,7 @@ import (
 )
 
 type Renderer interface {
-	Prepare(int, int, *camera.Camera3D)
+	Prepare(width, height int, c *camera.Camera3D)
 	Render(interface{})
 	Shutdown()
 }

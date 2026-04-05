@@ -12,21 +12,17 @@
 package rhi
 
 import (
-	"fmt"
-	"image"
-	"image/draw"
-	_ "image/png"
-	"os"
+	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
-// TextureConfig конфигурация для создания текстуры
+// TextureConfig config for texture create
 type TextureConfig struct {
 	Type            TextureType
 	Width           int32
 	Height          int32
-	Depth           int32 // для TextureType2DArray - количество слоёв
+	Depth           int32 // for TextureType2DArray
 	Format          TextureFormat
 	FilterMin       TextureFilter
 	FilterMag       TextureFilter
@@ -38,262 +34,29 @@ type TextureConfig struct {
 	Anisotropy      float32 // уровень анизотропной фильтрации (0 = выкл)
 }
 
-// DefaultTextureConfig возвращает конфигурацию по умолчанию
-func DefaultTextureConfig(width, height int32) TextureConfig {
-	return TextureConfig{
-		Type:            TextureType2D,
-		Width:           width,
-		Height:          height,
-		Depth:           1,
-		Format:          FormatRGBA8,
-		FilterMin:       FilterLinearMipmapLinear,
-		FilterMag:       FilterLinear,
-		WrapS:           WrapRepeat,
-		WrapT:           WrapRepeat,
-		WrapR:           WrapRepeat,
-		GenerateMipmaps: true,
-		LodBias:         0,
-		Anisotropy:      0,
-	}
-}
-
-// Texture обёртка над OpenGL текстурой
+// Texture - wrapper over an OpenGL object
 type Texture struct {
 	ID     uint32
-	Type   TextureType
 	Config TextureConfig
 }
 
-// NewTexture создаёт новую текстуру с заданной конфигурацией
-func NewTexture(config TextureConfig) (*Texture, error) {
+// NewTexture - creates new texture from config
+func NewTexture(config TextureConfig) *Texture {
 	var id uint32
 	gl.GenTextures(1, &id)
-	if id == 0 {
-		return nil, fmt.Errorf("failed to generate texture")
-	}
-
 	texture := &Texture{
 		ID:     id,
-		Type:   config.Type,
 		Config: config,
 	}
-
 	texture.Bind()
 	texture.setParams()
 	texture.allocateStorage()
-	texture.unbind()
 
-	return texture, nil
+	return texture
 }
 
-// NewTextureFromImage создаёт текстуру из загруженного изображения
-func NewTextureFromImage(path string, generateMipmaps bool, nearest bool) (*Texture, error) {
-	imgFile, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open image: %v", err)
-	}
-	defer imgFile.Close()
-
-	img, _, err := image.Decode(imgFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode image: %v", err)
-	}
-
-	bounds := img.Bounds()
-	width := bounds.Dx()
-	height := bounds.Dy()
-
-	// create rgba and flip image
-	rgba := image.NewRGBA(bounds)
-	var x, y int
-	// Iterate through pixels and swap top and bottom
-	for i := 0; i < height*width; i++ {
-		x = i % width
-		y = i / height
-		// Map the current pixel (x, y) to its vertically flipped position
-		rgba.Set(x, height-1-y, img.At(x, y))
-	}
-
-	config := DefaultTextureConfig(int32(width), int32(height))
-	config.GenerateMipmaps = generateMipmaps
-
-	if generateMipmaps {
-		config.FilterMin = FilterLinearMipmapLinear
-	} else {
-		if nearest {
-			config.FilterMin = FilterNearest
-		} else {
-			config.FilterMin = FilterLinear
-		}
-	}
-
-	if nearest {
-		config.FilterMag = FilterNearest
-	} else {
-		config.FilterMag = FilterLinear
-	}
-
-	texture, err := NewTexture(config)
-	if err != nil {
-		return nil, err
-	}
-
-	texture.Bind()
-	texture.UploadRGBA(0, 0, int32(width), int32(height), rgba.Pix)
-
-	if generateMipmaps {
-		texture.GenerateMipmaps()
-	}
-
-	texture.unbind()
-
-	return texture, nil
-}
-
-// NewFontAtlasTexture создаёт текстуру для шрифтового атласа (1 байт на пиксель)
-func NewFontAtlasTexture(width, height int32, data []byte) (*Texture, error) {
-	config := DefaultTextureConfig(width, height)
-	config.Format = FormatR8
-	config.FilterMin = FilterLinear
-	config.FilterMag = FilterLinear
-	config.GenerateMipmaps = false
-	config.WrapS = WrapClampToEdge
-	config.WrapT = WrapClampToEdge
-
-	texture, err := NewTexture(config)
-	if err != nil {
-		return nil, err
-	}
-
-	texture.Bind()
-	texture.UploadR8(0, 0, width, height, data)
-	texture.unbind()
-
-	return texture, nil
-}
-
-// NewFramebufferColorTexture создаёт текстуру для использования с Framebuffer
-func NewFramebufferColorTexture(
-	width, height int32,
-	format TextureFormat,
-) (*Texture, error) {
-	config := DefaultTextureConfig(width, height)
-	config.Format = format
-	config.FilterMin = FilterNearest
-	config.FilterMag = FilterNearest
-	config.WrapS = WrapClampToEdge
-	config.WrapT = WrapClampToEdge
-	config.GenerateMipmaps = false
-
-	return NewTexture(config)
-}
-
-// NewFramebufferDepthTexture создаёт текстуру глубины для Framebuffer
-func NewFramebufferDepthTexture(width, height int32, format TextureFormat) (*Texture, error) {
-	config := DefaultTextureConfig(width, height)
-	config.Format = format
-	config.FilterMin = FilterNearest
-	config.FilterMag = FilterNearest
-	config.WrapS = WrapClampToEdge
-	config.WrapT = WrapClampToEdge
-	config.GenerateMipmaps = false
-
-	return NewTexture(config)
-}
-
-// NewCubeMap создаёт Cubemap текстуру
-func NewCubeMap(size int32, generateMipmaps bool) (*Texture, error) {
-	config := TextureConfig{
-		Type:            TextureTypeCubeMap,
-		Width:           size,
-		Height:          size,
-		Depth:           1,
-		Format:          FormatRGBA8,
-		FilterMin:       FilterLinearMipmapLinear,
-		FilterMag:       FilterLinear,
-		WrapS:           WrapClampToEdge,
-		WrapT:           WrapClampToEdge,
-		WrapR:           WrapClampToEdge,
-		GenerateMipmaps: generateMipmaps,
-		Anisotropy:      0,
-	}
-
-	return NewTexture(config)
-}
-
-// NewCubeMapFromImages создаёт Cubemap из 6 изображений (в порядке: right, left, top, bottom, front, back)
-func NewCubeMapFromImages(paths [6]string, generateMipmaps bool) (*Texture, error) {
-	// Загружаем первое изображение для определения размера
-	imgFile, err := os.Open(paths[0])
-	if err != nil {
-		return nil, fmt.Errorf("failed to open image: %v", err)
-	}
-	defer imgFile.Close()
-
-	img, _, err := image.Decode(imgFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode image: %v", err)
-	}
-
-	bounds := img.Bounds()
-	size := int32(bounds.Dx())
-	if bounds.Dy() != int(size) {
-		return nil, fmt.Errorf("cubemap images must be square")
-	}
-
-	texture, err := NewCubeMap(size, generateMipmaps)
-	if err != nil {
-		return nil, err
-	}
-
-	texture.Bind()
-
-	// Загружаем все 6 граней
-	cubeMapTargets := []uint32{
-		gl.TEXTURE_CUBE_MAP_POSITIVE_X, // right
-		gl.TEXTURE_CUBE_MAP_NEGATIVE_X, // left
-		gl.TEXTURE_CUBE_MAP_POSITIVE_Y, // top
-		gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, // bottom
-		gl.TEXTURE_CUBE_MAP_POSITIVE_Z, // front
-		gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, // back
-	}
-
-	for i, path := range paths {
-		imgFile, err := os.Open(path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to open cubemap image: %v", err)
-		}
-
-		img, _, err := image.Decode(imgFile)
-		imgFile.Close()
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode cubemap image: %v", err)
-		}
-
-		bounds := img.Bounds()
-		if bounds.Dx() != int(size) || bounds.Dy() != int(size) {
-			return nil, fmt.Errorf("all cubemap images must have same size")
-		}
-
-		rgba := image.NewRGBA(bounds)
-		draw.Draw(rgba, bounds, img, bounds.Min, draw.Src)
-
-		gl.TexImage2D(cubeMapTargets[i], 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(rgba.Pix))
-	}
-
-	if generateMipmaps {
-		texture.GenerateMipmaps()
-	}
-
-	texture.unbind()
-
-	return texture, nil
-}
-
-// bind привязывает текстуру
 func (t *Texture) Bind() {
-	switch t.Type {
+	switch t.Config.Type {
 	case TextureType2D:
 		gl.BindTexture(gl.TEXTURE_2D, t.ID)
 	case TextureTypeCubeMap:
@@ -303,9 +66,8 @@ func (t *Texture) Bind() {
 	}
 }
 
-// unbind отвязывает текстуру
 func (t *Texture) unbind() {
-	switch t.Type {
+	switch t.Config.Type {
 	case TextureType2D:
 		gl.BindTexture(gl.TEXTURE_2D, 0)
 	case TextureTypeCubeMap:
@@ -315,43 +77,33 @@ func (t *Texture) unbind() {
 	}
 }
 
-// Bind привязывает текстуру к указанному юниту
-func (t *Texture) BindToSlot(unit uint32) {
+// BindToUnit - binds texture to the specified unit
+func (t *Texture) BindToUnit(unit uint32) {
 	gl.ActiveTexture(gl.TEXTURE0 + unit)
 	t.Bind()
 }
 
-// Unbind отвязывает текстуру от указанного юнита
-func (t *Texture) Unbind(unit uint32) {
-	gl.ActiveTexture(gl.TEXTURE0 + unit)
-	t.unbind()
-}
-
-// Delete удаляет текстуру
+// Delete - deletes texture
 func (t *Texture) Delete() {
 	if t.ID > 0 {
 		gl.DeleteTextures(1, &t.ID)
 	}
 }
 
-// setParams устанавливает параметры текстуры
+// setParams - sets texture params
 func (t *Texture) setParams() {
-	target := GetTextureType(t.Type)
+	target := GetTextureType(t.Config.Type)
 
 	// -- filtering
-	minFilter := GetMinFilter(t.Config.FilterMin)
-	magFilter := GetFilter(t.Config.FilterMag)
-	gl.TexParameteri(target, gl.TEXTURE_MIN_FILTER, minFilter)
-	gl.TexParameteri(target, gl.TEXTURE_MAG_FILTER, magFilter)
+	gl.TexParameteri(target, gl.TEXTURE_MIN_FILTER, GetMinFilter(t.Config.FilterMin))
+	gl.TexParameteri(target, gl.TEXTURE_MAG_FILTER, GetFilter(t.Config.FilterMag))
 
 	// -- wrapping
-	wrapS := GetWrapMode(t.Config.WrapS)
-	wrapT := GetWrapMode(t.Config.WrapT)
-	gl.TexParameteri(target, gl.TEXTURE_WRAP_S, wrapS)
-	gl.TexParameteri(target, gl.TEXTURE_WRAP_T, wrapT)
+	gl.TexParameteri(target, gl.TEXTURE_WRAP_S, GetWrapMode(t.Config.WrapS))
+	gl.TexParameteri(target, gl.TEXTURE_WRAP_T, GetWrapMode(t.Config.WrapT))
 
 	// -- if cube map
-	if t.Type == TextureTypeCubeMap {
+	if t.Config.Type == TextureTypeCubeMap {
 		wrapR := GetWrapMode(t.Config.WrapR)
 		gl.TexParameteri(target, gl.TEXTURE_WRAP_R, wrapR)
 	}
@@ -381,22 +133,22 @@ func (t *Texture) setParams() {
 	}
 }
 
-func (t *Texture) GetPixels(format TextureFormat, mipMapLevel int32, ptr interface{}) {
-	target := GetTextureType(t.Type)
-	dataType := GetDataType(format)
+func (t *Texture) GetPixels(format TextureFormat, mipMapLevel int32, ptr unsafe.Pointer) {
+	target := GetTextureType(t.Config.Type)
+	dataType := GetTextureDataType(format)
 	channelData := GetFormat(format)
-
-	gl.GetTexImage(target, mipMapLevel, channelData, dataType, gl.Ptr(ptr))
+	t.Bind()
+	gl.GetTexImage(target, mipMapLevel, channelData, dataType, ptr)
 }
 
-// allocateStorage выделяет память для текстуры
+// allocateStorage - allocates memory
 func (t *Texture) allocateStorage() {
-	target := GetTextureType(t.Type)
+	target := GetTextureType(t.Config.Type)
 	internalFormat := GetInternalFormat(t.Config.Format)
 	format := GetFormat(t.Config.Format)
-	dataType := GetDataType(t.Config.Format)
+	dataType := GetTextureDataType(t.Config.Format)
 
-	switch t.Type {
+	switch t.Config.Type {
 	case TextureType2D:
 		gl.TexImage2D(target, 0, internalFormat, t.Config.Width, t.Config.Height, 0, format, dataType, nil)
 
@@ -412,51 +164,62 @@ func (t *Texture) allocateStorage() {
 	}
 }
 
-// UploadRGBA загружает RGBA данные в текстуру
-func (t *Texture) UploadRGBA(x, y, width, height int32, data []byte) {
-	target := GetTextureType(t.Type)
-	gl.TexSubImage2D(target, 0, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(data))
+// Upload2D - uploads data to 2D texture
+func (t *Texture) Upload2D(x, y int32, data unsafe.Pointer) {
+
+	if t.Config.Type != TextureType2D {
+		panic("Upload2D only works with TextureType2D")
+	}
+
+	target := GetTextureType(t.Config.Type)
+	format := GetFormat(t.Config.Format)
+	dataType := GetTextureDataType(t.Config.Format)
+
+	gl.TexSubImage2D(target, 0, x, y, t.Config.Width, t.Config.Height, format, dataType, data)
 }
 
-// UploadRGBA загружает RGB данные в текстуру
-func (t *Texture) UploadRGB(x, y, width, height int32, data []byte) {
-	target := GetTextureType(t.Type)
-	gl.TexSubImage2D(target, 0, x, y, width, height, gl.RGB, gl.UNSIGNED_BYTE, gl.Ptr(data))
-}
+// UploadLayer - uploads layer to texture array
+func (t *Texture) UploadLayer(x, y, layer int32, data unsafe.Pointer) {
 
-// UploadR8 загружает одноканальные данные (8 бит) в текстуру
-func (t *Texture) UploadR8(x, y, width, height int32, data []byte) {
-	target := GetTextureType(t.Type)
-	gl.TexSubImage2D(target, 0, x, y, width, height, gl.RED, gl.UNSIGNED_BYTE, gl.Ptr(data))
-}
-
-// UploadDepth загружает данные глубины
-func (t *Texture) UploadDepth(x, y, width, height int32, data []float32) {
-	target := GetTextureType(t.Type)
-	gl.TexSubImage2D(target, 0, x, y, width, height, gl.DEPTH_COMPONENT, gl.FLOAT, gl.Ptr(data))
-}
-
-// UploadLayer загружает данные в конкретный слой для Texture2DArray
-func (t *Texture) UploadLayer(layer, x, y, width, height int32, data []byte) {
-	if t.Type != TextureType2DArray {
+	if t.Config.Type != TextureType2DArray {
 		panic("UploadLayer only works with TextureType2DArray")
 	}
-	gl.TexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, x, y, layer, width, height, 1,
-		GetFormat(t.Config.Format), GetDataType(t.Config.Format), gl.Ptr(data))
+
+	target := GetTextureType(t.Config.Type)
+	format := GetFormat(t.Config.Format)
+	dataType := GetTextureDataType(t.Config.Format)
+
+	gl.TexSubImage3D(target, 0, x, y, layer, t.Config.Width, t.Config.Height, 1, format, dataType, data)
 }
 
-// GenerateMipmaps генерирует мип-карты
+// UploadFace - upload cube map face
+func (t *Texture) UploadFace(face uint32, data unsafe.Pointer) {
+	if t.Config.Type != TextureTypeCubeMap {
+		panic("UploadFace only works with CubeMap")
+	}
+	gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X+face, 0, 0, 0, t.Config.Width, t.Config.Height,
+		GetFormat(t.Config.Format), GetTextureDataType(t.Config.Format), data)
+}
+
+// GenerateMipmaps generates mip maps
 func (t *Texture) GenerateMipmaps() {
-	target := GetTextureType(t.Type)
+	target := GetTextureType(t.Config.Type)
+	t.Bind()
 	gl.GenerateMipmap(target)
 }
 
-// GetWidth возвращает размер текстуры
+// GetWidth returns texture size
 func (t *Texture) GetSize() (int32, int32) {
 	return t.Config.Width, t.Config.Height
 }
 
-// Resize изменяет размер текстуры (только для Framebuffer текстур)
+// UnbindFromUnit - unbinds texture from unit
+func (t *Texture) UnbindFromUnit(unit uint32) {
+	gl.ActiveTexture(gl.TEXTURE0 + unit)
+	t.unbind()
+}
+
+// Resize - reallocates memory
 func (t *Texture) Resize(width, height int32) {
 	if t.Config.Width == width && t.Config.Height == height {
 		return

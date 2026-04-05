@@ -1,9 +1,9 @@
 package passes
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
+	"unsafe"
 
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/rhi"
 )
@@ -13,7 +13,7 @@ const (
 )
 
 // noise tex (random rotations for hemi-sphere)
-func CreateNoiseTexture() (*rhi.Texture, error) {
+func CreateNoiseTexture() *rhi.Texture {
 	noiseSliceLen := noiseSize * noiseSize * 3
 	noiseRaw := make([]byte, noiseSliceLen)
 	for i := 0; i < int(noiseSliceLen/3); i++ {
@@ -34,11 +34,7 @@ func CreateNoiseTexture() (*rhi.Texture, error) {
 		GenerateMipmaps: false,
 		Anisotropy:      0,
 	}
-	noiseTexture, err := rhi.NewTexture(noiseTextureConfig)
-	if err != nil {
-		return nil, fmt.Errorf("ssao pass - failed to create noise texture %w", err)
-	}
-	noiseTexture.Bind()
-	noiseTexture.UploadRGB(0, 0, noiseSize, noiseSize, noiseRaw)
-	return noiseTexture, nil
+	noiseTexture := rhi.NewTexture(noiseTextureConfig)
+	noiseTexture.Upload2D(0, 0, unsafe.Pointer(&noiseRaw[0]))
+	return noiseTexture
 }

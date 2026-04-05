@@ -65,7 +65,7 @@ func NewSSAOPass(
 		return nil, err
 	}
 
-	p.initNoisy()
+	p.buildAndSendSamples()
 
 	p.resources = append(p.resources, p.ssao, p.blur, p.composition, p.ssaoProgram)
 	return p, nil
@@ -90,56 +90,38 @@ func (p *SSAOPass) initFramebuffers() error {
 	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
 
 	// init ssao buffer
-	ssao, err := rhi.NewFramebuffer(fbWidth, fbHeight)
-	if err != nil {
-		return fmt.Errorf("ssao pass - failed to create ssao fbo - %w", err)
-	}
+	ssao := rhi.NewFramebuffer(fbWidth, fbHeight)
 	ssao.Bind()
-	if err := ssao.NewColorAttachment(rhi.FormatR8); err != nil {
-		ssao.Delete()
-		return fmt.Errorf("ssao pass - failed to create ssao fbo - %w", err)
-	}
+	ssao.NewColorAttachment(rhi.FormatR8)
 	if !ssao.Check() {
 		ssao.Delete()
-		return fmt.Errorf("ssao pass - ssao fbo not completed %w", err)
+		return fmt.Errorf("ssao pass - ssao fbo not completed")
 	}
 	p.ssao = ssao
 
 	// init blur buffer
-	blur, err := rhi.NewFramebuffer(fbWidth, fbHeight)
-	if err != nil {
-		return fmt.Errorf("ssao pass - failed to create blur fbo - %w", err)
-	}
+	blur := rhi.NewFramebuffer(fbWidth, fbHeight)
 	blur.Bind()
-	if err := blur.NewColorAttachment(rhi.FormatR8); err != nil {
-		blur.Delete()
-		return fmt.Errorf("ssao pass - failed to create blur fbo - %w", err)
-	}
+	blur.NewColorAttachment(rhi.FormatR8)
 	if !blur.Check() {
 		blur.Delete()
-		return fmt.Errorf("ssao pass - blur fbo not completed %w", err)
+		return fmt.Errorf("ssao pass - blur fbo not completed")
 	}
 	p.blur = blur
 
 	// init composition buffer
-	composition, err := rhi.NewFramebuffer(fbWidth, fbHeight)
-	if err != nil {
-		return fmt.Errorf("ssao pass - failed to create composition fbo - %w", err)
-	}
+	composition := rhi.NewFramebuffer(fbWidth, fbHeight)
 	composition.Bind()
-	if err := composition.NewColorAttachment(rhi.FormatRGBA16F); err != nil {
-		composition.Delete()
-		return fmt.Errorf("ssao pass - failed to create composition fbo - %w", err)
-	}
+	composition.NewColorAttachment(rhi.FormatRGBA16F)
 	if !composition.Check() {
 		composition.Delete()
-		return fmt.Errorf("ssao pass - composition fbo not completed %w", err)
+		return fmt.Errorf("ssao pass - composition fbo not completed")
 	}
 	p.composition = composition
 	return nil
 }
 
-func (p *SSAOPass) initNoisy() {
+func (p *SSAOPass) buildAndSendSamples() {
 	// samples (hemi-sphere random points)
 	p.samples = make([]mgl.Vec3, p.cfg.KernelSize)
 	for i := 0; i < int(p.cfg.KernelSize); i++ {
@@ -212,20 +194,20 @@ func (p *SSAOPass) RenderPass(src *pipeline.DeferredRenderResult) {
 
 	// -- SSAO render pass
 
-	p.ssao.Bind()
+	p.ssao.BindForDrawing()
 	context.ClearColorBuffer()
 	p.ssaoProgram.Use()
 
 	// send uniforms
 	//
 	// normal texture
-	src.Normal.BindToSlot(0)
+	src.Normal.BindToUnit(0)
 	p.ssaoProgram.Set1i("u_normal", 0)
 	// position texture
-	src.Position.BindToSlot(1)
+	src.Position.BindToUnit(1)
 	p.ssaoProgram.Set1i("u_position", 1)
 	// noise texture
-	p.noiseTexture.BindToSlot(2)
+	p.noiseTexture.BindToUnit(2)
 	p.ssaoProgram.Set1i("u_noise", 2)
 	// projection
 	p.ssaoProgram.Set2f("u_proj_info", mgl.Vec2{p.proj.At(0, 0), p.proj.At(1, 1)})
@@ -245,11 +227,11 @@ func (p *SSAOPass) RenderPass(src *pipeline.DeferredRenderResult) {
 
 	// -- Blur render pass
 
-	p.blur.Bind()
+	p.blur.BindForDrawing()
 	context.ClearColorBuffer()
 	p.blurProgram.Use()
 	// bind and send raw ssao data
-	p.ssao.GetColorTexture(0).BindToSlot(0)
+	p.ssao.GetColorTexture(0).BindToUnit(0)
 	p.blurProgram.Set1i("u_overlay", 0)
 	// blur size
 	p.blurProgram.Set1i("u_blur_size", p.cfg.BlurSize)
@@ -258,16 +240,16 @@ func (p *SSAOPass) RenderPass(src *pipeline.DeferredRenderResult) {
 
 	// -- Compositor render pass
 
-	p.composition.Bind()
+	p.composition.BindForDrawing()
 	context.ClearColorBuffer()
 	p.compositorProgram.Use()
 	// send uniforms
 	//
 	// color texture
-	src.Color.BindToSlot(0)
+	src.Color.BindToUnit(0)
 	p.compositorProgram.Set1i("u_color", 0)
 	// ssao texture
-	p.blur.GetColorTexture(0).BindToSlot(1)
+	p.blur.GetColorTexture(0).BindToUnit(1)
 	p.compositorProgram.Set1i("u_overlay", 1)
 	// levels cfg
 	p.compositorProgram.Set1f("u_blackpoint", p.cfg.BlackPoint)
