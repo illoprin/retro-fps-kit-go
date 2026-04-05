@@ -10,6 +10,21 @@ type ConfigUI interface {
 	ShowUI()
 }
 
+type EyeAdaptionConfigUI struct {
+	*passes.EyeAdaptionConfig
+}
+
+func (c *EyeAdaptionConfigUI) GetName() string {
+	return "Eye Adaption"
+}
+
+func (c *EyeAdaptionConfigUI) ShowUI() {
+	imgui.Checkbox("ea_Use", &c.Use)
+	imgui.SliderFloat("ea_Radius", &c.Radius, 4, 100)
+	imgui.SliderFloat("ea_Speed", &c.AdaptionSpeed, 0.005, 1)
+	imgui.SliderFloat("ea_Gray", &c.AvgGray, 0.01, 0.3)
+}
+
 type SSAOConfigUI struct {
 	*passes.SSAOConfig
 }

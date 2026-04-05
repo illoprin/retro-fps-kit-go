@@ -1,12 +1,12 @@
 // Package rhi provides high-level abstractions over OpenGL objects,
 // simplifying the development of cross-platform rendering pipelines.
-// 
+//
 // It implements the Render Hardware Interface (RHI) concept,
 // shielding the user from low-level OpenGL state management and
 // providing an idiomatic Go API for common graphics tasks.
-// 
+//
 // Author: illoprin
-// 
+//
 // 2026
 
 package rhi
@@ -34,6 +34,7 @@ type TextureConfig struct {
 	WrapT           TextureWrap
 	WrapR           TextureWrap
 	GenerateMipmaps bool
+	LodBias         float32
 	Anisotropy      float32 // уровень анизотропной фильтрации (0 = выкл)
 }
 
@@ -51,6 +52,7 @@ func DefaultTextureConfig(width, height int32) TextureConfig {
 		WrapT:           WrapRepeat,
 		WrapR:           WrapRepeat,
 		GenerateMipmaps: true,
+		LodBias:         0,
 		Anisotropy:      0,
 	}
 }
@@ -114,22 +116,21 @@ func NewTextureFromImage(path string, generateMipmaps bool, nearest bool) (*Text
 
 	config := DefaultTextureConfig(int32(width), int32(height))
 	config.GenerateMipmaps = generateMipmaps
+
 	if generateMipmaps {
-		if nearest {
-			config.FilterMin = FilterNearestMipmapLinear
-			config.FilterMag = FilterNearest
-		} else {
-			config.FilterMin = FilterLinearMipmapLinear
-			config.FilterMag = FilterLinear
-		}
+		config.FilterMin = FilterLinearMipmapLinear
 	} else {
 		if nearest {
 			config.FilterMin = FilterNearest
-			config.FilterMag = FilterNearest
 		} else {
 			config.FilterMin = FilterLinear
-			config.FilterMag = FilterLinear
 		}
+	}
+
+	if nearest {
+		config.FilterMag = FilterNearest
+	} else {
+		config.FilterMag = FilterLinear
 	}
 
 	texture, err := NewTexture(config)
@@ -172,7 +173,10 @@ func NewFontAtlasTexture(width, height int32, data []byte) (*Texture, error) {
 }
 
 // NewFramebufferColorTexture создаёт текстуру для использования с Framebuffer
-func NewFramebufferColorTexture(width, height int32, format TextureFormat) (*Texture, error) {
+func NewFramebufferColorTexture(
+	width, height int32,
+	format TextureFormat,
+) (*Texture, error) {
 	config := DefaultTextureConfig(width, height)
 	config.Format = format
 	config.FilterMin = FilterNearest
@@ -334,23 +338,25 @@ func (t *Texture) Delete() {
 func (t *Texture) setParams() {
 	target := GetTextureType(t.Type)
 
-	// Установка фильтрации
+	// -- filtering
 	minFilter := GetMinFilter(t.Config.FilterMin)
 	magFilter := GetFilter(t.Config.FilterMag)
 	gl.TexParameteri(target, gl.TEXTURE_MIN_FILTER, minFilter)
 	gl.TexParameteri(target, gl.TEXTURE_MAG_FILTER, magFilter)
 
-	// Установка оборачивания
+	// -- wrapping
 	wrapS := GetWrapMode(t.Config.WrapS)
 	wrapT := GetWrapMode(t.Config.WrapT)
 	gl.TexParameteri(target, gl.TEXTURE_WRAP_S, wrapS)
 	gl.TexParameteri(target, gl.TEXTURE_WRAP_T, wrapT)
 
+	// -- if cube map
 	if t.Type == TextureTypeCubeMap {
 		wrapR := GetWrapMode(t.Config.WrapR)
 		gl.TexParameteri(target, gl.TEXTURE_WRAP_R, wrapR)
 	}
 
+	// -- depth params
 	if t.Config.Format == FormatDepth16 ||
 		t.Config.Format == FormatDepth24 ||
 		t.Config.Format == FormatDepth24Stencil8 ||
@@ -358,7 +364,12 @@ func (t *Texture) setParams() {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.NONE)
 	}
 
-	// Анизотропная фильтрация (если доступна)
+	// -- lod bias
+	if t.Config.LodBias != 0 {
+		gl.TexParameterf(target, gl.TEXTURE_LOD_BIAS, t.Config.LodBias)
+	}
+
+	// -- anisotropic filtering
 	if t.Config.Anisotropy > 0 {
 		var maxAnisotropy float32
 		gl.GetFloatv(gl.MAX_TEXTURE_MAX_ANISOTROPY, &maxAnisotropy)
@@ -368,6 +379,14 @@ func (t *Texture) setParams() {
 		}
 		gl.TexParameterf(target, gl.TEXTURE_MAX_ANISOTROPY, anisotropy)
 	}
+}
+
+func (t *Texture) GetPixels(format TextureFormat, mipMapLevel int32, ptr interface{}) {
+	target := GetTextureType(t.Type)
+	dataType := GetDataType(format)
+	channelData := GetFormat(format)
+
+	gl.GetTexImage(target, mipMapLevel, channelData, dataType, gl.Ptr(ptr))
 }
 
 // allocateStorage выделяет память для текстуры

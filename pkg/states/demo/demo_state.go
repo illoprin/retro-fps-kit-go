@@ -3,6 +3,7 @@ package demo
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/go-gl/glfw/v3.3/glfw"
 	mgl "github.com/go-gl/mathgl/mgl32"
@@ -22,12 +23,14 @@ type DemoState struct {
 	resources  []rhi.Resource
 	renderer   *pipeline.PrefabRenderer
 	controller *controllers.EditorController
+	lastTime   time.Time
 }
 
 func NewDemo() *DemoState {
 	return &DemoState{
 		resources: make([]rhi.Resource, 0),
 		prefabs:   make([]*prefab.Prefab, 0),
+		lastTime:  time.Now(),
 	}
 }
 
@@ -35,7 +38,7 @@ func (s *DemoState) Init(api app.AppAPI) error {
 	s.api = api
 
 	s.controller = controllers.NewEditorController(
-		api.GetInputManager(), mgl.Vec3{0, 2, 3}, 10.5, 0.25,
+		api.GetInputManager(), mgl.Vec3{0, 2, 3}, 10.5, 0.1,
 	)
 
 	// init prefab renderer
@@ -158,6 +161,13 @@ func (s *DemoState) Init(api app.AppAPI) error {
 }
 
 func (s *DemoState) Update(deltaTime float32) {
+
+	elapsed := time.Since(s.lastTime)
+
+	if elapsed >= time.Second {
+		s.lastTime = time.Now()
+	}
+
 	shotgun := s.prefabs[0]
 	shotgun.Position = mgl.Vec3{0, 1.446, 0}
 	shotgun.Scaling = mgl.Vec3{0.25, 0.25, 0.25}
@@ -221,10 +231,6 @@ func (s *DemoState) OnMouseMove(dX, dY, posX, posY float64) {
 
 func (s *DemoState) OnMouseScroll(dx, dy float64) {
 
-}
-
-func (s *DemoState) HasFPSController() bool {
-	return true
 }
 
 func (s *DemoState) OnResize(w, h, sw, sh int32) {

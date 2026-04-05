@@ -1,18 +1,19 @@
 // Package rhi provides high-level abstractions over OpenGL objects,
 // simplifying the development of cross-platform rendering pipelines.
-// 
+//
 // It implements the Render Hardware Interface (RHI) concept,
 // shielding the user from low-level OpenGL state management and
 // providing an idiomatic Go API for common graphics tasks.
-// 
+//
 // Author: illoprin
-// 
+//
 // 2026
 
 package rhi
 
 import (
 	"fmt"
+	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
@@ -52,9 +53,9 @@ func (fb *Framebuffer) HasColor() bool {
 }
 
 // NewColorAttachment generates new color attachment (bind before use)
-func (fb *Framebuffer) NewColorAttachment(colorFormat TextureFormat) error {
+func (fb *Framebuffer) NewColorAttachment(format TextureFormat) error {
 	// create color attachment
-	colorTex, err := NewFramebufferColorTexture(fb.Width, fb.Height, colorFormat)
+	colorTex, err := NewFramebufferColorTexture(fb.Width, fb.Height, format)
 	if err != nil {
 		return fmt.Errorf("failed to create color texture: %v", err)
 	}
@@ -226,6 +227,23 @@ func (fb *Framebuffer) Blit(id uint32, dstWidth, dstHeight int32, filter Texture
 		gl.COLOR_BUFFER_BIT, uint32(GetFilter(filter)),
 	)
 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, id)
+}
+
+func (fb *Framebuffer) ReadPixels(
+	x, y, width, height int32,
+	attachmentIndex uint32, f TextureFormat,
+	dst unsafe.Pointer,
+) {
+	if width > fb.Width || height > fb.Height ||
+		x < 0 || y < 0 ||
+		int(attachmentIndex) >= len(fb.colorTextures) {
+		return
+	}
+	dataType := GetDataType(f)
+	format := GetFormat(f)
+	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, fb.ID)
+	gl.ReadBuffer(gl.COLOR_ATTACHMENT0 + attachmentIndex)
+	gl.ReadPixels(x, y, width, height, format, dataType, dst)
 }
 
 // GetdepthTextureID returns id of depth texture

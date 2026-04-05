@@ -18,5 +18,9 @@ type PostProcessingPass interface {
 }
 
 type HasProjection interface {
-	SetProjectionMatrix(m mgl.Mat4)
+	SetProjectionMatrix(mgl.Mat4)
+}
+
+type HasDeltaTime interface {
+	SetDeltaTime(float32)
 }

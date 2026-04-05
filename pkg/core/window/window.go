@@ -1,6 +1,11 @@
 package window
 
 import (
+	"fmt"
+	"image"
+	_ "image/png"
+	"os"
+
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
@@ -91,6 +96,40 @@ func (w *Window) ToggleCursor() {
 		w.SetInputMode(glfw.CursorMode, glfw.CursorNormal)
 		w.SetInputMode(glfw.RawMouseMotion, glfw.False)
 	}
+}
+
+// SetIconFromFile sets window icon from *png* image
+func (w *Window) SetIconFromFile(f string) error {
+	file, err := os.Open(f)
+	if err != nil {
+		return fmt.Errorf("window - failed to open file")
+	}
+	defer file.Close()
+
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return fmt.Errorf("window - failed to decode image")
+	}
+
+	w.SetIcon([]image.Image{img})
+	return nil
+}
+
+// SetIconFromFile loads new glfw cursor
+func (w *Window) LoadCursor(f string) (*glfw.Cursor, error) {
+
+	file, err := os.Open(f)
+	if err != nil {
+		return nil, fmt.Errorf("window - failed to open file")
+	}
+	defer file.Close()
+
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return nil, fmt.Errorf("window - failed to decode image")
+	}
+
+	return glfw.CreateCursor(img, 0, 0), nil
 }
 
 func (w *Window) GetCursorDisabled() bool {

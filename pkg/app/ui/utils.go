@@ -18,7 +18,8 @@ func Init() {
 	io.SetConfigFlags(
 		io.ConfigFlags() |
 			imgui.ConfigFlagsNavEnableKeyboard |
-			imgui.ConfigFlagsDockingEnable,
+			imgui.ConfigFlagsDockingEnable |
+			imgui.ConfigFlagsNoMouseCursorChange,
 	)
 	// dark theme
 	imgui.StyleColorsDark()

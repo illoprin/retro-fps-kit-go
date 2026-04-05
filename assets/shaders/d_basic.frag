@@ -16,7 +16,7 @@ uniform vec3 u_color;
 // lights
 uniform vec3 u_light_pos;
 uniform vec3 u_light_color;
-uniform float u_light_intensity = 3;
+uniform float u_light_intensity = 5;
 uniform float u_light_radius = 37;
 
 // fog
@@ -36,7 +36,7 @@ vec3 getLights() {
 	// ambient
 	float ambientStrength = 0.2;
 	vec3 ambient = ambientStrength * u_light_color;
-	
+
 	// diffuse
 	vec3 lightDirection = u_light_pos - position.xyz;
 	vec3 norm = normalize(normal);
@@ -51,22 +51,23 @@ vec3 getLights() {
 }
 
 vec4 getColor() {
-	if (u_useTexture) {
+	if(u_useTexture) {
 		vec4 color = texture(u_texture, uv);
-		if (color.a < 0.1) discard;
+		if(color.a < 0.1)
+			discard;
 		return color;
 	}
-	return vec4(u_color,1.0);
+	return vec4(u_color, 1.0);
 }
 
 float getFogFactor(float dist, float density) {
-    float fog = exp(-density * dist);
-    return clamp(fog, 0.0, 1.0);
+	float fog = exp(-density * dist);
+	return clamp(fog, 0.0, 1.0);
 }
 
 vec3 getFog(vec3 src) {
 	float distance = gl_FragCoord.z / gl_FragCoord.w;
-	float fogFactor = getFogFactor(distance, 0.05); 
+	float fogFactor = getFogFactor(distance, 0.05);
 	return mix(u_fogColor, src, fogFactor);
 }
 
@@ -78,10 +79,9 @@ void main() {
 
 	// -- fog
 	result.rgb = getFog(result.rgb);
-	
+
 	// -- lights
 	result.rgb *= getLights();
-
 
 	// setup outs
 	//

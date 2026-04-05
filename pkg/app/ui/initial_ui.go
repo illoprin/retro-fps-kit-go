@@ -20,7 +20,7 @@ func NewInitialUI() (*InitialUI, error) {
 
 	// load custom font
 	io := imgui.CurrentIO()
-	iui.font = io.Fonts().AddFontFromFileTTF(files.GetFontPath("uifont.ttf"))
+	iui.font = io.Fonts().AddFontFromFileTTF(files.GetFontPath("ui.ttf"))
 	if !iui.font.IsLoaded() {
 		return nil, fmt.Errorf("failed to load imgui font")
 	}
@@ -55,7 +55,7 @@ func (ui *InitialUI) GetFramebuffersUI() *FramebuffersUI {
 
 func (ui *InitialUI) Draw() {
 	// apply custom font
-	imgui.PushFont(ui.font, 16.0)
+	imgui.PushFont(ui.font, 18.0)
 	ui.debugUI.Show()
 	ui.fbosUI.Show()
 	// detach custom font

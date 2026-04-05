@@ -1,8 +1,6 @@
 package window
 
 import (
-	"log"
-
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
@@ -125,12 +123,12 @@ func (m *InputManager) handleMouseButton(w *glfw.Window, button glfw.MouseButton
 // handleCursorPos processes mouse movement
 func (m *InputManager) handleCursorPos(w *glfw.Window, xpos, ypos float64) {
 	// Calculate delta
-	m.mouse.DeltaX = xpos - m.mouse.X
-	m.mouse.DeltaY = ypos - m.mouse.Y
+	// m.mouse.DeltaX = xpos - m.mouse.X
+	// m.mouse.DeltaY = ypos - m.mouse.Y
 
 	// Update position
-	m.mouse.X = xpos
-	m.mouse.Y = ypos
+	// m.mouse.X = xpos
+	// m.mouse.Y = ypos
 
 	// call previous callback (if has)
 	if m.prevCursorPosCallback != nil {
@@ -156,8 +154,6 @@ func (m *InputManager) handleScroll(w *glfw.Window, xoff, yoff float64) {
 	if m.mouseScrollCallback != nil {
 		m.mouseScrollCallback(xoff, yoff)
 	}
-
-	log.Printf("input manager - scroll y offset %.2f\n", yoff)
 }
 
 // Update resets frame-based states (called once per frame)
@@ -174,9 +170,12 @@ func (m *InputManager) Update() {
 	m.mouse.ScrollX = 0
 	m.mouse.ScrollY = 0
 
-	// Reset mouse delta (or keep it if you want continuous movement)
-	m.mouse.DeltaX = 0
-	m.mouse.DeltaY = 0
+	// Compute mouse delta
+	x, y := m.window.GetCursorPos()
+	m.mouse.DeltaX = x - m.mouse.X
+	m.mouse.DeltaY = y - m.mouse.Y
+	m.mouse.X = x
+	m.mouse.Y = y
 }
 
 // IsKeyPressed returns true if the key is currently held down

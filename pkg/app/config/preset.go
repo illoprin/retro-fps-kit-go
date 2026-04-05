@@ -3,8 +3,8 @@ package config
 import "github.com/illoprin/retro-fps-kit-go/pkg/render/passes"
 
 const (
-	WindowWidth                    = 1470
-	WindowHeight                   = 710
+	WindowWidth                    = 1600
+	WindowHeight                   = 720
 	WindowTitle                    = "Retro FPS Kit - Demo"
 	DefaultResolutionRatio float32 = 0.5
 )
@@ -20,6 +20,13 @@ var (
 		BlurSize:   2,
 	}
 
+	EyeAdaptionConfig = &passes.EyeAdaptionConfig{
+		Use:           true,
+		Radius:        300,
+		AvgGray:       0.23,
+		AdaptionSpeed: 0.01,
+	}
+
 	CavityConfig = &passes.CavityConfig{
 		Use:        false,
 		Radius:     17,
@@ -33,7 +40,7 @@ var (
 
 	ColorGradingConfig = &passes.ColorGradingConfig{
 		Gamma:          1.9,
-		Exposure:       1.6,
+		Exposure:       0.7,
 		Contrast:       1.18,
 		Saturation:     0.85,
 		Brightness:     1.4,

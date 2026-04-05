@@ -55,7 +55,7 @@ func (t *DeferredRenderTarget) setupFramebuffer() error {
 	deferredFBO.Bind()
 
 	// color
-	err = deferredFBO.NewColorAttachment(rhi.FormatRGB32F) // WARN HDR
+	err = deferredFBO.NewColorAttachment(rhi.FormatRGB16F) // HDR
 	if err != nil {
 		deferredFBO.Delete()
 		return err
@@ -75,7 +75,7 @@ func (t *DeferredRenderTarget) setupFramebuffer() error {
 		return err
 	}
 
-	deferredFBO.SetDrawBuffers([]int{0, 1, 2})
+	deferredFBO.SetDrawBuffers([]int{0, 1, 2, 3})
 
 	// depth
 	err = deferredFBO.NewDepthAttachment()

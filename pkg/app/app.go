@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"log"
 	"runtime"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -15,6 +16,20 @@ import (
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/passes"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/pipeline"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/rhi"
+)
+
+var (
+	cursorPointer *glfw.Cursor
+	cursorWaiting *glfw.Cursor
+	cursorCross   *glfw.Cursor
+)
+
+type CursorType int
+
+const (
+	CursorPointer CursorType = iota
+	CursorWaiting
+	CursorCross
 )
 
 type App struct {
@@ -66,61 +81,61 @@ func NewApp() (*App, error) {
 
 // ---- Callbacks
 
-func (e *App) setupCallbacks() {
-	e.input.SetKeyCallback(
+func (a *App) setupCallbacks() {
+	a.input.SetKeyCallback(
 		func(key glfw.Key, action glfw.Action, mods glfw.ModifierKey) {
 			if action == glfw.Press {
 				if key == glfw.KeyEscape {
-					e.window.SetShouldClose(true)
+					a.window.SetShouldClose(true)
 				}
 			}
 
-			e.iUI.OnKey(key, action)
+			a.iUI.OnKey(key, action)
 
-			if e.activeState != nil {
-				e.activeState.OnKey(key, action, mods)
+			if a.activeState != nil {
+				a.activeState.OnKey(key, action, mods)
 			}
 		},
 	)
 
-	e.input.SetMouseButtonCallback(
+	a.input.SetMouseButtonCallback(
 		func(button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
-			if e.activeState != nil {
-				e.activeState.OnMouseButton(button, action, mods)
+			if a.activeState != nil {
+				a.activeState.OnMouseButton(button, action, mods)
 			}
 		},
 	)
-	e.input.SetMouseScrollCallback(
+	a.input.SetMouseScrollCallback(
 		func(xOffset, yOffset float64) {
-			if e.activeState != nil {
-				e.activeState.OnMouseScroll(xOffset, yOffset)
+			if a.activeState != nil {
+				a.activeState.OnMouseScroll(xOffset, yOffset)
 			}
 		},
 	)
-	e.input.SetMouseMoveCallback(
+	a.input.SetMouseMoveCallback(
 		func(x, y, dx, dy float64) {
-			if e.activeState != nil {
-				e.activeState.OnMouseMove(x, y, dx, dy)
+			if a.activeState != nil {
+				a.activeState.OnMouseMove(x, y, dx, dy)
 			}
 		},
 	)
-	e.window.SetResizeCallback(
+	a.window.SetResizeCallback(
 		func(win *glfw.Window, width, height int) {
-			e.resizeRenderTargets()
+			a.resizeRenderTargets()
 		},
 	)
 }
 
 // ---- Renderer
 
-func (e *App) initRenderingPipeline() error {
+func (a *App) initRenderingPipeline() error {
 
 	// setup deferred render target
-	deferred, err := pipeline.NewDeferredRenderTarget(e.window.GetConfig())
+	deferred, err := pipeline.NewDeferredRenderTarget(a.window.GetConfig())
 	if err != nil {
 		return err
 	}
-	e.deferred = deferred
+	a.deferred = deferred
 
 	// init screen quad mesh
 	meshQuad := rhi.NewMesh()
@@ -155,14 +170,22 @@ func (e *App) initRenderingPipeline() error {
 		if err != nil {
 			return err
 		}
-		e.passPipeline = append(e.passPipeline, p)
+		a.passPipeline = append(a.passPipeline, p)
 		return nil
+	}
+
+	// -- eye adaption pass
+
+	if err := addPass(passes.NewEyeAdaptionPass(
+		a.window.GetConfig(), meshQuad, config.EyeAdaptionConfig),
+	); err != nil {
+		return fmt.Errorf("eye adaption pass - %w", err)
 	}
 
 	// -- ssao
 
 	if err := addPass(passes.NewSSAOPass(
-		e.window.GetConfig(), meshQuad, config.SSAOConfig,
+		a.window.GetConfig(), meshQuad, config.SSAOConfig,
 		noiseTexture, blurProg, compProg)); err != nil {
 		return fmt.Errorf("ssao pass - %w", err)
 	}
@@ -170,7 +193,7 @@ func (e *App) initRenderingPipeline() error {
 	// -- crease occlusion
 
 	if err := addPass(passes.NewCavityPass(
-		e.window.GetConfig(), meshQuad, config.CavityConfig,
+		a.window.GetConfig(), meshQuad, config.CavityConfig,
 		noiseTexture, blurProg, compProg,
 	)); err != nil {
 		return fmt.Errorf("crease pass - %w", err)
@@ -179,7 +202,7 @@ func (e *App) initRenderingPipeline() error {
 	// -- color grading
 
 	if err := addPass(passes.NewColorGradingPass(
-		e.window.GetConfig(), meshQuad, config.ColorGradingConfig,
+		a.window.GetConfig(), meshQuad, config.ColorGradingConfig,
 	)); err != nil {
 		return fmt.Errorf("color grading pass - %w", err)
 	}
@@ -187,13 +210,13 @@ func (e *App) initRenderingPipeline() error {
 	// -- vignette
 
 	if err := addPass(passes.NewVignettePass(
-		e.window.GetConfig(), meshQuad, config.VignetteConfig,
+		a.window.GetConfig(), meshQuad, config.VignetteConfig,
 	)); err != nil {
 		return fmt.Errorf("vignette pass - %w", err)
 	}
 
 	// append resources
-	e.resources = append(e.resources,
+	a.resources = append(a.resources,
 		meshQuad,
 		deferred,
 		noiseTexture,
@@ -204,35 +227,38 @@ func (e *App) initRenderingPipeline() error {
 	return nil
 }
 
-func (e *App) resizeRenderTargets() {
+func (a *App) resizeRenderTargets() {
 	// deferred
-	e.deferred.ResizeCallback()
+	a.deferred.ResizeCallback()
 	// resize all render targets
-	for _, t := range e.passPipeline {
+	for _, t := range a.passPipeline {
 		t.ResizeCallback()
 	}
 	// resize current state
-	if e.activeState != nil {
-		sw, sh := e.window.GetConfig().GetScreenSize()
-		w, h := e.window.GetConfig().Width, e.window.GetConfig().Height
-		e.activeState.OnResize(w, h, sw, sh)
+	if a.activeState != nil {
+		sw, sh := a.window.GetConfig().GetScreenSize()
+		w, h := a.window.GetConfig().Width, a.window.GetConfig().Height
+		a.activeState.OnResize(w, h, sw, sh)
 	}
 }
 
 // ---- Game cycle
 
-func (e *App) Run() {
+func (a *App) Run() {
 
-	for !e.window.ShouldClose() {
+	a.SetCursor(CursorPointer)
+
+	for !a.window.ShouldClose() {
+
+		a.monitor.NewFrame()
 
 		// -- Input
-
 		io := imgui.CurrentIO()
-		if e.window.GetCursorDisabled() {
+		if a.window.GetCursorDisabled() {
 			io.SetWantCaptureMouse(false)
 			io.SetWantCaptureKeyboard(false)
 		}
-		e.input.Update()
+		a.input.Update()
 		glfw.PollEvents()
 
 		// -- Update
@@ -241,54 +267,56 @@ func (e *App) Run() {
 		// start new frame
 		ui.NewFrame()
 		// draw custom ui
-		e.iUI.Draw()
+		a.iUI.Draw()
 		// finalize
 		ui.FinalizeFrame()
 		// ------
 
 		// update current context
-		if e.activeState != nil {
-			// FIX get real delta time
-			e.activeState.Update(float32(e.monitor.GetFrameTime()))
+		if a.activeState != nil {
+			a.activeState.Update(a.monitor.GetDeltaTime())
 		}
 
 		// resize targets if screen ratio changes
-		if e.window.GetConfig().LastResolutionRatio != e.window.GetConfig().ResolutionRatio {
-			e.resizeRenderTargets()
+		if a.window.GetConfig().LastResolutionRatio != a.window.GetConfig().ResolutionRatio {
+			a.resizeRenderTargets()
 		}
 
 		// -- Render
 
-		context.BindFramebuffer(nil)
+		context.BindFramebuffer(nil) // bind initial (0) framebuffer
 		context.ClearColorBuffer()
 
 		// perform custom indirect rendering of current state (if needs)
-		if state, ok := e.activeState.(IndirectDrawer); ok {
-			context.SaveState() // WARN not notimplemented
+		if state, ok := a.activeState.(IndirectDrawer); ok {
+			// save context state
+			context.CaptureState()
+			// perform user's rendering
 			state.RenderIndirect()
+			// restore context state
 			context.RestoreState()
 		}
 
 		// perform gbuffer rendering of current state (if needs)
 		var lastRenderTarget *rhi.Framebuffer
-		if state, ok := e.activeState.(GBufferDrawer); ok {
+		if state, ok := a.activeState.(GBufferDrawer); ok {
 			// setup for geometry rendering
 			context.SetupForGeometry()
 			// render geometry
-			e.deferred.BindForNewFrame()
+			a.deferred.BindForNewFrame()
 			// render geometry of current app state
 			state.RenderGBuffer()
 			// setup context for 2D rendering
 			context.SetupForFlat()
 			// perform post processing
-			_, lastRenderTarget = e.performPostProcessingPipeline()
+			_, lastRenderTarget = a.performPostProcessingPipeline()
 			// send camera info to debug ui
-			e.iUI.GetDebugUI().SetActiveCamera(state.GetCamera())
+			a.iUI.GetDebugUI().SetActiveCamera(state.GetCamera())
 		}
 
 		context.BindFramebuffer(lastRenderTarget)
 		// perform flat rendering of current state (if needs)
-		if state, ok := e.activeState.(FlatDrawer); ok {
+		if state, ok := a.activeState.(FlatDrawer); ok {
 			// render flat of current app state
 			// on top of last render target
 			state.RenderFlat(lastRenderTarget)
@@ -297,7 +325,7 @@ func (e *App) Run() {
 		if lastRenderTarget != nil {
 			// blit last render target to initial framebuffer
 			lastRenderTarget.Blit(
-				0, e.window.GetConfig().Width, e.window.GetConfig().Height,
+				0, a.window.GetConfig().Width, a.window.GetConfig().Height,
 				rhi.FilterNearest,
 			)
 		}
@@ -308,37 +336,40 @@ func (e *App) Run() {
 		// -- End Frame
 
 		// update monitor stats
-		e.monitor.Update()
+		a.monitor.Update()
 
 		// reset rhi stats
 		rhi.FrameStats.Reset()
 
-		e.window.SwapBuffers()
+		a.window.SwapBuffers()
 	}
 }
 
 // performPostProcessingPipeline applies post processing
 // and returns result texture and framebuffer
-func (e *App) performPostProcessingPipeline() (*rhi.Texture, *rhi.Framebuffer) {
-	s, ok := e.activeState.(GBufferDrawer)
+func (a *App) performPostProcessingPipeline() (*rhi.Texture, *rhi.Framebuffer) {
+	s, ok := a.activeState.(GBufferDrawer)
 	if !ok {
 		return nil, nil
 	}
 
 	// get deferred textures
-	res := e.deferred.GetResult()
-	fbo := e.deferred.GetFramebuffer()
+	res := a.deferred.GetResult()
+	fbo := a.deferred.GetFramebuffer()
 
 	// get actual camera
 	cam := s.GetCamera()
 
 	// perform
-	for _, node := range e.passPipeline {
+	for _, node := range a.passPipeline {
 		if !node.Use() {
 			continue
 		}
 		if p, ok := node.(passes.HasProjection); ok {
 			p.SetProjectionMatrix(cam.Projection)
+		}
+		if p, ok := node.(passes.HasDeltaTime); ok {
+			p.SetDeltaTime(a.monitor.GetDeltaTime())
 		}
 		node.RenderPass(res)
 		res.Color = node.GetColor()
@@ -350,51 +381,71 @@ func (e *App) performPostProcessingPipeline() (*rhi.Texture, *rhi.Framebuffer) {
 
 // ---- AppProvider implementations
 
-func (e *App) Close() {
-	e.window.SetShouldClose(true)
+func (a *App) Close() {
+	a.window.SetShouldClose(true)
 }
 
-func (e *App) SetActiveState(s AppState) {
-	e.activeState = s
+func (a *App) SetActiveState(s AppState) {
+	a.activeState = s
 }
 
-func (e *App) GetConfig() *config.Config {
+func (a *App) GetConfig() *config.Config {
 	return nil
 }
 
-func (e *App) GetWindow() *window.Window {
-	return e.window
+func (a *App) GetWindow() *window.Window {
+	return a.window
 }
 
-func (e *App) GetInputManager() *window.InputManager {
-	return e.input
+func (a *App) GetInputManager() *window.InputManager {
+	return a.input
 }
 
-func (e *App) GetMonitor() *monitor.Monitor {
-	return e.monitor
+func (a *App) GetMonitor() *monitor.Monitor {
+	return a.monitor
 }
 
-func (e *App) GetGBuffer() *rhi.Framebuffer {
-	return e.deferred.GetFramebuffer()
+func (a *App) GetGBuffer() *rhi.Framebuffer {
+	return a.deferred.GetFramebuffer()
 }
 
-func (e *App) GUIWantCaptureMouse() bool {
+func (a *App) GUIWantCaptureMouse() bool {
 	io := imgui.CurrentIO()
 	return io.WantCaptureMouse()
 }
 
-func (e *App) GetTime() float64 {
+func (a *App) GetTime() float64 {
 	return glfw.GetTime()
+}
+
+func (a *App) SetCursor(t CursorType) {
+	var currentCursor *glfw.Cursor
+
+	switch t {
+	case CursorPointer:
+		currentCursor = cursorPointer
+	case CursorWaiting:
+		currentCursor = cursorWaiting
+	case CursorCross:
+		currentCursor = cursorCross
+	}
+
+	if currentCursor == nil {
+		log.Printf("app.SetCursor - cursor not found\n")
+		return
+	}
+
+	a.window.SetCursor(currentCursor)
 }
 
 // ---- Auxiliary methods
 
-func (e *App) initSystems() error {
+func (a *App) initSystems() error {
 	if err := window.InitGLFW(); err != nil {
 		return fmt.Errorf("failed to init glfw - %v", err)
 	}
 
-	if err := e.createWindow(); err != nil {
+	if err := a.createWindow(); err != nil {
 		return fmt.Errorf("failed to init window - %v", err)
 	}
 
@@ -405,17 +456,17 @@ func (e *App) initSystems() error {
 	context.LogUserHardware()
 	context.SetupDebugOutput()
 
-	if err := e.initImguiContext(); err != nil {
+	if err := a.initImguiContext(); err != nil {
 		return fmt.Errorf("failed to init imgui context - %v", err)
 	}
 
 	return nil
 }
 
-func (e *App) createWindow() error {
+func (a *App) createWindow() error {
 	// create window
 	var err error
-	e.window, err = window.NewWindow(
+	a.window, err = window.NewWindow(
 		config.WindowWidth,
 		config.WindowHeight,
 		config.WindowTitle,
@@ -424,35 +475,58 @@ func (e *App) createWindow() error {
 	if err != nil {
 		return fmt.Errorf("failed init window %v", err)
 	}
-	e.window.MakeContextCurrent()
-	e.window.Focus()
-	e.window.Center()
+	a.window.MakeContextCurrent()
+	a.window.Focus()
+	a.window.Center()
 
-	e.input = window.NewManager(e.window.Window)
+	// load icon
+	err = a.window.SetIconFromFile(files.GetTexturePath("initial/logo.png"))
+	if err != nil {
+		log.Printf("app - failed to load window icon - %v\n", err)
+	}
+
+	// load cursors
+	//
+	// -- pointer
+	cursorPointer, err = a.window.LoadCursor(files.GetTexturePath("initial/pointer.png"))
+	if err != nil {
+		log.Printf("app - failed to load cursor - %v\n", err)
+	}
+	// -- cross
+	cursorCross, err = a.window.LoadCursor(files.GetTexturePath("initial/cross.png"))
+	if err != nil {
+		log.Printf("app - failed to load cursor - %v\n", err)
+	}
+	// -- waiting
+	// later
+
+	a.input = window.NewManager(a.window.Window)
 
 	return nil
 }
 
-func (e *App) initImguiContext() error {
+func (a *App) initImguiContext() error {
 	// init imgui context
 	ui.Init()
 
 	// init imgui renderer
-	if err := ui.InitImguiRenderer(e.window.Window); err != nil {
+	if err := ui.InitImguiRenderer(a.window.Window); err != nil {
 		return fmt.Errorf("failed to init imgui renderer - %v", err)
 	}
 	return nil
 }
 
-func (e *App) initUI() {
+func (a *App) initUI() {
 
 	// prepare editors for ConfigUI
 	// (post process options editor)
-	editors := make([]ui.ConfigUI, len(e.passPipeline))
-	for i, n := range e.passPipeline {
+	editors := make([]ui.ConfigUI, 0)
+	for _, n := range a.passPipeline {
 		var editor ui.ConfigUI
 
 		switch p := n.(type) {
+		case *passes.EyeAdaptionPass:
+			editor = &ui.EyeAdaptionConfigUI{EyeAdaptionConfig: p.GetConfig().(*passes.EyeAdaptionConfig)}
 		case *passes.SSAOPass:
 			editor = &ui.SSAOConfigUI{SSAOConfig: p.GetConfig().(*passes.SSAOConfig)}
 		case *passes.CavityPass:
@@ -461,52 +535,54 @@ func (e *App) initUI() {
 			editor = &ui.ColorGradingUI{ColorGradingConfig: p.GetConfig().(*passes.ColorGradingConfig)}
 		case *passes.VignettePass:
 			editor = &ui.VignetteUI{VignetteConfig: p.GetConfig().(*passes.VignetteConfig)}
+		default:
+			continue
 		}
 
-		editors[i] = editor
+		editors = append(editors, editor)
 	}
 
-	e.iUI.AttachDebugUI(
+	a.iUI.AttachDebugUI(
 		ui.NewDebugUI(
-			e.window.GetConfig(),
-			e.monitor,
-			e.deferred,
+			a.window.GetConfig(),
+			a.monitor,
+			a.deferred,
 			editors,
 		),
 	)
 
-	e.iUI.AttachFramebuffersUI(
+	a.iUI.AttachFramebuffersUI(
 		ui.NewFramebuffersUI(
-			e.deferred.GetResult(),
-			e.passPipeline,
-			e.window.GetConfig(),
+			a.deferred.GetResult(),
+			a.passPipeline,
+			a.window.GetConfig(),
 		),
 	)
 }
 
 // -- Destroy
 
-func (e *App) Destroy() {
+func (a *App) Destroy() {
 
-	if e.activeState != nil {
-		e.activeState.Destroy()
+	if a.activeState != nil {
+		a.activeState.Destroy()
 	}
 
 	// clear post process pipeline
-	for _, n := range e.passPipeline {
+	for _, n := range a.passPipeline {
 		if n != nil {
 			n.Delete()
 		}
 	}
 
 	// clear resources
-	for _, r := range e.resources {
+	for _, r := range a.resources {
 		if r != nil {
 			r.Delete()
 		}
 	}
 
 	ui.Destroy()
-	e.window.Destroy()
+	a.window.Destroy()
 	glfw.Terminate()
 }

@@ -127,7 +127,7 @@ func (p *SSAOPass) initFramebuffers() error {
 		return fmt.Errorf("ssao pass - failed to create composition fbo - %w", err)
 	}
 	composition.Bind()
-	if err := composition.NewColorAttachment(rhi.FormatRGBA8); err != nil {
+	if err := composition.NewColorAttachment(rhi.FormatRGBA16F); err != nil {
 		composition.Delete()
 		return fmt.Errorf("ssao pass - failed to create composition fbo - %w", err)
 	}

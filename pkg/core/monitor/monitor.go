@@ -21,6 +21,10 @@ type Monitor struct {
 	lastVertices  atomic.Uint64
 	lastTriangles atomic.Uint64
 
+	// delta time
+	lastTime  time.Time
+	deltaTime float32
+
 	// capacitors to compute within second
 	frameCount   atomic.Uint64
 	lastTickTime time.Time
@@ -53,6 +57,12 @@ func (m *Monitor) EndTimer(name string) int64 {
 	}
 	log.Printf("monitor - undefined timer - %s\n", name)
 	return 0
+}
+
+func (m *Monitor) NewFrame() {
+	now := time.Now()
+	m.deltaTime = float32(time.Since(m.lastTime).Seconds())
+	m.lastTime = now
 }
 
 // Update - calls one time in the end of the cycle
@@ -90,3 +100,4 @@ func (m *Monitor) GetFrameTime() float64 { return m.lastFrameTime.Load().(float6
 func (m *Monitor) GetDrawCalls() uint64  { return m.lastDrawCalls.Load() }
 func (m *Monitor) GetVertices() uint64   { return m.lastVertices.Load() }
 func (m *Monitor) GetTriangles() uint64  { return m.lastTriangles.Load() }
+func (m *Monitor) GetDeltaTime() float32 { return m.deltaTime }

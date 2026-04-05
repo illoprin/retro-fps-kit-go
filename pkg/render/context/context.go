@@ -8,6 +8,59 @@ import (
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/rhi"
 )
 
+type ContextState struct {
+	EnableDepthTest bool
+	EnableCullFace  bool
+	EnableBlend     bool
+	DepthFunc       int32
+	BlendSrc        int32
+	BlendDst        int32
+	CullFaceMode    int32
+	PolygonMode     int32
+}
+
+var state ContextState
+
+// CaptureState queries the current OpenGL state.
+func CaptureState() {
+	state.EnableDepthTest = gl.IsEnabled(gl.DEPTH_TEST)
+	state.EnableCullFace = gl.IsEnabled(gl.CULL_FACE)
+	state.EnableBlend = gl.IsEnabled(gl.BLEND)
+
+	gl.GetIntegerv(gl.DEPTH_FUNC, &state.DepthFunc)
+	gl.GetIntegerv(gl.BLEND_SRC_RGB, &state.BlendSrc)
+	gl.GetIntegerv(gl.BLEND_DST_RGB, &state.BlendDst)
+	gl.GetIntegerv(gl.CULL_FACE_MODE, &state.CullFaceMode)
+
+	var polygonMode [2]int32
+	gl.GetIntegerv(gl.POLYGON_MODE, &polygonMode[0])
+	state.PolygonMode = polygonMode[0]
+}
+
+// RestoreState applies the saved state back to the OpenGL machine.
+func RestoreState() {
+	if state.EnableDepthTest {
+		gl.Enable(gl.DEPTH_TEST)
+	} else {
+		gl.Disable(gl.DEPTH_TEST)
+	}
+	if state.EnableCullFace {
+		gl.Enable(gl.CULL_FACE)
+	} else {
+		gl.Disable(gl.CULL_FACE)
+	}
+	if state.EnableBlend {
+		gl.Enable(gl.BLEND)
+	} else {
+		gl.Disable(gl.BLEND)
+	}
+
+	gl.DepthFunc(uint32(state.DepthFunc))
+	gl.BlendFunc(uint32(state.BlendSrc), uint32(state.BlendDst))
+	gl.CullFace(uint32(state.CullFaceMode))
+	gl.PolygonMode(gl.FRONT_AND_BACK, uint32(state.PolygonMode))
+}
+
 func InitContext() error {
 	if err := gl.Init(); err != nil {
 		log.Printf("failed to ini opengl context - %v\n", err)
@@ -97,12 +150,4 @@ func BindFramebuffer(f *rhi.Framebuffer) {
 		return
 	}
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
-}
-
-func SaveState() {
-	// FIX Implement
-}
-
-func RestoreState() {
-	// FIX Implement
 }

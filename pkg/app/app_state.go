@@ -6,6 +6,10 @@ import (
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/rhi"
 )
 
+// AppState defines the lifecycle and event
+// handling for a specific application logic block.
+// Implement this interface to create
+// game levels, menus, or specialized tools like editors.
 type AppState interface {
 	Init(e AppAPI) error
 	// Update - update internal states
@@ -50,8 +54,4 @@ type FlatDrawer interface {
 type IndirectDrawer interface {
 	// RenderIndirect - custom internal rendering
 	RenderIndirect()
-}
-
-type FPSControlProvider interface {
-	HasFPSController() bool
 }
