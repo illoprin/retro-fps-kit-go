@@ -24,6 +24,7 @@ type EyeAdaptionConfig struct {
 	Radius        float32
 	AvgGray       float32
 	AdaptionSpeed float32
+	Exposure      float32
 }
 
 type EyeAdaptionPass struct {
@@ -59,7 +60,7 @@ func NewEyeAdaptionPass(
 	// create luma framebuffer
 	luma := rhi.NewFramebuffer(1, 1)
 	luma.Bind()
-	luma.NewColorAttachment(rhi.FormatR32F)
+	luma.NewColorAttachment(rhi.FormatR32F, rhi.FilterNearest)
 	if !luma.Check() {
 		luma.Delete()
 		return nil, fmt.Errorf("eye adaption pass - incomplete luma fbo")
@@ -70,7 +71,7 @@ func NewEyeAdaptionPass(
 	sW, sH := screenCfg.GetScreenSize()
 	ldr := rhi.NewFramebuffer(sW, sH)
 	ldr.Bind()
-	ldr.NewColorAttachment(rhi.FormatRGBA8)
+	ldr.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
 	if !ldr.Check() {
 		ldr.Delete()
 		return nil, fmt.Errorf("eye adaption pass - incomplete ldr fbo")
@@ -80,7 +81,7 @@ func NewEyeAdaptionPass(
 	// create luma program
 	lumaProgram, err := rhi.NewProgram(
 		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("luma.frag"),
+		files.GetShaderPath("average_luma.frag"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("eye adaption pass - failed to create luma program - %w", err)
@@ -90,7 +91,7 @@ func NewEyeAdaptionPass(
 	// create ldr (composition) program
 	ldrProgram, err := rhi.NewProgram(
 		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("ldr.frag"),
+		files.GetShaderPath("eye_adaption.frag"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("eye adaption pass - failed to create ldr program - %w", err)
@@ -149,7 +150,8 @@ func (p *EyeAdaptionPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.luma.ReadPixels(0, 0, 1, 1, 0, rhi.FormatR32F, unsafe.Pointer(&currentLuma))
 	alpha := p.cfg.AdaptionSpeed
 	currentExposure := p.cfg.AvgGray / max(currentLuma, 0.001)
-	smoothedExposure := mgl.Clamp(p.prevExposure*(1.0-alpha)+currentExposure*alpha, 0.05, 2.0)
+	smoothedExposure := p.prevExposure*(1.0-alpha) + currentExposure*alpha
+	smoothedExposure = mgl.Clamp(smoothedExposure, 0.5, 3.0)
 	p.prevExposure = smoothedExposure
 
 	// -- Result render pass (apply average exposure)
@@ -162,7 +164,7 @@ func (p *EyeAdaptionPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	src.Color.BindToUnit(0)
 	p.ldrProgram.Set1i("u_color", 0)
 	// apply exposure
-	p.ldrProgram.Set1f("u_exposure", smoothedExposure)
+	p.ldrProgram.Set1f("u_exposure", smoothedExposure*p.cfg.Exposure)
 
 	p.mesh.Draw()
 

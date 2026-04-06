@@ -6,23 +6,27 @@ import (
 )
 
 type Prefab struct {
-	Position mgl.Vec3
-	Scaling  mgl.Vec3
-	Rotation mgl.Vec3
-	Pivot    mgl.Vec3
-	Color    mgl.Vec3
-	Textured bool
-	Texture  *rhi.Texture
-	Mesh     *rhi.Mesh
+	Position         mgl.Vec3
+	Scaling          mgl.Vec3
+	Rotation         mgl.Vec3
+	Pivot            mgl.Vec3
+	Color            mgl.Vec3
+	Textured         bool
+	Diffuse          *rhi.Texture
+	Emissive         *rhi.Texture
+	Mesh             *rhi.Mesh
+	EmissiveStrength float32
 }
 
-func NewPrefab(m *rhi.Mesh, t *rhi.Texture) *Prefab {
+func NewPrefab(m *rhi.Mesh, t *rhi.Texture, e *rhi.Texture) *Prefab {
 	p := &Prefab{
-		Color:    mgl.Vec3{1, 1, 1},
-		Scaling:  mgl.Vec3{1, 1, 1},
-		Textured: t != nil,
-		Texture:  t,
-		Mesh:     m,
+		Color:            mgl.Vec3{1, 1, 1},
+		Scaling:          mgl.Vec3{1, 1, 1},
+		Textured:         t != nil,
+		Diffuse:          t,
+		Emissive:         e,
+		Mesh:             m,
+		EmissiveStrength: 1.0,
 	}
 
 	return p

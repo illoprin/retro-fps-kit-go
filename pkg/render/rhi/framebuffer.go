@@ -49,9 +49,9 @@ func (fb *Framebuffer) HasColor() bool {
 }
 
 // NewColorAttachment generates new color attachment (bind before use)
-func (fb *Framebuffer) NewColorAttachment(format TextureFormat) {
+func (fb *Framebuffer) NewColorAttachment(format TextureFormat, filter TextureFilter) {
 	// create color attachment
-	colorTex := NewFramebufferColorTexture(fb.Width, fb.Height, format)
+	colorTex := NewFramebufferColorTexture(fb.Width, fb.Height, format, filter)
 	// attach created texture
 	gl.FramebufferTexture2D(
 		gl.FRAMEBUFFER,

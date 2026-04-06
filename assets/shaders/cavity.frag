@@ -10,11 +10,9 @@ in vec2 texcoord;
 
 uniform sampler2D u_normal; // Текстура нормалей (view space)
 uniform sampler2D u_depth;  // Текстура глубины
-uniform sampler2D u_noise; // шум для поворота сэмплов
 
 // Настройки эффекта
-uniform vec2  u_samples[KERNEL_SIZE_MAX]; // выборка соседних пикселей нормали
-uniform vec2 u_noise_scale;
+uniform vec2 u_samples[KERNEL_SIZE_MAX]; // выборка соседних пикселей нормали
 uniform float u_radius = 2.0;       // Радиус выборки в пикселях
 uniform float u_depthbias = 0.05;   // Порог разницы глубин (чтобы избежать "ореола")
 uniform float u_intensity = 1.5;    // Сила затенения
@@ -35,13 +33,15 @@ void main() {
   vec3 normal = texture(u_normal, texcoord).rgb;
   float depth = texture(u_depth, texcoord).r;
   vec3 position = ReconstructPosition(texcoord, depth);
-  vec3 noiseRot = texture(u_noise, texcoord * u_noise_scale).rgb * 2.0 - 1.0;
 
-  if (length(normal) < 0.1) {out_frag_color = 1.0; return; };
-  
+  if(length(normal) < 0.1) {
+    out_frag_color = 1.0;
+    return;
+  };
+
   // no geometry case
-  if (length(normal) < 0.1) {
-    out_frag_color = 1.0; 
+  if(length(normal) < 0.1) {
+    out_frag_color = 1.0;
     return;
   }
 
@@ -54,8 +54,7 @@ void main() {
 
     // Получаем позицию соседа с учётом шума поворотов
     // проще отразить, чем делать поворот :)
-    vec2 sampleOffset = reflect(u_samples[i], noiseRot.xy);
-    vec2 uvWithOffset = texcoord + sampleOffset * texelSize * u_radius;
+    vec2 uvWithOffset = texcoord + u_samples[i] * texelSize * u_radius;
     uvWithOffset = clamp(uvWithOffset, 0.0, 1.0);
 
     // get neighbor depth
@@ -64,12 +63,14 @@ void main() {
     float depthDiff = abs(depth - nDepth);
 
     // Ранний вылет: если разница глубин слишком велика, сэмпл бесполезен
-    if (depthDiff > u_depthbias) continue;
+    if(depthDiff > u_depthbias)
+      continue;
 
     // get neighbor normal
     vec3 nNormal = normalize(texture(u_normal, uvWithOffset).rgb);
-    if(length(nNormal) < 0.001) continue;
-    
+    if(length(nNormal) < 0.001)
+      continue;
+
     // Реконструируем позицию соседа из UV и глубины
     vec3 nPosition = ReconstructPosition(uvWithOffset, nDepth);
 
@@ -86,7 +87,7 @@ void main() {
 
     // find crease
     float angleWeight = dotP < 0.999 ? max(0.0, 1.0 - dotP) : 0;
-    
+
     // check depth
     float depthRange = smoothstep(u_depthbias, 0.0, depthDiff);
 
@@ -103,7 +104,7 @@ void main() {
 
   // invert and contrast
   float shadow = clamp(1.0 - (ao * u_intensity), 0.0, 1.0);
-  
+
   // out
   out_frag_color = shadow;
 }

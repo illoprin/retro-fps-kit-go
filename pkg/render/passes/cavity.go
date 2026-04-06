@@ -40,7 +40,6 @@ type CavityPass struct {
 	mesh              *rhi.Mesh
 	samples           []mgl.Vec2
 	projection        mgl.Mat4
-	noise             *rhi.Texture
 	resources         []rhi.Resource
 	screenCfg         *window.ScreenConfig
 	cfg               *CavityConfig
@@ -50,7 +49,6 @@ func NewCavityPass(
 	screenCfg *window.ScreenConfig,
 	quad *rhi.Mesh,
 	cfg *CavityConfig,
-	noise *rhi.Texture,
 	blurProgram *rhi.Program,
 	compositorProgram *rhi.Program,
 ) (*CavityPass, error) {
@@ -58,7 +56,6 @@ func NewCavityPass(
 		cfg:               cfg,
 		screenCfg:         screenCfg,
 		mesh:              quad,
-		noise:             noise,
 		blurProgram:       blurProgram,
 		compositorProgram: compositorProgram,
 	}
@@ -97,7 +94,7 @@ func (p *CavityPass) initFramebuffers() error {
 	// init cavity buffer
 	cavity := rhi.NewFramebuffer(fbWidth, fbHeight)
 	cavity.Bind()
-	cavity.NewColorAttachment(rhi.FormatR8)
+	cavity.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
 	if !cavity.Check() || err != nil {
 		cavity.Delete()
 		return fmt.Errorf("cavity pass - cavity fbo not completed %w", err)
@@ -107,7 +104,7 @@ func (p *CavityPass) initFramebuffers() error {
 	// init blur buffer
 	blur := rhi.NewFramebuffer(fbWidth, fbHeight)
 	blur.Bind()
-	blur.NewColorAttachment(rhi.FormatR8)
+	blur.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
 	if !blur.Check() || err != nil {
 		blur.Delete()
 		return fmt.Errorf("cavity pass - blur fbo not completed %w", err)
@@ -117,7 +114,7 @@ func (p *CavityPass) initFramebuffers() error {
 	// init composition buffer
 	composition := rhi.NewFramebuffer(fbWidth, fbHeight)
 	composition.Bind()
-	composition.NewColorAttachment(rhi.FormatRGBA8)
+	composition.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
 	if !composition.Check() || err != nil {
 		composition.Delete()
 		return fmt.Errorf("cavity pass - composition fbo not completed %w", err)
@@ -200,9 +197,6 @@ func (p *CavityPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	// bind and send depth
 	src.Depth.BindToUnit(1)
 	p.cavityProgram.Set1i("u_depth", 1)
-	// send noise texture (random samples rotations)
-	p.noise.BindToUnit(2)
-	p.cavityProgram.Set1i("u_noise", 2)
 
 	// send radius
 	p.cavityProgram.Set1f("u_radius", p.cfg.Radius)
@@ -212,12 +206,6 @@ func (p *CavityPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.cavityProgram.Set1f("u_intensity", p.cfg.Intensity)
 	// send kernel size
 	p.cavityProgram.Set1i("u_kernel_size", p.cfg.KernelSize)
-	// send noise scale
-	noiseScale := mgl.Vec2{
-		float32(p.screenCfg.Width) / float32(noiseSize),
-		float32(p.screenCfg.Height) / float32(noiseSize),
-	}
-	p.cavityProgram.Set2f("u_noise_scale", noiseScale)
 	// send inv projection
 	p.cavityProgram.SetMat4("u_invprojection", p.projection.Inv())
 

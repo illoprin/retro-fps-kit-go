@@ -1,6 +1,8 @@
 package config
 
-import "github.com/illoprin/retro-fps-kit-go/pkg/render/passes"
+import (
+	"github.com/illoprin/retro-fps-kit-go/pkg/render/passes"
+)
 
 const (
 	WindowWidth                    = 1600
@@ -10,6 +12,14 @@ const (
 )
 
 var (
+	EyeAdaptionConfig = &passes.EyeAdaptionConfig{
+		Use:           true,
+		Radius:        300,
+		AvgGray:       0.18,
+		AdaptionSpeed: 0.008,
+		Exposure:      1,
+	}
+
 	SSAOConfig = &passes.SSAOConfig{
 		Use:        false,
 		KernelSize: 30,
@@ -18,13 +28,6 @@ var (
 		WhitePoint: 0.971,
 		BlackPoint: 0.39,
 		BlurSize:   2,
-	}
-
-	EyeAdaptionConfig = &passes.EyeAdaptionConfig{
-		Use:           true,
-		Radius:        300,
-		AvgGray:       0.23,
-		AdaptionSpeed: 0.005,
 	}
 
 	CavityConfig = &passes.CavityConfig{
@@ -38,21 +41,34 @@ var (
 		BlurSize:   3,
 	}
 
+	BloomConfig = &passes.BloomConfig{
+		Use:       true,
+		Threshold: 1.124,
+		Levels:    4,
+		MinRadius: 0.6,
+		MaxRadius: 4.2,
+		Tint:      [3]float32{0.65, 0.82, 1.0},
+		Intensity: 1.6,
+	}
+
+	ToneMappingConfig = &passes.ToneMappingConfig{
+		Gamma:   2.2,
+		Tonemap: passes.ACESFilmTonemap,
+	}
+
 	ColorGradingConfig = &passes.ColorGradingConfig{
-		Gamma:          1.9,
-		Exposure:       0.7,
-		Contrast:       1.18,
-		Saturation:     0.85,
-		Brightness:     1.4,
-		ShadowsColor:   [3]float32{.063, .102, .576},
-		MidColor:       [3]float32{.494, .294, .067},
-		HighlightColor: [3]float32{.903, .402, .061},
-		ColorStrength:  0.68,
+		Contrast:       2.28,
+		Saturation:     0.84,
+		Brightness:     1.57,
+		ShadowsColor:   [3]float32{.16, .18, .3},
+		MidColor:       [3]float32{.68, .518, .33},
+		HighlightColor: [3]float32{.938, .641, .438},
+		ColorStrength:  0.47,
 		Use:            true,
 	}
 
 	VignetteConfig = &passes.VignetteConfig{
-		Radius:   0.85,
+		Radius:   0.9,
 		Softness: 0.535,
 		Use:      true,
 	}

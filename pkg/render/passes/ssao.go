@@ -92,7 +92,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	// init ssao buffer
 	ssao := rhi.NewFramebuffer(fbWidth, fbHeight)
 	ssao.Bind()
-	ssao.NewColorAttachment(rhi.FormatR8)
+	ssao.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
 	if !ssao.Check() {
 		ssao.Delete()
 		return fmt.Errorf("ssao pass - ssao fbo not completed")
@@ -102,7 +102,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	// init blur buffer
 	blur := rhi.NewFramebuffer(fbWidth, fbHeight)
 	blur.Bind()
-	blur.NewColorAttachment(rhi.FormatR8)
+	blur.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
 	if !blur.Check() {
 		blur.Delete()
 		return fmt.Errorf("ssao pass - blur fbo not completed")
@@ -112,7 +112,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	// init composition buffer
 	composition := rhi.NewFramebuffer(fbWidth, fbHeight)
 	composition.Bind()
-	composition.NewColorAttachment(rhi.FormatRGBA16F)
+	composition.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
 	if !composition.Check() {
 		composition.Delete()
 		return fmt.Errorf("ssao pass - composition fbo not completed")

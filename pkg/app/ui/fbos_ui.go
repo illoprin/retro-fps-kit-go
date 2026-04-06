@@ -83,6 +83,15 @@ func NewFramebuffersUI(
 			f.passTextures = append(f.passTextures, rawCrease, creaseBlur)
 		}
 
+		if p.GetName() == "bloom" {
+			bloom := p.(*passes.BloomPass)
+			bloomBlurred := ImageTexture{
+				ID:   bloom.GetBlur().ID,
+				Name: "bloom.blurred",
+			}
+			f.passTextures = append(f.passTextures, bloomBlurred)
+		}
+
 		t := ImageTexture{
 			ID:   p.GetColor().ID,
 			Name: p.GetName(),

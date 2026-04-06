@@ -53,10 +53,17 @@ func (r *PrefabRenderer) Render(p *prefab.Prefab) {
 		),
 	)
 	r.p.Set1i("u_useTexture", 0)
+	r.p.Set1i("u_useEmissive", 0)
 	if p.Textured {
-		p.Texture.BindToUnit(0)
+		p.Diffuse.BindToUnit(0)
 		r.p.Set1i("u_useTexture", 1)
-		r.p.Set1i("u_texture", 0)
+		r.p.Set1i("u_diffuse", 0)
+	}
+	if p.Emissive != nil {
+		p.Emissive.BindToUnit(1)
+		r.p.Set1i("u_emissive", 1)
+		r.p.Set1f("u_emissive_strength", p.EmissiveStrength)
+		r.p.Set1i("u_useEmissive", 1)
 	}
 	r.p.Set3f("u_color", p.Color)
 

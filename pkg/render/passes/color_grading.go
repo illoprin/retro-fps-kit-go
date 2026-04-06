@@ -11,8 +11,6 @@ import (
 )
 
 type ColorGradingConfig struct {
-	Gamma          float32
-	Exposure       float32
 	Contrast       float32
 	Saturation     float32
 	Brightness     float32
@@ -50,7 +48,7 @@ func NewColorGradingPass(
 	// create color framebuffer
 	fbo := rhi.NewFramebuffer(fbWidth, fbHeight)
 	fbo.Bind()
-	fbo.NewColorAttachment(rhi.FormatRGBA8)
+	fbo.NewColorAttachment(rhi.FormatRGB8, rhi.FilterNearest)
 	if !fbo.Check() {
 		fbo.Delete()
 		return nil, fmt.Errorf("color grading pass - fbo not completed")
@@ -100,8 +98,6 @@ func (p *ColorGradingPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.program.Set3f("u_mid_color", p.cfg.MidColor)
 	p.program.Set3f("u_highlight_color", p.cfg.HighlightColor)
 	p.program.Set1f("u_color_strength", p.cfg.ColorStrength)
-	p.program.Set1f("u_gamma", p.cfg.Gamma)
-	p.program.Set1f("u_exposure", p.cfg.Exposure)
 	p.mesh.Draw()
 }
 

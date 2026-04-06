@@ -31,7 +31,6 @@ func NewMesh() *Mesh {
 }
 
 // CreateVertexBuffer - creates VBO object, returns *index*
-// !!! BIND BEFORE USE
 func (m *Mesh) CreateVertexBuffer() int {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
@@ -41,17 +40,18 @@ func (m *Mesh) CreateVertexBuffer() int {
 }
 
 // AllocateVertexBuffer - allocates memory for VBO
+// !!! BIND BEFORE USE
 func (m *Mesh) AllocateVertexBuffer(index int, sizeBytes int, bType BufferType) {
 	if index < 0 || index >= len(m.vbos) {
 		return
 	}
-	m.Bind()
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, m.vbos[index])
 	gl.BufferData(gl.ARRAY_BUFFER, sizeBytes, nil, GetBufferType(bType))
 }
 
 // SetVertexBufferData - updates data in VBO
+// !!! BIND BEFORE USE
 func (m *Mesh) SetVertexBufferData(
 	index int,
 	offsetBytes int,
@@ -61,7 +61,6 @@ func (m *Mesh) SetVertexBufferData(
 	if index < 0 || index >= len(m.vbos) {
 		return
 	}
-	m.Bind()
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, m.vbos[index])
 	gl.BufferSubData(gl.ARRAY_BUFFER, offsetBytes, sizeBytes, data)
@@ -83,7 +82,6 @@ func (m *Mesh) AllocateElementBuffer(sizeBytes int, bType BufferType) {
 	if m.ebo == 0 {
 		return
 	}
-	m.Bind()
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ebo)
 	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, sizeBytes, nil, GetBufferType(bType))
@@ -95,7 +93,6 @@ func (m *Mesh) SetElementBufferData(offset int, data []uint32) {
 	if m.ebo == 0 || len(data) == 0 {
 		return
 	}
-	m.Bind()
 
 	size := len(data) * int(unsafe.Sizeof(data[0]))
 
@@ -111,11 +108,8 @@ func (m *Mesh) SetAttribute(vboIndex int, a VertexAttribute) {
 	if vboIndex < 0 || vboIndex >= len(m.vbos) {
 		return
 	}
-	m.Bind()
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, m.vbos[vboIndex])
-
-	gl.EnableVertexAttribArray(a.Index)
 
 	gl.VertexAttribPointer(
 		a.Index,
@@ -125,6 +119,7 @@ func (m *Mesh) SetAttribute(vboIndex int, a VertexAttribute) {
 		a.StrideBytes,
 		unsafe.Pointer(uintptr(a.OffsetBytes)),
 	)
+	gl.EnableVertexAttribArray(a.Index)
 
 	if a.Divisor > 0 {
 		gl.VertexAttribDivisor(a.Index, a.Divisor)

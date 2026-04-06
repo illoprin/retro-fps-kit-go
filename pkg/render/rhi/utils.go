@@ -76,6 +76,10 @@ const (
 	StreamDraw
 )
 
+const (
+	SizeOfFloat32 int32 = 4
+)
+
 type DataType uint32
 
 const (

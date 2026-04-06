@@ -1,3 +1,14 @@
+// Package rhi provides high-level abstractions over OpenGL objects,
+// simplifying the development of cross-platform rendering pipelines.
+//
+// It implements the Render Hardware Interface (RHI) concept,
+// shielding the user from low-level OpenGL state management and
+// providing an idiomatic Go API for common graphics tasks.
+//
+// Author: illoprin
+//
+// 2026
+
 package rhi
 
 import (
@@ -27,9 +38,9 @@ func SetupBasicQuadMesh(m *Mesh) {
 			2, 3, 0,
 		}
 	)
-
 	sizeVerts := len(basicQuadVertices) * int(unsafe.Sizeof(basicQuadVertices[0]))
 	sizeIndices := len(basicQuadIndices) * int(unsafe.Sizeof(basicQuadIndices[0]))
+	m.Bind()
 	m.CreateVertexBuffer()
 	m.AllocateVertexBuffer(0, sizeVerts, StaticDraw)
 	m.SetVertexBufferData(0, 0, sizeVerts, unsafe.Pointer(&basicQuadVertices[0]))
@@ -40,7 +51,7 @@ func SetupBasicQuadMesh(m *Mesh) {
 		Index:       0,
 		Components:  2,
 		Type:        Float32,
-		StrideBytes: int32(unsafe.Sizeof(basicQuadVertices[0]) * 2),
+		StrideBytes: 2 * SizeOfFloat32,
 		OffsetBytes: 0,
 		Divisor:     0,
 	})
@@ -132,12 +143,12 @@ func NewFontAtlasTexture(width, height int32, data []byte) *Texture {
 // NewFramebufferColorTexture создаёт текстуру для использования с Framebuffer
 func NewFramebufferColorTexture(
 	width, height int32,
-	format TextureFormat,
+	format TextureFormat, filter TextureFilter,
 ) *Texture {
 	config := DefaultTexture2DConfig(width, height)
 	config.Format = format
-	config.FilterMin = FilterNearest
-	config.FilterMag = FilterNearest
+	config.FilterMin = filter
+	config.FilterMag = filter
 	config.WrapS = WrapClampToEdge
 	config.WrapT = WrapClampToEdge
 	config.GenerateMipmaps = false

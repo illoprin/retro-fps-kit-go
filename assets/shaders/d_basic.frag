@@ -9,8 +9,11 @@ in vec3 normal;
 in vec3 position;
 
 // color
-uniform sampler2D u_texture;
+uniform sampler2D u_diffuse;
+uniform sampler2D u_emissive;
+uniform float u_emissive_strength = 1.0;
 uniform bool u_useTexture;
+uniform bool u_useEmissive;
 uniform vec3 u_color;
 
 // lights
@@ -52,7 +55,7 @@ vec3 getLights() {
 
 vec4 getColor() {
 	if(u_useTexture) {
-		vec4 color = texture(u_texture, uv);
+		vec4 color = texture(u_diffuse, uv);
 		if(color.a < 0.1)
 			discard;
 		return color;
@@ -74,21 +77,26 @@ vec3 getFog(vec3 src) {
 void main() {
 	vec4 result;
 
-	// -- texture/color
-	result = getColor();
-
-	// -- fog
-	result.rgb = getFog(result.rgb);
-
-	// -- lights
-	result.rgb *= getLights();
-
-	// setup outs
-	//
 	// normal in view space
 	out_normal = normalize(mat3(u_view) * normal);
 	// position in view space
 	out_position = (u_view * vec4(position, 1.0)).xyz;
+
+	// -- texture/color
+	result = getColor();
+	// -- fog
+	result.rgb = getFog(result.rgb);
+
+	// -- get emissive
+	vec3 emissive = vec3(0.0);
+	if(u_useEmissive) {
+		emissive = texture(u_emissive, uv).rgb * u_emissive_strength;
+		result.rgb += emissive * u_emissive_strength;
+	} else {
+		// -- lights
+		result.rgb *= getLights();
+	}
+
 	// color
 	out_fragcolor = result;
 }

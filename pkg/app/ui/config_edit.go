@@ -15,14 +15,69 @@ type EyeAdaptionConfigUI struct {
 }
 
 func (c *EyeAdaptionConfigUI) GetName() string {
-	return "Eye Adaption"
+	return "Eye Adaption (HDR)"
 }
 
 func (c *EyeAdaptionConfigUI) ShowUI() {
 	imgui.Checkbox("ea_Use", &c.Use)
 	imgui.SliderFloat("ea_Radius", &c.Radius, 4, 100)
-	imgui.SliderFloat("ea_Speed", &c.AdaptionSpeed, 0.005, 1)
+	imgui.SliderFloat("ea_Speed", &c.AdaptionSpeed, 0.003, 0.06)
 	imgui.SliderFloat("ea_Gray", &c.AvgGray, 0.01, 0.3)
+	imgui.SliderFloat("ea_Exposure", &c.Exposure, 0.5, 3.0)
+}
+
+type BloomConfigUI struct {
+	*passes.BloomConfig
+}
+
+func (c *BloomConfigUI) GetName() string {
+	return "Bloom (HDR)"
+}
+
+func (c *BloomConfigUI) ShowUI() {
+	imgui.Checkbox("b_Use", &c.Use)
+	imgui.SliderFloat("b_Intensity", &c.Intensity, 0.5, 10.0)
+	imgui.SliderFloat("b_Threshold", &c.Threshold, 0.3, 10.0)
+	imgui.SliderInt("b_Levels", &c.Levels, 1, 8)
+	imgui.SliderFloat("b_MinRadius", &c.MinRadius, 0.5, 2)
+	imgui.SliderFloat("b_MaxRadius", &c.MaxRadius, 1.0, 20.0)
+	imgui.ColorEdit3("b_Tint", &c.Tint)
+}
+
+type ToneMappingConfigUI struct {
+	*passes.ToneMappingConfig
+}
+
+func (c *ToneMappingConfigUI) GetName() string {
+	return "Tone Mapping (HDR -> LDR)"
+}
+
+func (c *ToneMappingConfigUI) ShowUI() {
+	imgui.SliderFloat("tm_Gamma", &c.Gamma, 0.5, 4)
+
+	// combo item
+	items := []string{
+		"ACES Filmic",
+		"Uncharted 2",
+		"Reinhard",
+	}
+
+	// enum (1,2,3) → index (0,1,2)
+	current := int(c.Tonemap) - 1
+
+	if imgui.BeginCombo("##combo", items[current]) {
+		for i, _ := range items {
+			isSelected := current == i
+			if imgui.SelectableBool(items[i]) {
+				current = i
+				c.Tonemap = passes.ToneMapType(current) + 1
+			}
+			if isSelected {
+				imgui.SetItemDefaultFocus()
+			}
+		}
+		imgui.EndCombo()
+	}
 }
 
 type SSAOConfigUI struct {
@@ -30,7 +85,7 @@ type SSAOConfigUI struct {
 }
 
 func (c *SSAOConfigUI) GetName() string {
-	return "SSAO"
+	return "SSAO (HDR)"
 }
 
 func (c *SSAOConfigUI) ShowUI() {
@@ -48,7 +103,7 @@ type CavityConfigUI struct {
 }
 
 func (c *CavityConfigUI) GetName() string {
-	return "Cavity Occlusion"
+	return "Cavity Occlusion (HDR)"
 }
 
 func (c *CavityConfigUI) ShowUI() {
@@ -67,14 +122,12 @@ type ColorGradingUI struct {
 }
 
 func (c *ColorGradingUI) GetName() string {
-	return "Color Grading"
+	return "Color Grading (LDR)"
 }
 
 func (c *ColorGradingUI) ShowUI() {
 	imgui.Checkbox("cg_Use", &c.Use)
-	imgui.SliderFloat("cg_Gamma", &c.Gamma, 1, 3)
-	imgui.SliderFloat("cg_Exposure", &c.Exposure, 0.5, 4)
-	imgui.SliderFloat("cg_Contrast", &c.Contrast, 0.8, 3)
+	imgui.SliderFloat("cg_Contrast", &c.Contrast, 0.8, 10)
 	imgui.SliderFloat("cg_Saturation", &c.Saturation, 0, 2)
 	imgui.SliderFloat("cg_Brightness", &c.Brightness, 0.5, 10)
 	imgui.ColorEdit3("cg_Shadows", &c.ShadowsColor)
@@ -88,7 +141,7 @@ type VignetteUI struct {
 }
 
 func (c *VignetteUI) GetName() string {
-	return "Vignette"
+	return "Vignette (LDR)"
 }
 
 func (c *VignetteUI) ShowUI() {

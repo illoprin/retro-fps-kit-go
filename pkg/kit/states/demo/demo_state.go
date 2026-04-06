@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-kit-go/pkg/app"
@@ -24,6 +25,8 @@ type DemoState struct {
 	renderer   *prefabsystem.PrefabRenderer
 	controller *controllers.EditorController
 	lastTime   time.Time
+
+	prefabEmissive *prefab.Prefab
 }
 
 func NewDemo() *DemoState {
@@ -82,25 +85,35 @@ func (s *DemoState) Init(api app.AppAPI) error {
 		log.Printf("failed to load model %v", err)
 	}
 
+	// ceiling model
+	emissiveModel, err := parser.ParseFile(files.GetModelPath("emissive_part.obj"))
+	if err != nil {
+		log.Printf("failed to load model %v", err)
+	}
+
 	// shotgun mesh
 	meshShotgun := rhi.NewMesh()
 	modeldata.SetupMeshFromModel(meshShotgun, shotgunModel)
 
 	// floor mesh
 	meshFloor := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(meshShotgun, floorModel)
+	modeldata.SetupMeshFromModel(meshFloor, floorModel)
 
 	// ceiling mesh
 	meshCeiling := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(meshShotgun, ceilingModel)
+	modeldata.SetupMeshFromModel(meshCeiling, ceilingModel)
 
 	// walls mesh
 	meshWalls := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(meshShotgun, wallsModel)
+	modeldata.SetupMeshFromModel(meshWalls, wallsModel)
 
 	// walls mesh
 	meshTable := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(meshShotgun, tableModel)
+	modeldata.SetupMeshFromModel(meshTable, tableModel)
+
+	// emissive part mesh
+	meshEmissive := rhi.NewMesh()
+	modeldata.SetupMeshFromModel(meshEmissive, emissiveModel)
 
 	texConfig := rhi.DefaultTexture2DConfig(0, 0)
 
@@ -134,6 +147,12 @@ func (s *DemoState) Init(api app.AppAPI) error {
 		log.Printf("failed to load texture %v", err)
 	}
 
+	// tiles texture
+	texEmissive, err := rhi.NewTextureFromImage(files.GetTexturePath("emissive.png"), texConfig)
+	if err != nil {
+		log.Printf("failed to load texture %v", err)
+	}
+
 	// add resources
 	s.resources = append(
 		s.resources,
@@ -142,24 +161,37 @@ func (s *DemoState) Init(api app.AppAPI) error {
 		meshWalls,
 		meshCeiling,
 		meshTable,
+		meshEmissive,
 		texColors,
 		texBrick,
 		texRock,
 		texWood,
 		texTiles,
+		texEmissive,
 	)
+
+	s.prefabEmissive = prefab.NewPrefab(meshEmissive, texEmissive, texEmissive)
 
 	// add prefabs
 	s.prefabs = append(
 		s.prefabs,
-		prefab.NewPrefab(meshShotgun, texColors),
-		prefab.NewPrefab(meshFloor, texTiles),
-		prefab.NewPrefab(meshWalls, texBrick),
-		prefab.NewPrefab(meshCeiling, texRock),
-		prefab.NewPrefab(meshTable, texWood),
+		prefab.NewPrefab(meshShotgun, texColors, nil),
+		prefab.NewPrefab(meshFloor, texTiles, nil),
+		prefab.NewPrefab(meshWalls, texBrick, nil),
+		prefab.NewPrefab(meshCeiling, texRock, nil),
+		prefab.NewPrefab(meshTable, texWood, nil),
+		s.prefabEmissive,
 	)
 
 	return nil
+}
+
+func (s *DemoState) DrawImgui() {
+	imgui.Begin("Prefab")
+
+	imgui.SliderFloat("Emissive Strength", &s.prefabEmissive.EmissiveStrength, 0.0, 100.0)
+
+	imgui.End()
 }
 
 func (s *DemoState) Update(deltaTime float32) {

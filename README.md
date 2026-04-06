@@ -8,7 +8,7 @@
 
 ## 📷 Скриншоты
 
-![Image](https://raw.githubusercontent.com/illoprin/retro-fps-kit-go/refs/heads/master/img/5.jpg)
+![Image](https://raw.githubusercontent.com/illoprin/retro-fps-kit-go/refs/heads/master/img/6.jpg)
 
 ## 🚀 Основные особенности
 

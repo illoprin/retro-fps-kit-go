@@ -188,13 +188,29 @@ func (a *App) initRenderingPipeline() error {
 		return fmt.Errorf("ssao pass - %w", err)
 	}
 
-	// -- crease occlusion
+	// -- cavity occlusion
 
 	if err := addPass(passes.NewCavityPass(
 		a.window.GetConfig(), meshQuad, config.CavityConfig,
-		noiseTexture, blurProg, compProg,
+		blurProg, compProg,
 	)); err != nil {
-		return fmt.Errorf("crease pass - %w", err)
+		return fmt.Errorf("cavity pass - %w", err)
+	}
+
+	// -- bloom
+
+	if err := addPass(passes.NewBloomPass(
+		a.window.GetConfig(), meshQuad, config.BloomConfig,
+	)); err != nil {
+		return fmt.Errorf("bloom pass - %w", err)
+	}
+
+	// -- tone mapping
+
+	if err := addPass(passes.NewToneMappingPass(
+		a.window.GetConfig(), meshQuad, config.ToneMappingConfig,
+	)); err != nil {
+		return fmt.Errorf("tone mapping pass - %w", err)
 	}
 
 	// -- color grading
@@ -268,7 +284,7 @@ func (a *App) Run() {
 		a.iUI.Draw()
 		// render state ui (if needs)
 		if s, ok := a.activeState.(UIDrawer); ok {
-			s.RenderImgui()
+			s.DrawImgui()
 		}
 		// finalize
 		ui.FinalizeFrame()
@@ -533,6 +549,10 @@ func (a *App) initUI() {
 			editor = &ui.SSAOConfigUI{SSAOConfig: p.GetConfig().(*passes.SSAOConfig)}
 		case *passes.CavityPass:
 			editor = &ui.CavityConfigUI{CavityConfig: p.GetConfig().(*passes.CavityConfig)}
+		case *passes.BloomPass:
+			editor = &ui.BloomConfigUI{BloomConfig: p.GetConfig().(*passes.BloomConfig)}
+		case *passes.ToneMappingPass:
+			editor = &ui.ToneMappingConfigUI{ToneMappingConfig: p.GetConfig().(*passes.ToneMappingConfig)}
 		case *passes.ColorGradingPass:
 			editor = &ui.ColorGradingUI{ColorGradingConfig: p.GetConfig().(*passes.ColorGradingConfig)}
 		case *passes.VignettePass:

@@ -10,6 +10,5 @@ out vec4 out_frag_color;
 
 void main() {
   vec4 color = texture(u_color, texcoord);
-  // WARN needs tonemapping
   out_frag_color = vec4(color.rgb * u_exposure, color.a);
 }
