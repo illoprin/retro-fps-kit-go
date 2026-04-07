@@ -63,7 +63,7 @@ func NewEyeAdaptionPass(
 	luma.NewColorAttachment(rhi.FormatR32F, rhi.FilterNearest)
 	if !luma.Check() {
 		luma.Delete()
-		return nil, fmt.Errorf("eye adaption pass - incomplete luma fbo")
+		return nil, fmt.Errorf("incomplete luma fbo")
 	}
 	p.luma = luma
 
@@ -74,7 +74,7 @@ func NewEyeAdaptionPass(
 	ldr.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
 	if !ldr.Check() {
 		ldr.Delete()
-		return nil, fmt.Errorf("eye adaption pass - incomplete ldr fbo")
+		return nil, fmt.Errorf("incomplete ldr fbo")
 	}
 	p.ldr = ldr
 
@@ -84,7 +84,7 @@ func NewEyeAdaptionPass(
 		files.GetShaderPath("average_luma.frag"),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("eye adaption pass - failed to create luma program - %w", err)
+		return nil, fmt.Errorf("failed to create luma program - %w", err)
 	}
 	p.lumaProgram = lumaProgram
 
@@ -94,7 +94,7 @@ func NewEyeAdaptionPass(
 		files.GetShaderPath("eye_adaption.frag"),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("eye adaption pass - failed to create ldr program - %w", err)
+		return nil, fmt.Errorf("failed to create ldr program - %w", err)
 	}
 	p.ldrProgram = ldrProgram
 

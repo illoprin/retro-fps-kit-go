@@ -186,7 +186,7 @@ func (s *DemoState) Init(api app.AppAPI) error {
 	return nil
 }
 
-func (s *DemoState) DrawImgui() {
+func (s *DemoState) ShowImgui() {
 	imgui.Begin("Prefab")
 
 	imgui.SliderFloat("Emissive Strength", &s.prefabEmissive.EmissiveStrength, 0.0, 100.0)
@@ -253,22 +253,6 @@ func (s *DemoState) OnKey(key glfw.Key, action glfw.Action, mods glfw.ModifierKe
 			window.ToggleCursor()
 		}
 	}
-}
-
-func (s *DemoState) OnMouseButton(button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
-
-}
-
-func (s *DemoState) OnMouseMove(dX, dY, posX, posY float64) {
-
-}
-
-func (s *DemoState) OnMouseScroll(dx, dy float64) {
-
-}
-
-func (s *DemoState) OnResize(w, h, sw, sh int32) {
-
 }
 
 func (s *DemoState) Destroy() {

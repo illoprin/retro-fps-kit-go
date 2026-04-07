@@ -97,7 +97,7 @@ func (p *CavityPass) initFramebuffers() error {
 	cavity.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
 	if !cavity.Check() || err != nil {
 		cavity.Delete()
-		return fmt.Errorf("cavity pass - cavity fbo not completed %w", err)
+		return fmt.Errorf("cavity fbo not completed %w", err)
 	}
 	p.cavity = cavity
 
@@ -107,7 +107,7 @@ func (p *CavityPass) initFramebuffers() error {
 	blur.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
 	if !blur.Check() || err != nil {
 		blur.Delete()
-		return fmt.Errorf("cavity pass - blur fbo not completed %w", err)
+		return fmt.Errorf("blur fbo not completed %w", err)
 	}
 	p.blur = blur
 
@@ -117,7 +117,7 @@ func (p *CavityPass) initFramebuffers() error {
 	composition.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
 	if !composition.Check() || err != nil {
 		composition.Delete()
-		return fmt.Errorf("cavity pass - composition fbo not completed %w", err)
+		return fmt.Errorf("composition fbo not completed %w", err)
 	}
 	p.composition = composition
 	return nil
@@ -130,7 +130,7 @@ func (p *CavityPass) initPrograms() error {
 		files.GetShaderPath("cavity.frag"),
 	)
 	if err != nil {
-		return fmt.Errorf("cavity pass - failed to load cavity program - %w", err)
+		return fmt.Errorf("failed to load cavity program - %w", err)
 	}
 	p.cavityProgram = cavityProgram
 	return nil

@@ -12,10 +12,10 @@
 package rhi
 
 import (
-	"fmt"
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/illoprin/retro-fps-kit-go/pkg/core/logger"
 )
 
 // Framebuffer object implementation
@@ -41,6 +41,8 @@ func NewFramebuffer(width, height int32) *Framebuffer {
 		colorTextures: make([](*Texture), 0),
 	}
 
+	logger.Infof("fbo id=%d created with size %d %d", id, width, height)
+
 	return fb
 }
 
@@ -59,6 +61,9 @@ func (fb *Framebuffer) NewColorAttachment(format TextureFormat, filter TextureFi
 		gl.TEXTURE_2D, colorTex.ID,
 		0,
 	)
+
+	logger.Infof("fbo id=%d color attachment created", fb.ID)
+
 	// add color attachment to slice
 	fb.colorTextures = append(fb.colorTextures, colorTex)
 }
@@ -97,6 +102,9 @@ func (fb *Framebuffer) NewDepthStencilAttachment() {
 		depthTex.ID,
 		0,
 	)
+
+	logger.Infof("fbo id=%d depth stencil attachment created", fb.ID)
+
 }
 
 // NewDepthAttachment generates new depth texture attachment (bind before use)
@@ -114,6 +122,8 @@ func (fb *Framebuffer) NewDepthAttachment() {
 		depthTex.ID,
 		0,
 	)
+
+	logger.Infof("fbo id=%d depth attachment created", fb.ID)
 }
 
 // Check framebuffer completness (bind before use)
@@ -140,7 +150,7 @@ func (fb *Framebuffer) Check() bool {
 		statusStr = "UNKNOWN_ERROR"
 	}
 	if status != gl.FRAMEBUFFER_COMPLETE {
-		fmt.Printf("fbo %d broken, current status is %s", fb.ID, statusStr)
+		logger.Infof("fbo id=%d broken, current status is %s", fb.ID, statusStr)
 		return false
 	}
 	return true
@@ -169,6 +179,8 @@ func (fb *Framebuffer) Delete() {
 	if fb.ID > 0 {
 		gl.DeleteFramebuffers(1, &fb.ID)
 	}
+
+	logger.Infof("fbo id=%d deleted", fb.ID)
 }
 
 // Resize framebuffer color attachments
@@ -191,6 +203,9 @@ func (fb *Framebuffer) Resize(width, height int32) {
 	}
 
 	fb.Check()
+
+	logger.Infof("fbo id=%d resized to %d %d", fb.ID, width, height)
+
 }
 
 func (fb *Framebuffer) GetColorTexture(index int) *Texture {

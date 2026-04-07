@@ -2,6 +2,7 @@ package context
 
 import (
 	"log"
+	"log/slog"
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
@@ -132,9 +133,9 @@ func ClearColorBuffer() {
 }
 
 func LogUserHardware() {
-	log.Println(gl.GoStr(gl.GetString(gl.RENDERER)))
-	log.Println(gl.GoStr(gl.GetString(gl.VERSION)))
-	log.Println(gl.GoStr(gl.GetString(gl.SHADING_LANGUAGE_VERSION)))
+	slog.Info("Renderer - " + gl.GoStr(gl.GetString(gl.RENDERER)))
+	slog.Info("OpenGL Version - " + gl.GoStr(gl.GetString(gl.VERSION)))
+	slog.Info("GLSL Version - " + gl.GoStr(gl.GetString(gl.SHADING_LANGUAGE_VERSION)))
 }
 
 func SetupViewport(xo, yo, w, h int32) {

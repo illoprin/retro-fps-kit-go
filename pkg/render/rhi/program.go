@@ -1,18 +1,19 @@
 // Package rhi provides high-level abstractions over OpenGL objects,
 // simplifying the development of cross-platform rendering pipelines.
-// 
+//
 // It implements the Render Hardware Interface (RHI) concept,
 // shielding the user from low-level OpenGL state management and
 // providing an idiomatic Go API for common graphics tasks.
-// 
+//
 // Author: illoprin
-// 
+//
 // 2026
 
 package rhi
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -92,7 +93,7 @@ func (p *Program) getUniformLocation(name string) int32 {
 
 	// print warning
 	if loc == -1 {
-		fmt.Printf("undefined uniform name %s\n", name)
+		slog.Warn("undefined uniform name %s", name)
 	}
 	return loc
 }

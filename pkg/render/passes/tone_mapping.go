@@ -91,7 +91,7 @@ func (p *ToneMappingPass) initFramebuffer() error {
 
 	if !fbo.Check() {
 		fbo.Delete()
-		return fmt.Errorf("tone mapping pass - framebuffer not complete")
+		return fmt.Errorf("framebuffer not complete")
 	}
 
 	p.fbo = fbo
@@ -104,7 +104,7 @@ func (p *ToneMappingPass) initProgram() error {
 		files.GetShaderPath("tone_mapping.frag"),
 	)
 	if err != nil {
-		return fmt.Errorf("tone mapping pass - failed to load shader - %w", err)
+		return fmt.Errorf("failed to load shader - %w", err)
 	}
 
 	p.program = program

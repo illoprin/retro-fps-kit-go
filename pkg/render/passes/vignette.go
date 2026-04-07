@@ -45,7 +45,7 @@ func NewVignettePass(
 	fbo.NewColorAttachment(rhi.FormatRGB8, rhi.FilterNearest)
 	if !fbo.Check() {
 		fbo.Delete()
-		return nil, fmt.Errorf("vignette pass - fbo not completed")
+		return nil, fmt.Errorf("fbo not completed")
 	}
 	p.fbo = fbo
 

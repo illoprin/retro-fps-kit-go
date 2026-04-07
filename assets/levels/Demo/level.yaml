@@ -5,34 +5,40 @@ author: illoprin
 music: dark_synth.ogg
 ambience: dark_ambient.ogg
 
-# define textures
-textures:
+# define surfaces (material)
+surface:
   - path: dark_brick.png
-    as: brick
+    name: brick
 
   # indexed animated sprite (lava_0, lava_1, lava_2)
   - path: animated/lava/lava_0.png
     frames: 3
-    as: lava
+    name: lava
 
   - path: tiles.png
-    as: floor
+    name: floor
 
   - path: stone.png
-    as: stone
+    name: stone
+
+  - path: torch.png #
+    name: torch # surface name
+    emi: torch_emissive.png # surface emissive
+    emi_s: 1.2 # emissive strength
 
   - path: wood.png
-    as: dark_wood
+    name: dark_wood
 
-models:
+# define props
+
+props:
   - path: torch.obj
-    as: torch
-    tex: torch.png # texture
-    emi: torch_emissive.png # emissive tex
+    name: torch
+    surf: torch
 
   - path: table.obj
-    as: table
-    texture: table.png
+    name: table
+    surf: table
 
 # define verts (x, y)
 verts:
@@ -62,7 +68,9 @@ walls:
     v2:
       3 # second vertex
       # below tex # upper tex
-    tex: ["brick", "dark_wood"] # two textures if portal
+    tex: NULL # two textures if portal
+    ltex: brick # lower texture of portal
+    utex: brick # upper texture of portal
     portal: 2 # if portal - index of sector
 
 # define sectors
@@ -110,3 +118,8 @@ entities:
     pos: [2, 2, 1]
     rot: [0, 90, 0]
     scl: [.25, .25, .25]
+    p_light:
+      - c: [1, 1, 0.8] # color
+        i: 4 # intensity
+        r: 10 # radius
+

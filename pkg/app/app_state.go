@@ -12,28 +12,41 @@ import (
 // game levels, menus, or specialized tools like editors.
 type AppState interface {
 	Init(e AppAPI) error
+
 	// Update - update internal states
 	Update(deltaTime float32)
 
 	// OnKey - calls on key callback
 	OnKey(key glfw.Key, action glfw.Action, mods glfw.ModifierKey)
 
-	// OnMouseButton - calls on mouse button events
-	OnMouseButton(button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey)
+	// Destroy - free state resources
+	Destroy()
+}
 
-	// OnMouseMove - calls on mouse move
-	OnMouseMove(x, y, dx, dy float64)
-
-	// OnMouseScroll - calls on mouse scroll
-	OnMouseScroll(dx, dy float64)
-
+// Optional: state can handle framebuffer resize
+type ResizeHandler interface {
 	// OnResize - calls on window resize
 	// w, h - original widow size
 	// wr, hr - "ratioed" window size
 	OnResize(w, h, wr, hr int32)
+}
 
-	// Destroy - free state resources
-	Destroy()
+// Optional: state can handle mouse buttons
+type MouseButtonsHandler interface {
+	// OnMouseButton - calls on mouse button events
+	OnMouseButton(button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey)
+}
+
+// Optional: state can handle mouse movement
+type MouseMoveHandler interface {
+	// OnMouseMove - calls on mouse move
+	OnMouseMove(x, y, dx, dy float64)
+}
+
+// Optional: state can handle mouse scroll
+type MouseScrollHandler interface {
+	// OnMouseScroll - calls on mouse scroll
+	OnMouseScroll(dx, dy float64)
 }
 
 // Optional: Deferred Rendering
@@ -46,7 +59,7 @@ type GBufferDrawer interface {
 // Optional: If state uses imgui objects
 type UIDrawer interface {
 	// RenderImgui - renders imgui objects
-	DrawImgui()
+	ShowImgui()
 }
 
 // Optional: UI, Menu, HUD

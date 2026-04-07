@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"runtime"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -10,6 +11,7 @@ import (
 	"github.com/illoprin/retro-fps-kit-go/pkg/app/config"
 	"github.com/illoprin/retro-fps-kit-go/pkg/app/ui"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/files"
+	"github.com/illoprin/retro-fps-kit-go/pkg/core/logger"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/monitor"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/window"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/context"
@@ -66,6 +68,7 @@ func NewApp() (*App, error) {
 	}
 
 	if err := e.initRenderingPipeline(); err != nil {
+		logger.Errorf("failed to init rendering pipeline - %v", err)
 		return nil, fmt.Errorf("failed to init rendering pipeline - %v", err)
 	}
 
@@ -75,6 +78,8 @@ func NewApp() (*App, error) {
 
 	// setup callbacks for input manager
 	e.setupCallbacks()
+
+	logger.Infof("engine started")
 
 	return e, nil
 }
@@ -100,22 +105,22 @@ func (a *App) setupCallbacks() {
 
 	a.input.SetMouseButtonCallback(
 		func(button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
-			if a.activeState != nil {
-				a.activeState.OnMouseButton(button, action, mods)
+			if s, ok := a.activeState.(MouseButtonsHandler); ok {
+				s.OnMouseButton(button, action, mods)
 			}
 		},
 	)
 	a.input.SetMouseScrollCallback(
 		func(xOffset, yOffset float64) {
-			if a.activeState != nil {
-				a.activeState.OnMouseScroll(xOffset, yOffset)
+			if s, ok := a.activeState.(MouseScrollHandler); ok {
+				s.OnMouseScroll(xOffset, yOffset)
 			}
 		},
 	)
 	a.input.SetMouseMoveCallback(
 		func(x, y, dx, dy float64) {
-			if a.activeState != nil {
-				a.activeState.OnMouseMove(x, y, dx, dy)
+			if s, ok := a.activeState.(MouseMoveHandler); ok {
+				s.OnMouseMove(x, y, dx, dy)
 			}
 		},
 	)
@@ -244,15 +249,17 @@ func (a *App) initRenderingPipeline() error {
 func (a *App) resizeRenderTargets() {
 	// deferred
 	a.deferred.ResizeCallback()
+
 	// resize all render targets
 	for _, t := range a.passPipeline {
 		t.ResizeCallback()
 	}
-	// resize current state
-	if a.activeState != nil {
+
+	// call resize callback of active state
+	if s, ok := a.activeState.(ResizeHandler); ok {
 		sw, sh := a.window.GetConfig().GetScreenSize()
 		w, h := a.window.GetConfig().Width, a.window.GetConfig().Height
-		a.activeState.OnResize(w, h, sw, sh)
+		s.OnResize(w, h, sw, sh)
 	}
 }
 
@@ -280,11 +287,11 @@ func (a *App) Run() {
 		// - imgui
 		// start new frame
 		ui.NewFrame()
-		// draw custom ui
+		// draw app ui
 		a.iUI.Draw()
 		// render state ui (if needs)
 		if s, ok := a.activeState.(UIDrawer); ok {
-			s.DrawImgui()
+			s.ShowImgui()
 		}
 		// finalize
 		ui.FinalizeFrame()
@@ -301,19 +308,6 @@ func (a *App) Run() {
 		}
 
 		// -- Render
-
-		context.BindFramebuffer(nil) // bind initial (0) framebuffer
-		context.ClearColorBuffer()
-
-		// perform custom indirect rendering of current state (if needs)
-		if state, ok := a.activeState.(IndirectDrawer); ok {
-			// save context state
-			context.CaptureState()
-			// perform user's rendering
-			state.RenderIndirect()
-			// restore context state
-			context.RestoreState()
-		}
 
 		// perform gbuffer rendering of current state (if needs)
 		var lastRenderTarget *rhi.Framebuffer
@@ -459,6 +453,8 @@ func (a *App) SetCursor(t CursorType) {
 // ---- Auxiliary methods
 
 func (a *App) initSystems() error {
+	logger.Init(slog.LevelDebug)
+
 	if err := window.InitGLFW(); err != nil {
 		return fmt.Errorf("failed to init glfw - %v", err)
 	}
@@ -498,7 +494,7 @@ func (a *App) createWindow() error {
 	a.window.Center()
 
 	// load icon
-	err = a.window.SetIconFromFile(files.GetTexturePath("initial/logo.png"))
+	err = a.window.SetIconFromFile(files.GetTexturePath("initial/icon.png"))
 	if err != nil {
 		log.Printf("app - failed to load window icon - %v\n", err)
 	}

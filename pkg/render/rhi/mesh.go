@@ -4,6 +4,7 @@ import (
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/illoprin/retro-fps-kit-go/pkg/core/logger"
 )
 
 type Mesh struct {
@@ -27,6 +28,7 @@ func NewMesh() *Mesh {
 		vbos: make([]uint32, 0),
 	}
 	gl.GenVertexArrays(1, &m.vao)
+	logger.Infof("mesh id=%d created", m.vao)
 	return m
 }
 
@@ -48,6 +50,8 @@ func (m *Mesh) AllocateVertexBuffer(index int, sizeBytes int, bType BufferType) 
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, m.vbos[index])
 	gl.BufferData(gl.ARRAY_BUFFER, sizeBytes, nil, GetBufferType(bType))
+
+	logger.Infof("mesh id=%d buffer allocate %d bytes", m.vao, sizeBytes)
 }
 
 // SetVertexBufferData - updates data in VBO
@@ -85,6 +89,8 @@ func (m *Mesh) AllocateElementBuffer(sizeBytes int, bType BufferType) {
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ebo)
 	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, sizeBytes, nil, GetBufferType(bType))
+
+	logger.Infof("mesh id=%d element buffer allocate %d bytes", m.vao, sizeBytes)
 }
 
 // SetElementBufferData - update EBO (indices) data
@@ -170,6 +176,8 @@ func (m *Mesh) Delete() {
 	if m.ebo != 0 {
 		gl.DeleteBuffers(1, &m.ebo)
 	}
+
+	logger.Infof("mesh id=%d deleted", m.vao)
 
 	m.vbos = make([]uint32, 0)
 	m.vao = 0

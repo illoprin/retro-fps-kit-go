@@ -95,7 +95,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	ssao.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
 	if !ssao.Check() {
 		ssao.Delete()
-		return fmt.Errorf("ssao pass - ssao fbo not completed")
+		return fmt.Errorf("raw fbo not completed")
 	}
 	p.ssao = ssao
 
@@ -105,7 +105,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	blur.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
 	if !blur.Check() {
 		blur.Delete()
-		return fmt.Errorf("ssao pass - blur fbo not completed")
+		return fmt.Errorf("blur fbo not completed")
 	}
 	p.blur = blur
 
@@ -115,7 +115,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	composition.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
 	if !composition.Check() {
 		composition.Delete()
-		return fmt.Errorf("ssao pass - composition fbo not completed")
+		return fmt.Errorf("composition fbo not completed")
 	}
 	p.composition = composition
 	return nil
@@ -158,7 +158,7 @@ func (p *SSAOPass) initPrograms() error {
 		files.GetShaderPath("ssao.frag"),
 	)
 	if err != nil {
-		return fmt.Errorf("ssao pass - failed to load ssao program - %w", err)
+		return fmt.Errorf("failed to load ssao program - %w", err)
 	}
 	p.ssaoProgram = ssaoProgram
 	return nil

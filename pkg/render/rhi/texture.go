@@ -15,6 +15,7 @@ import (
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/illoprin/retro-fps-kit-go/pkg/core/logger"
 )
 
 // TextureConfig config for texture create
@@ -48,6 +49,8 @@ func NewTexture(config TextureConfig) *Texture {
 		ID:     id,
 		Config: config,
 	}
+	logger.Infof("texture id=%d created", id)
+
 	texture.Bind()
 	texture.setParams()
 	texture.allocateStorage()
@@ -162,6 +165,9 @@ func (t *Texture) allocateStorage() {
 		gl.TexImage3D(target, 0, internalFormat, t.Config.Width, t.Config.Height, t.Config.Depth,
 			0, format, dataType, nil)
 	}
+
+	logger.Infof("texture id=%d storage for w:%d h:%d allocated", t.ID, t.Config.Width, t.Config.Height)
+
 }
 
 // Upload2D - uploads data to 2D texture
@@ -176,6 +182,8 @@ func (t *Texture) Upload2D(x, y int32, data unsafe.Pointer) {
 	dataType := GetTextureDataType(t.Config.Format)
 
 	gl.TexSubImage2D(target, 0, x, y, t.Config.Width, t.Config.Height, format, dataType, data)
+
+	logger.Infof("texture id=%d 2D data uploaded", t.ID)
 }
 
 // UploadLayer - uploads layer to texture array
@@ -190,6 +198,9 @@ func (t *Texture) UploadLayer(x, y, layer int32, data unsafe.Pointer) {
 	dataType := GetTextureDataType(t.Config.Format)
 
 	gl.TexSubImage3D(target, 0, x, y, layer, t.Config.Width, t.Config.Height, 1, format, dataType, data)
+
+	logger.Infof("texture 3D id=%d layer uploaded", t.ID)
+
 }
 
 // UploadFace - upload cube map face
@@ -199,6 +210,9 @@ func (t *Texture) UploadFace(face uint32, data unsafe.Pointer) {
 	}
 	gl.TexSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X+face, 0, 0, 0, t.Config.Width, t.Config.Height,
 		GetFormat(t.Config.Format), GetTextureDataType(t.Config.Format), data)
+
+	logger.Infof("texture cube map id=%d face uploaded", t.ID)
+
 }
 
 // GenerateMipmaps generates mip maps
