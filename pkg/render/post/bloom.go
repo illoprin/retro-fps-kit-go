@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/files"
+	"github.com/illoprin/retro-fps-kit-go/pkg/core/logger"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/window"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/context"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/pipeline"
@@ -13,13 +14,14 @@ import (
 )
 
 type BloomConfig struct {
-	Use       bool
-	Threshold float32
-	Levels    int32
-	MinRadius float32
-	MaxRadius float32
-	Tint      [3]float32
-	Intensity float32
+	Use               bool
+	Threshold         float32
+	Levels            int32
+	MinRadius         float32
+	MaxRadius         float32
+	LensDirtIntensity float32
+	Tint              [3]float32
+	Intensity         float32
 }
 
 // Blur radiuses:
@@ -43,6 +45,8 @@ type BloomPass struct {
 	combineProgram *rhi.Program
 	addProgram     *rhi.Program
 
+	lensDirt *rhi.Texture
+
 	mesh      *rhi.Mesh
 	screenCfg *window.ScreenConfig
 	cfg       *BloomConfig
@@ -53,12 +57,18 @@ type BloomPass struct {
 func NewBloomPass(
 	s PassSharedResources,
 	cfg *BloomConfig,
+	lensDirt *rhi.Texture,
 ) (*BloomPass, error) {
 
 	p := &BloomPass{
 		screenCfg: s.ScreenConfig,
 		mesh:      s.MeshQuad,
 		cfg:       cfg,
+		lensDirt:  lensDirt,
+	}
+
+	if lensDirt == nil {
+		logger.Warnf("failed to resolve lens dirt texture")
 	}
 
 	if err := p.initFramebuffers(); err != nil {
@@ -98,6 +108,7 @@ func (p *BloomPass) GetDebugTextures() []DebugTexture {
 	return []DebugTexture{
 		{"bloom.blur", p.blur.GetColorTexture(0)},
 		{"bloom.color", p.result.GetColorTexture(0)},
+		{"bloom.lens_dirt", p.lensDirt},
 	}
 }
 
@@ -270,8 +281,18 @@ func (p *BloomPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.blur.GetColorTexture(0).BindToUnit(1)
 	p.combineProgram.Set1i("u_bloom", 1)
 
+	// bloom params
 	p.combineProgram.Set1f("u_intensity", p.cfg.Intensity)
 	p.combineProgram.Set3f("u_tint", p.cfg.Tint)
+
+	// lens params
+	p.combineProgram.Set1i("u_use_lens", 1)
+	if p.lensDirt != nil {
+		p.lensDirt.BindToUnit(2)
+		p.combineProgram.Set1i("u_lens", 2)
+		p.combineProgram.Set1i("u_use_lens", 1)
+		p.combineProgram.Set1f("u_lens_intensity", p.cfg.LensDirtIntensity)
+	}
 
 	p.mesh.Draw()
 }

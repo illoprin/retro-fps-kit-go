@@ -2,8 +2,12 @@ package app
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"unsafe"
 
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/files"
+	"github.com/illoprin/retro-fps-kit-go/pkg/core/logger"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/window"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/post"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/rhi"
@@ -47,13 +51,14 @@ var (
 	}
 
 	BloomConfig = &post.BloomConfig{
-		Use:       true,
-		Threshold: 1.124,
-		Levels:    4,
-		MinRadius: 0.6,
-		MaxRadius: 4.2,
-		Tint:      [3]float32{0.65, 0.82, 1.0},
-		Intensity: 1.6,
+		Use:               true,
+		Threshold:         1.124,
+		Levels:            4,
+		MinRadius:         0.6,
+		MaxRadius:         4.2,
+		LensDirtIntensity: 4.7,
+		Tint:              [3]float32{0.65, 0.82, 1.0},
+		Intensity:         0.7,
 	}
 
 	ToneMappingConfig = &post.ToneMappingConfig{
@@ -128,6 +133,10 @@ func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
 		return nil, err
 	}
 
+	// lens dirt texture
+
+	var lensDirt *rhi.Texture = loadLensDirtTexture()
+
 	p.resources = append(p.resources, quad, noiseTexture, blurProg, compProg)
 
 	// create pass objects
@@ -164,7 +173,7 @@ func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
 	}
 
 	// -- bloomPass
-	bloomPass, err := post.NewBloomPass(shared, BloomConfig)
+	bloomPass, err := post.NewBloomPass(shared, BloomConfig, lensDirt)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("bloom pass - %w", err)
@@ -230,6 +239,36 @@ func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
 	})
 
 	return p, nil
+}
+
+func loadLensDirtTexture() (lensDirt *rhi.Texture) {
+	W, H, img, err := files.LoadImage(files.GetTexturePath("lens_dirt.png"))
+
+	if err != nil {
+		logger.Warnf("lens dirt not found")
+		return nil
+	}
+
+	var x, y int
+	lensDirtImage := image.NewGray(img.Bounds())
+	for i := 0; i < W*H; i++ {
+		x = i % W
+		y = i / W
+		r, _, _, _ := img.At(x, y).RGBA()
+		lensDirtImage.Set(x, H-y-1, color.Gray{Y: uint8(r)})
+	}
+
+	if len(lensDirtImage.Pix) <= 0 {
+		return nil
+	}
+
+	lensDirtConfig := rhi.DefaultTexture2DConfig(int32(W), int32(H))
+	lensDirtConfig.Format = rhi.FormatR8
+	lensDirtConfig.FilterMin = rhi.FilterLinear
+	lensDirtConfig.FilterMag = rhi.FilterLinear
+	lensDirt = rhi.NewTexture(lensDirtConfig)
+	lensDirt.Upload2D(0, 0, unsafe.Pointer(&lensDirtImage.Pix[0]))
+	return lensDirt
 }
 
 func (p *DefaultPipeline) Delete() {

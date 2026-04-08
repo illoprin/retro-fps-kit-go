@@ -38,6 +38,7 @@ func (c *BloomConfigUI) ShowUI() {
 	imgui.Checkbox("b_Use", &c.Use)
 	imgui.SliderFloat("b_Intensity", &c.Intensity, 0.5, 10.0)
 	imgui.SliderFloat("b_Threshold", &c.Threshold, 0.3, 10.0)
+	imgui.SliderFloat("b_LensDirtIntensity", &c.LensDirtIntensity, 0, 10.0)
 	imgui.SliderInt("b_Levels", &c.Levels, 1, 8)
 	imgui.SliderFloat("b_MinRadius", &c.MinRadius, 0.5, 2)
 	imgui.SliderFloat("b_MaxRadius", &c.MaxRadius, 1.0, 20.0)
