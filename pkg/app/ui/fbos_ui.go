@@ -3,8 +3,8 @@ package ui
 import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/window"
-	"github.com/illoprin/retro-fps-kit-go/pkg/render/passes"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/pipeline"
+	"github.com/illoprin/retro-fps-kit-go/pkg/render/post"
 )
 
 type FramebuffersUI struct {
@@ -20,7 +20,7 @@ type FramebuffersUI struct {
 
 func NewFramebuffersUI(
 	res *pipeline.DeferredRenderResult,
-	renderPasses []passes.PostProcessingPass,
+	renderPasses []post.PostProcessingPass,
 	screenCfg *window.ScreenConfig,
 ) *FramebuffersUI {
 
@@ -53,7 +53,7 @@ func NewFramebuffersUI(
 	f.passTextures = make([]ImageTexture, 0)
 	for _, p := range renderPasses {
 
-		if p.GetName() == "ssao" {
+		if p.GetID() == "ssao" {
 			ssao := p.(*passes.SSAOPass)
 			rawSSAO := ImageTexture{
 				ID:   ssao.GetOcclusion().ID,
@@ -70,20 +70,20 @@ func NewFramebuffersUI(
 			f.passTextures = append(f.passTextures, rawSSAO, noiseSSAO, blurSSAO)
 		}
 
-		if p.GetName() == "crease" {
+		if p.GetID() == "cavity" {
 			crease := p.(*passes.CavityPass)
 			rawCrease := ImageTexture{
 				ID:   crease.GetOcclusion().ID,
-				Name: "crease.raw",
+				Name: "cavity.raw",
 			}
 			creaseBlur := ImageTexture{
 				ID:   crease.GetBlur().ID,
-				Name: "crease.blur",
+				Name: "cavity.blur",
 			}
 			f.passTextures = append(f.passTextures, rawCrease, creaseBlur)
 		}
 
-		if p.GetName() == "bloom" {
+		if p.GetID() == "bloom" {
 			bloom := p.(*passes.BloomPass)
 			bloomBlurred := ImageTexture{
 				ID:   bloom.GetBlur().ID,
@@ -94,7 +94,7 @@ func NewFramebuffersUI(
 
 		t := ImageTexture{
 			ID:   p.GetColor().ID,
-			Name: p.GetName(),
+			Name: string(p.GetID()),
 		}
 		f.passTextures = append(f.passTextures, t)
 	}

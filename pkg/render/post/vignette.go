@@ -1,4 +1,4 @@
-package passes
+package post
 
 import (
 	"fmt"
@@ -21,23 +21,22 @@ type VignettePass struct {
 	fbo       *rhi.Framebuffer
 	mesh      *rhi.Mesh
 	resources []rhi.Resource
-	screenCfg *window.ScreenConfig
+	screen    *window.ScreenConfig
 }
 
 func NewVignettePass(
-	screenCfg *window.ScreenConfig,
-	quad *rhi.Mesh,
+	s PassSharedResources,
 	cfg *VignetteConfig,
 ) (*VignettePass, error) {
 
 	p := &VignettePass{
-		screenCfg: screenCfg,
-		resources: make([]rhi.Resource, 0),
-		mesh:      quad,
+		screen:    s.ScreenConfig,
+		mesh:      s.MeshQuad,
 		cfg:       cfg,
+		resources: make([]rhi.Resource, 0),
 	}
 
-	fbWidth, fbHeight := screenCfg.GetScreenSize()
+	fbWidth, fbHeight := p.screen.GetScreenSize()
 
 	// create color framebuffer
 	fbo := rhi.NewFramebuffer(fbWidth, fbHeight)
@@ -64,10 +63,6 @@ func NewVignettePass(
 	return p, nil
 }
 
-func (p *VignettePass) GetName() string {
-	return "vignette"
-}
-
 // returns result  color
 func (p *VignettePass) GetColor() *rhi.Texture {
 	return p.fbo.GetColorTexture(0)
@@ -91,7 +86,7 @@ func (p *VignettePass) RenderPass(src *pipeline.DeferredRenderResult) {
 }
 
 func (p *VignettePass) ResizeCallback() {
-	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
+	fbWidth, fbHeight := p.screen.GetScreenSize()
 	p.fbo.Resize(fbWidth, fbHeight)
 }
 

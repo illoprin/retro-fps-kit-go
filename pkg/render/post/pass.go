@@ -1,16 +1,27 @@
-package passes
+package post
 
 import (
 	mgl "github.com/go-gl/mathgl/mgl32"
+	"github.com/illoprin/retro-fps-kit-go/pkg/core/window"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/pipeline"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/rhi"
 )
 
+type PassID string
+
+// PassSharedResources - shared resources
+// for all rendering passes
+type PassSharedResources struct {
+	ScreenConfig *window.ScreenConfig
+	MeshQuad     *rhi.Mesh
+}
+
+// PostProcessingPass represents
+// one screen space effect
 type PostProcessingPass interface {
 	GetColor() *rhi.Texture
 	GetResultFramebuffer() *rhi.Framebuffer
 	GetConfig() interface{}
-	GetName() string
 	RenderPass(*pipeline.DeferredRenderResult)
 	Use() bool
 	ResizeCallback()

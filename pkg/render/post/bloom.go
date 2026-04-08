@@ -1,4 +1,4 @@
-package passes
+package post
 
 import (
 	"fmt"
@@ -51,14 +51,13 @@ type BloomPass struct {
 }
 
 func NewBloomPass(
-	screenCfg *window.ScreenConfig,
-	quad *rhi.Mesh,
+	s PassSharedResources,
 	cfg *BloomConfig,
 ) (*BloomPass, error) {
 
 	p := &BloomPass{
-		screenCfg: screenCfg,
-		mesh:      quad,
+		screenCfg: s.ScreenConfig,
+		mesh:      s.MeshQuad,
 		cfg:       cfg,
 	}
 
@@ -76,10 +75,6 @@ func NewBloomPass(
 	)
 
 	return p, nil
-}
-
-func (p *BloomPass) GetName() string {
-	return "bloom"
 }
 
 func (p *BloomPass) GetConfig() interface{} {

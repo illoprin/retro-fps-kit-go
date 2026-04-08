@@ -2,7 +2,7 @@ package ui
 
 import (
 	"github.com/AllenDang/cimgui-go/imgui"
-	"github.com/illoprin/retro-fps-kit-go/pkg/render/passes"
+	"github.com/illoprin/retro-fps-kit-go/pkg/render/post"
 )
 
 type ConfigUI interface {
@@ -11,7 +11,7 @@ type ConfigUI interface {
 }
 
 type EyeAdaptionConfigUI struct {
-	*passes.EyeAdaptionConfig
+	*post.EyeAdaptionConfig
 }
 
 func (c *EyeAdaptionConfigUI) GetName() string {
@@ -27,7 +27,7 @@ func (c *EyeAdaptionConfigUI) ShowUI() {
 }
 
 type BloomConfigUI struct {
-	*passes.BloomConfig
+	*post.BloomConfig
 }
 
 func (c *BloomConfigUI) GetName() string {
@@ -45,7 +45,7 @@ func (c *BloomConfigUI) ShowUI() {
 }
 
 type ToneMappingConfigUI struct {
-	*passes.ToneMappingConfig
+	*post.ToneMappingConfig
 }
 
 func (c *ToneMappingConfigUI) GetName() string {
@@ -70,7 +70,7 @@ func (c *ToneMappingConfigUI) ShowUI() {
 			isSelected := current == i
 			if imgui.SelectableBool(items[i]) {
 				current = i
-				c.Tonemap = passes.ToneMapType(current) + 1
+				c.Tonemap = post.ToneMapType(current) + 1
 			}
 			if isSelected {
 				imgui.SetItemDefaultFocus()
@@ -81,7 +81,7 @@ func (c *ToneMappingConfigUI) ShowUI() {
 }
 
 type SSAOConfigUI struct {
-	*passes.SSAOConfig
+	*post.SSAOConfig
 }
 
 func (c *SSAOConfigUI) GetName() string {
@@ -99,7 +99,7 @@ func (c *SSAOConfigUI) ShowUI() {
 }
 
 type CavityConfigUI struct {
-	*passes.CavityConfig
+	*post.CavityConfig
 }
 
 func (c *CavityConfigUI) GetName() string {
@@ -118,7 +118,7 @@ func (c *CavityConfigUI) ShowUI() {
 }
 
 type ColorGradingUI struct {
-	*passes.ColorGradingConfig
+	*post.ColorGradingConfig
 }
 
 func (c *ColorGradingUI) GetName() string {
@@ -137,7 +137,7 @@ func (c *ColorGradingUI) ShowUI() {
 }
 
 type VignetteUI struct {
-	*passes.VignetteConfig
+	*post.VignetteConfig
 }
 
 func (c *VignetteUI) GetName() string {

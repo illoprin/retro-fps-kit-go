@@ -1,4 +1,4 @@
-package passes
+package post
 
 import (
 	"fmt"
@@ -41,19 +41,14 @@ type EyeAdaptionPass struct {
 	prevExposure float32
 }
 
-func (p *EyeAdaptionPass) GetName() string {
-	return "eye_adaption"
-}
-
 func NewEyeAdaptionPass(
-	screenCfg *window.ScreenConfig,
-	quad *rhi.Mesh,
+	s PassSharedResources,
 	cfg *EyeAdaptionConfig,
 ) (*EyeAdaptionPass, error) {
 	p := &EyeAdaptionPass{
 		cfg:       cfg,
-		screen:    screenCfg,
-		mesh:      quad,
+		screen:    s.ScreenConfig,
+		mesh:      s.MeshQuad,
 		resources: make([]rhi.Resource, 4),
 	}
 
@@ -68,7 +63,7 @@ func NewEyeAdaptionPass(
 	p.luma = luma
 
 	// create result framebuffer
-	sW, sH := screenCfg.GetScreenSize()
+	sW, sH := p.screen.GetScreenSize()
 	ldr := rhi.NewFramebuffer(sW, sH)
 	ldr.Bind()
 	ldr.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)

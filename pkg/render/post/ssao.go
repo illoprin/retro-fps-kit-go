@@ -1,4 +1,4 @@
-package passes
+package post
 
 import (
 	"fmt"
@@ -36,25 +36,25 @@ type SSAOPass struct {
 	resources         []rhi.Resource
 	samples           []mgl.Vec3
 	proj              mgl.Mat4
-	screenCfg         *window.ScreenConfig
+	screen            *window.ScreenConfig
 	cfg               *SSAOConfig
 }
 
 func NewSSAOPass(
-	screenCfg *window.ScreenConfig,
-	quad *rhi.Mesh,
+	s PassSharedResources,
 	cfg *SSAOConfig,
 	noiseTexture *rhi.Texture,
 	blurProgram *rhi.Program,
 	compositorProgram *rhi.Program,
 ) (*SSAOPass, error) {
 	p := &SSAOPass{
+		screen:            s.ScreenConfig,
+		mesh:              s.MeshQuad,
 		cfg:               cfg,
-		screenCfg:         screenCfg,
-		mesh:              quad,
 		noiseTexture:      noiseTexture,
 		blurProgram:       blurProgram,
 		compositorProgram: compositorProgram,
+		resources:         make([]rhi.Resource, 0),
 	}
 
 	if err := p.initFramebuffers(); err != nil {
@@ -71,13 +71,9 @@ func NewSSAOPass(
 	return p, nil
 }
 
-func (p *SSAOPass) GetName() string {
-	return "ssao"
-}
-
 func (p *SSAOPass) ResizeCallback() {
 	// get fb size
-	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
+	fbWidth, fbHeight := p.screen.GetScreenSize()
 
 	// resize attachments
 	p.blur.Resize(fbWidth, fbHeight)
@@ -87,7 +83,7 @@ func (p *SSAOPass) ResizeCallback() {
 
 func (p *SSAOPass) initFramebuffers() error {
 
-	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
+	fbWidth, fbHeight := p.screen.GetScreenSize()
 
 	// init ssao buffer
 	ssao := rhi.NewFramebuffer(fbWidth, fbHeight)
@@ -215,8 +211,8 @@ func (p *SSAOPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.ssaoProgram.Set1i("u_kernel_size", p.cfg.KernelSize)
 	// noise texture size
 	noiseScale := mgl.Vec2{
-		float32(p.screenCfg.Width) / float32(noiseSize),
-		float32(p.screenCfg.Height) / float32(noiseSize),
+		float32(p.screen.Width) / float32(noiseSize),
+		float32(p.screen.Height) / float32(noiseSize),
 	}
 	p.ssaoProgram.Set2f("u_noise_scale", noiseScale)
 	// radius and bias

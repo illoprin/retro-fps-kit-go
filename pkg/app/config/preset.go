@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/illoprin/retro-fps-kit-go/pkg/render/passes"
+	"github.com/illoprin/retro-fps-kit-go/pkg/render/post"
 )
 
 const (
@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	EyeAdaptionConfig = &passes.EyeAdaptionConfig{
+	EyeAdaptionConfig = &post.EyeAdaptionConfig{
 		Use:           true,
 		Radius:        300,
 		AvgGray:       0.18,
@@ -20,7 +20,7 @@ var (
 		Exposure:      1,
 	}
 
-	SSAOConfig = &passes.SSAOConfig{
+	SSAOConfig = &post.SSAOConfig{
 		Use:        false,
 		KernelSize: 30,
 		Radius:     0.5,
@@ -30,7 +30,7 @@ var (
 		BlurSize:   2,
 	}
 
-	CavityConfig = &passes.CavityConfig{
+	CavityConfig = &post.CavityConfig{
 		Use:        true,
 		Radius:     17,
 		DepthBias:  0.001,
@@ -41,7 +41,7 @@ var (
 		BlurSize:   3,
 	}
 
-	BloomConfig = &passes.BloomConfig{
+	BloomConfig = &post.BloomConfig{
 		Use:       true,
 		Threshold: 1.124,
 		Levels:    4,
@@ -51,12 +51,12 @@ var (
 		Intensity: 1.6,
 	}
 
-	ToneMappingConfig = &passes.ToneMappingConfig{
+	ToneMappingConfig = &post.ToneMappingConfig{
 		Gamma:   2.2,
-		Tonemap: passes.ACESFilmTonemap,
+		Tonemap: post.ACESFilmTonemap,
 	}
 
-	ColorGradingConfig = &passes.ColorGradingConfig{
+	ColorGradingConfig = &post.ColorGradingConfig{
 		Contrast:       2.28,
 		Saturation:     0.84,
 		Brightness:     1.57,
@@ -67,7 +67,7 @@ var (
 		Use:            true,
 	}
 
-	VignetteConfig = &passes.VignetteConfig{
+	VignetteConfig = &post.VignetteConfig{
 		Radius:   0.9,
 		Softness: 0.535,
 		Use:      true,

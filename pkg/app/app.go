@@ -15,8 +15,8 @@ import (
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/monitor"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/window"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/context"
-	"github.com/illoprin/retro-fps-kit-go/pkg/render/passes"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/pipeline"
+	"github.com/illoprin/retro-fps-kit-go/pkg/render/post"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/rhi"
 )
 
@@ -45,22 +45,18 @@ type App struct {
 	// application state (level, game menu, editor)
 	activeState AppState
 
-	// initial rhi resources
-	resources []rhi.Resource
-
 	// geometry render pass
 	deferred *pipeline.DeferredRenderTarget
 
 	// post processing render pass
-	passPipeline []passes.PostProcessingPass
+	pipeline *DefaultPipeline
 }
 
 func NewApp() (*App, error) {
 	runtime.LockOSThread()
 
 	e := &App{
-		resources: make([]rhi.Resource, 0),
-		monitor:   monitor.NewMonitor(),
+		monitor: monitor.NewMonitor(),
 	}
 
 	if err := e.initSystems(); err != nil {
@@ -134,115 +130,19 @@ func (a *App) setupCallbacks() {
 // ---- Renderer
 
 func (a *App) initRenderingPipeline() error {
-
 	// setup deferred render target
-	deferred, err := pipeline.NewDeferredRenderTarget(a.window.GetConfig())
-	if err != nil {
-		return err
-	}
-	a.deferred = deferred
-
-	// init screen quad mesh
-	meshQuad := rhi.NewMesh()
-	rhi.SetupBasicQuadMesh(meshQuad)
-
-	// auxiliary resources
-	noiseTexture := passes.CreateNoiseTexture()
-
-	// blur - uses ssao and cavity
-	blurProg, err := rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("overlay_blur.frag"),
-	)
-	if err != nil {
-		return err
-	}
-	// compositor - uses ssao and cavity
-	compProg, err := rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("overlay_compositor.frag"),
-	)
+	var err error
+	a.deferred, err = pipeline.NewDeferredRenderTarget(a.window.GetConfig())
 	if err != nil {
 		return err
 	}
 
-	// setup post processing effects
-
-	// helper function to create pass
-	addPass := func(p passes.PostProcessingPass, err error) error {
-		if err != nil {
-			return err
-		}
-		a.passPipeline = append(a.passPipeline, p)
-		return nil
+	// setup post processing pipeline
+	a.pipeline, err = NewDefaultPipeline(a.window.GetConfig())
+	if err != nil {
+		logger.Errorf("failed to create post processing pipeline %v", err)
+		return err
 	}
-
-	// -- eye adaption pass
-
-	if err := addPass(passes.NewEyeAdaptionPass(
-		a.window.GetConfig(), meshQuad, config.EyeAdaptionConfig),
-	); err != nil {
-		return fmt.Errorf("eye adaption pass - %w", err)
-	}
-
-	// -- ssao
-
-	if err := addPass(passes.NewSSAOPass(
-		a.window.GetConfig(), meshQuad, config.SSAOConfig,
-		noiseTexture, blurProg, compProg)); err != nil {
-		return fmt.Errorf("ssao pass - %w", err)
-	}
-
-	// -- cavity occlusion
-
-	if err := addPass(passes.NewCavityPass(
-		a.window.GetConfig(), meshQuad, config.CavityConfig,
-		blurProg, compProg,
-	)); err != nil {
-		return fmt.Errorf("cavity pass - %w", err)
-	}
-
-	// -- bloom
-
-	if err := addPass(passes.NewBloomPass(
-		a.window.GetConfig(), meshQuad, config.BloomConfig,
-	)); err != nil {
-		return fmt.Errorf("bloom pass - %w", err)
-	}
-
-	// -- tone mapping
-
-	if err := addPass(passes.NewToneMappingPass(
-		a.window.GetConfig(), meshQuad, config.ToneMappingConfig,
-	)); err != nil {
-		return fmt.Errorf("tone mapping pass - %w", err)
-	}
-
-	// -- color grading
-
-	if err := addPass(passes.NewColorGradingPass(
-		a.window.GetConfig(), meshQuad, config.ColorGradingConfig,
-	)); err != nil {
-		return fmt.Errorf("color grading pass - %w", err)
-	}
-
-	// -- vignette
-
-	if err := addPass(passes.NewVignettePass(
-		a.window.GetConfig(), meshQuad, config.VignetteConfig,
-	)); err != nil {
-		return fmt.Errorf("vignette pass - %w", err)
-	}
-
-	// append resources
-	a.resources = append(a.resources,
-		meshQuad,
-		deferred,
-		noiseTexture,
-		blurProg,
-		compProg,
-	)
-
 	return nil
 }
 
@@ -251,9 +151,7 @@ func (a *App) resizeRenderTargets() {
 	a.deferred.ResizeCallback()
 
 	// resize all render targets
-	for _, t := range a.passPipeline {
-		t.ResizeCallback()
-	}
+	a.pipeline.ResizeCallback()
 
 	// call resize callback of active state
 	if s, ok := a.activeState.(ResizeHandler); ok {
@@ -312,16 +210,28 @@ func (a *App) Run() {
 		// perform gbuffer rendering of current state (if needs)
 		var lastRenderTarget *rhi.Framebuffer
 		if state, ok := a.activeState.(GBufferDrawer); ok {
+
 			// setup for geometry rendering
 			context.SetupForGeometry()
+
 			// render geometry
 			a.deferred.BindForNewFrame()
+
 			// render geometry of current app state
 			state.RenderGBuffer()
+
 			// setup context for 2D rendering
 			context.SetupForFlat()
+
 			// perform post processing
-			_, lastRenderTarget = a.performPostProcessingPipeline()
+			ctx := post.PostProcessContext{
+				GBuffer:   a.deferred.GetFramebuffer(),
+				Result:    a.deferred.GetResult(),
+				Camera:    state.GetCamera(),
+				DeltaTime: a.monitor.GetDeltaTime(),
+			}
+			a.pipeline.Execute(ctx)
+
 			// send camera info to debug ui
 			a.iUI.GetDebugUI().SetActiveCamera(state.GetCamera())
 		}
@@ -357,41 +267,7 @@ func (a *App) Run() {
 	}
 }
 
-// performPostProcessingPipeline applies post processing
-// and returns result texture and framebuffer
-func (a *App) performPostProcessingPipeline() (*rhi.Texture, *rhi.Framebuffer) {
-	s, ok := a.activeState.(GBufferDrawer)
-	if !ok {
-		return nil, nil
-	}
-
-	// get deferred textures
-	res := a.deferred.GetResult()
-	fbo := a.deferred.GetFramebuffer()
-
-	// get actual camera
-	cam := s.GetCamera()
-
-	// perform
-	for _, node := range a.passPipeline {
-		if !node.Use() {
-			continue
-		}
-		if p, ok := node.(passes.HasProjection); ok {
-			p.SetProjectionMatrix(cam.Projection)
-		}
-		if p, ok := node.(passes.HasDeltaTime); ok {
-			p.SetDeltaTime(a.monitor.GetDeltaTime())
-		}
-		node.RenderPass(res)
-		res.Color = node.GetColor()
-		fbo = node.GetResultFramebuffer()
-	}
-
-	return res.Color, fbo
-}
-
-// ---- AppProvider implementations
+// ---- AppAPI implementations
 
 func (a *App) Close() {
 	a.window.SetShouldClose(true)
@@ -586,19 +462,11 @@ func (a *App) Destroy() {
 		a.activeState.Destroy()
 	}
 
-	// clear post process pipeline
-	for _, n := range a.passPipeline {
-		if n != nil {
-			n.Delete()
-		}
-	}
+	// clear deferred fbo
+	a.deferred.Delete()
 
-	// clear resources
-	for _, r := range a.resources {
-		if r != nil {
-			r.Delete()
-		}
-	}
+	// clear post process pipeline
+	a.pipeline.Delete()
 
 	ui.Destroy()
 	a.window.Destroy()

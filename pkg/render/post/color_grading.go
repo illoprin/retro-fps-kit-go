@@ -1,4 +1,4 @@
-package passes
+package post
 
 import (
 	"fmt"
@@ -27,23 +27,22 @@ type ColorGradingPass struct {
 	mesh      *rhi.Mesh
 	fbo       *rhi.Framebuffer
 	resources []rhi.Resource
-	screenCfg *window.ScreenConfig
+	screen    *window.ScreenConfig
 }
 
 func NewColorGradingPass(
-	screenCfg *window.ScreenConfig,
-	quad *rhi.Mesh,
+	s PassSharedResources,
 	cfg *ColorGradingConfig,
 ) (*ColorGradingPass, error) {
 
 	p := &ColorGradingPass{
-		screenCfg: screenCfg,
-		resources: make([]rhi.Resource, 0),
-		mesh:      quad,
+		screen:    s.ScreenConfig,
+		mesh:      s.MeshQuad,
 		cfg:       cfg,
+		resources: make([]rhi.Resource, 0),
 	}
 
-	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
+	fbWidth, fbHeight := p.screen.GetScreenSize()
 
 	// create color framebuffer
 	fbo := rhi.NewFramebuffer(fbWidth, fbHeight)
@@ -68,10 +67,6 @@ func NewColorGradingPass(
 	p.resources = append(p.resources, program, fbo)
 
 	return p, nil
-}
-
-func (p *ColorGradingPass) GetName() string {
-	return "color_grading"
 }
 
 // get result color
@@ -102,7 +97,7 @@ func (p *ColorGradingPass) RenderPass(src *pipeline.DeferredRenderResult) {
 }
 
 func (p *ColorGradingPass) ResizeCallback() {
-	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
+	fbWidth, fbHeight := p.screen.GetScreenSize()
 	p.fbo.Resize(fbWidth, fbHeight)
 }
 

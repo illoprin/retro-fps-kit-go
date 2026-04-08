@@ -1,4 +1,4 @@
-package passes
+package post
 
 import (
 	"fmt"
@@ -41,21 +41,20 @@ type CavityPass struct {
 	samples           []mgl.Vec2
 	projection        mgl.Mat4
 	resources         []rhi.Resource
-	screenCfg         *window.ScreenConfig
+	screen            *window.ScreenConfig
 	cfg               *CavityConfig
 }
 
 func NewCavityPass(
-	screenCfg *window.ScreenConfig,
-	quad *rhi.Mesh,
+	s PassSharedResources,
 	cfg *CavityConfig,
 	blurProgram *rhi.Program,
 	compositorProgram *rhi.Program,
 ) (*CavityPass, error) {
 	p := &CavityPass{
 		cfg:               cfg,
-		screenCfg:         screenCfg,
-		mesh:              quad,
+		screen:            s.ScreenConfig,
+		mesh:              s.MeshQuad,
 		blurProgram:       blurProgram,
 		compositorProgram: compositorProgram,
 	}
@@ -74,13 +73,13 @@ func NewCavityPass(
 	return p, nil
 }
 
-func (p *CavityPass) GetName() string {
+func (p *CavityPass) GetID() PassID {
 	return "cavity"
 }
 
 func (p *CavityPass) ResizeCallback() {
 
-	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
+	fbWidth, fbHeight := p.screen.GetScreenSize()
 	// resize attachments
 	p.cavity.Resize(fbWidth, fbHeight)
 	p.composition.Resize(fbWidth, fbHeight)
@@ -88,7 +87,7 @@ func (p *CavityPass) ResizeCallback() {
 
 func (p *CavityPass) initFramebuffers() error {
 
-	fbWidth, fbHeight := p.screenCfg.GetScreenSize()
+	fbWidth, fbHeight := p.screen.GetScreenSize()
 	var err error
 
 	// init cavity buffer

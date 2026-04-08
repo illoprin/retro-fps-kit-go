@@ -1,4 +1,4 @@
-package passes
+package post
 
 import (
 	"fmt"
@@ -27,21 +27,21 @@ type ToneMappingPass struct {
 	fbo       *rhi.Framebuffer
 	program   *rhi.Program
 	mesh      *rhi.Mesh
-	screenCfg *window.ScreenConfig
+	screen    *window.ScreenConfig
 	cfg       *ToneMappingConfig
 	resources []rhi.Resource
 }
 
 func NewToneMappingPass(
-	screenCfg *window.ScreenConfig,
-	quad *rhi.Mesh,
+	s PassSharedResources,
 	cfg *ToneMappingConfig,
 ) (*ToneMappingPass, error) {
 
 	p := &ToneMappingPass{
-		screenCfg: screenCfg,
-		mesh:      quad,
+		screen:    s.ScreenConfig,
+		mesh:      s.MeshQuad,
 		cfg:       cfg,
+		resources: make([]rhi.Resource, 0),
 	}
 
 	if err := p.initFramebuffer(); err != nil {
@@ -57,16 +57,12 @@ func NewToneMappingPass(
 	return p, nil
 }
 
-func (p *ToneMappingPass) GetName() string {
-	return "tone_mapping"
+func (p *ToneMappingPass) Use() bool {
+	return true
 }
 
 func (p *ToneMappingPass) GetConfig() interface{} {
 	return p.cfg
-}
-
-func (p *ToneMappingPass) Use() bool {
-	return true
 }
 
 func (p *ToneMappingPass) GetColor() *rhi.Texture {
@@ -78,12 +74,12 @@ func (p *ToneMappingPass) GetResultFramebuffer() *rhi.Framebuffer {
 }
 
 func (p *ToneMappingPass) ResizeCallback() {
-	w, h := p.screenCfg.GetScreenSize()
+	w, h := p.screen.GetScreenSize()
 	p.fbo.Resize(w, h)
 }
 
 func (p *ToneMappingPass) initFramebuffer() error {
-	w, h := p.screenCfg.GetScreenSize()
+	w, h := p.screen.GetScreenSize()
 
 	fbo := rhi.NewFramebuffer(w, h)
 	fbo.Bind()

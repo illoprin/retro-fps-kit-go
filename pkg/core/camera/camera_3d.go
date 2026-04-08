@@ -56,13 +56,13 @@ func (c *Camera3D) Update() {
 }
 
 // GetViewMatrix returns the view matrix for the camera
-func (c *Camera3D) GetViewMatrix() mgl.Mat4 {
+func (c *Camera3D) GetView() mgl.Mat4 {
 	c.View = mgl.LookAtV(c.Position, c.Position.Add(c.front), c.up)
 	return c.View
 }
 
 // GetProjectionMatrix returns the perspective projection matrix
-func (c *Camera3D) GetProjectionMatrix(width, height int) mgl.Mat4 {
+func (c *Camera3D) GetProjection(width, height int) mgl.Mat4 {
 	aspect := float32(width) / float32(height)
 	c.Projection = mgl.Perspective(mgl.DegToRad(c.Fov), aspect, core.CamNear, core.CamFar)
 	return c.Projection
