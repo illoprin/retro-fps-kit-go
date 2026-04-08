@@ -28,16 +28,16 @@ type EyeAdaptionConfig struct {
 }
 
 type EyeAdaptionPass struct {
-	luma         *rhi.Framebuffer
-	ldr          *rhi.Framebuffer
-	lumaProgram  *rhi.Program
-	ldrProgram   *rhi.Program
-	samples      []mgl.Vec2
-	resources    []rhi.Resource
-	mesh         *rhi.Mesh
-	screen       *window.ScreenConfig
-	cfg          *EyeAdaptionConfig
-	dt           float32
+	luma        *rhi.Framebuffer
+	ldr         *rhi.Framebuffer
+	lumaProgram *rhi.Program
+	ldrProgram  *rhi.Program
+	samples     []mgl.Vec2
+	resources   []rhi.Resource
+	mesh        *rhi.Mesh
+	screen      *window.ScreenConfig
+	cfg         *EyeAdaptionConfig
+
 	prevExposure float32
 }
 
@@ -175,10 +175,6 @@ func (p *EyeAdaptionPass) GetColor() *rhi.Texture {
 	return p.ldr.GetColorTexture(0)
 }
 
-func (p *EyeAdaptionPass) SetDeltaTime(dt float32) {
-	p.dt = dt
-}
-
 func (p *EyeAdaptionPass) GetResultFramebuffer() *rhi.Framebuffer {
 	return p.ldr
 }
@@ -189,6 +185,13 @@ func (p *EyeAdaptionPass) GetConfig() interface{} {
 
 func (p *EyeAdaptionPass) Use() bool {
 	return p.cfg.Use
+}
+
+// GetDebugTextures implementing debug interface
+func (p *EyeAdaptionPass) GetDebugTextures() []DebugTexture {
+	return []DebugTexture{
+		{"eye_adaption .color", p.ldr.GetColorTexture(0)},
+	}
 }
 
 func (p *EyeAdaptionPass) Delete() {

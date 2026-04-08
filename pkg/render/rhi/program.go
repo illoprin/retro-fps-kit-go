@@ -19,6 +19,7 @@ import (
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/illoprin/retro-fps-kit-go/pkg/core/logger"
 )
 
 // Program represents a compiled and linked shader program
@@ -38,12 +39,14 @@ func NewProgram(vertexPath, fragmentPath string) (*Program, error) {
 	// load vertex shader
 	vertShader, err := loadShader(vertexPath, gl.VERTEX_SHADER)
 	if err != nil {
+		logger.Errorf("failed to resolve vertex shader path=%s", vertexPath)
 		return nil, fmt.Errorf("failed to load vertex shader: %w", err)
 	}
 
 	// load fragment shader
 	fragShader, err := loadShader(fragmentPath, gl.FRAGMENT_SHADER)
 	if err != nil {
+		logger.Errorf("failed to resolve fragment shader path=%s", fragmentPath)
 		return nil, fmt.Errorf("failed to load fragment shader: %w", err)
 	}
 
@@ -74,6 +77,8 @@ func NewProgram(vertexPath, fragmentPath string) (*Program, error) {
 	gl.DetachShader(program, fragShader)
 	gl.DeleteShader(vertShader)
 	gl.DeleteShader(fragShader)
+
+	logger.Infof("program id=%d compile and linked", prog.handle)
 
 	return prog, nil
 }

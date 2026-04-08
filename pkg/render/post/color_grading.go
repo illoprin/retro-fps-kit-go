@@ -79,6 +79,13 @@ func (p *ColorGradingPass) GetResultFramebuffer() *rhi.Framebuffer {
 	return p.fbo
 }
 
+// GetDebugTextures implementing debug interface
+func (p *ColorGradingPass) GetDebugTextures() []DebugTexture {
+	return []DebugTexture{
+		{"color_grading.color", p.fbo.GetColorTexture(0)},
+	}
+}
+
 // RenderPass texture index 0 - color
 func (p *ColorGradingPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.fbo.BindForDrawing()

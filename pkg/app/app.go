@@ -143,6 +143,13 @@ func (a *App) initRenderingPipeline() error {
 		logger.Errorf("failed to create post processing pipeline %v", err)
 		return err
 	}
+
+	// build pipeline
+	if err := a.pipeline.Build(); err != nil {
+		logger.Errorf("post processing pipeline building error - %v", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -230,7 +237,7 @@ func (a *App) Run() {
 				Camera:    state.GetCamera(),
 				DeltaTime: a.monitor.GetDeltaTime(),
 			}
-			a.pipeline.Execute(ctx)
+			_, lastRenderTarget = a.pipeline.Execute(ctx)
 
 			// send camera info to debug ui
 			a.iUI.GetDebugUI().SetActiveCamera(state.GetCamera())
@@ -357,10 +364,10 @@ func (a *App) createWindow() error {
 	// create window
 	var err error
 	a.window, err = window.NewWindow(
-		config.WindowWidth,
-		config.WindowHeight,
-		config.WindowTitle,
-		config.DefaultResolutionRatio,
+		WindowWidth,
+		WindowHeight,
+		WindowTitle,
+		DefaultResolutionRatio,
 	)
 	if err != nil {
 		return fmt.Errorf("failed init window %v", err)
@@ -411,24 +418,24 @@ func (a *App) initUI() {
 	// prepare editors for ConfigUI
 	// (post process options editor)
 	editors := make([]ui.ConfigUI, 0)
-	for _, n := range a.passPipeline {
+	for _, n := range a.pipeline.GetExecutionList() {
 		var editor ui.ConfigUI
 
 		switch p := n.(type) {
-		case *passes.EyeAdaptionPass:
-			editor = &ui.EyeAdaptionConfigUI{EyeAdaptionConfig: p.GetConfig().(*passes.EyeAdaptionConfig)}
-		case *passes.SSAOPass:
-			editor = &ui.SSAOConfigUI{SSAOConfig: p.GetConfig().(*passes.SSAOConfig)}
-		case *passes.CavityPass:
-			editor = &ui.CavityConfigUI{CavityConfig: p.GetConfig().(*passes.CavityConfig)}
-		case *passes.BloomPass:
-			editor = &ui.BloomConfigUI{BloomConfig: p.GetConfig().(*passes.BloomConfig)}
-		case *passes.ToneMappingPass:
-			editor = &ui.ToneMappingConfigUI{ToneMappingConfig: p.GetConfig().(*passes.ToneMappingConfig)}
-		case *passes.ColorGradingPass:
-			editor = &ui.ColorGradingUI{ColorGradingConfig: p.GetConfig().(*passes.ColorGradingConfig)}
-		case *passes.VignettePass:
-			editor = &ui.VignetteUI{VignetteConfig: p.GetConfig().(*passes.VignetteConfig)}
+		case *post.EyeAdaptionPass:
+			editor = &ui.EyeAdaptionConfigUI{EyeAdaptionConfig: p.GetConfig().(*post.EyeAdaptionConfig)}
+		case *post.SSAOPass:
+			editor = &ui.SSAOConfigUI{SSAOConfig: p.GetConfig().(*post.SSAOConfig)}
+		case *post.CavityPass:
+			editor = &ui.CavityConfigUI{CavityConfig: p.GetConfig().(*post.CavityConfig)}
+		case *post.BloomPass:
+			editor = &ui.BloomConfigUI{BloomConfig: p.GetConfig().(*post.BloomConfig)}
+		case *post.ToneMappingPass:
+			editor = &ui.ToneMappingConfigUI{ToneMappingConfig: p.GetConfig().(*post.ToneMappingConfig)}
+		case *post.ColorGradingPass:
+			editor = &ui.ColorGradingUI{ColorGradingConfig: p.GetConfig().(*post.ColorGradingConfig)}
+		case *post.VignettePass:
+			editor = &ui.VignetteUI{VignetteConfig: p.GetConfig().(*post.VignetteConfig)}
 		default:
 			continue
 		}
@@ -448,7 +455,7 @@ func (a *App) initUI() {
 	a.iUI.AttachFramebuffersUI(
 		ui.NewFramebuffersUI(
 			a.deferred.GetResult(),
-			a.passPipeline,
+			a.pipeline.PostProcessingPipeline,
 			a.window.GetConfig(),
 		),
 	)

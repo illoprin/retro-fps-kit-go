@@ -87,36 +87,36 @@ func (p *CavityPass) ResizeCallback() {
 
 func (p *CavityPass) initFramebuffers() error {
 
-	fbWidth, fbHeight := p.screen.GetScreenSize()
-	var err error
+	W, H := p.screen.GetScreenSize()
+	hW, hH := W/2, H/2
 
 	// init cavity buffer
-	cavity := rhi.NewFramebuffer(fbWidth, fbHeight)
+	cavity := rhi.NewFramebuffer(hW, hH)
 	cavity.Bind()
 	cavity.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
-	if !cavity.Check() || err != nil {
+	if !cavity.Check() {
 		cavity.Delete()
-		return fmt.Errorf("cavity fbo not completed %w", err)
+		return fmt.Errorf("cavity fbo not completed")
 	}
 	p.cavity = cavity
 
 	// init blur buffer
-	blur := rhi.NewFramebuffer(fbWidth, fbHeight)
+	blur := rhi.NewFramebuffer(hW, hH)
 	blur.Bind()
 	blur.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
-	if !blur.Check() || err != nil {
+	if !blur.Check() {
 		blur.Delete()
-		return fmt.Errorf("blur fbo not completed %w", err)
+		return fmt.Errorf("blur fbo not completed")
 	}
 	p.blur = blur
 
 	// init composition buffer
-	composition := rhi.NewFramebuffer(fbWidth, fbHeight)
+	composition := rhi.NewFramebuffer(W, H)
 	composition.Bind()
 	composition.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
-	if !composition.Check() || err != nil {
+	if !composition.Check() {
 		composition.Delete()
-		return fmt.Errorf("composition fbo not completed %w", err)
+		return fmt.Errorf("composition fbo not completed")
 	}
 	p.composition = composition
 	return nil
@@ -170,14 +170,12 @@ func (p *CavityPass) GetResultFramebuffer() *rhi.Framebuffer {
 	return p.composition
 }
 
-// returns blurred cavity color
-func (p *CavityPass) GetBlur() *rhi.Texture {
-	return p.blur.GetColorTexture(0)
-}
-
-// returns raw cavity color
-func (p *CavityPass) GetOcclusion() *rhi.Texture {
-	return p.cavity.GetColorTexture(0)
+// GetDebugTextures implementing debug interface
+func (p *CavityPass) GetDebugTextures() []DebugTexture {
+	return []DebugTexture{
+		{"cavity.occlusion", p.cavity.GetColorTexture(0)},
+		{"cavity.color", p.composition.GetColorTexture(0)},
+	}
 }
 
 // RenderPass

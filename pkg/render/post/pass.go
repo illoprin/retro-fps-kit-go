@@ -16,6 +16,11 @@ type PassSharedResources struct {
 	MeshQuad     *rhi.Mesh
 }
 
+type DebugTexture struct {
+	Name    string
+	Texture *rhi.Texture
+}
+
 // PostProcessingPass represents
 // one screen space effect
 type PostProcessingPass interface {
@@ -26,6 +31,12 @@ type PostProcessingPass interface {
 	Use() bool
 	ResizeCallback()
 	Delete()
+}
+
+// DebuggablePass represents pass
+// that can return your fbo color attachments
+type DebuggablePass interface {
+	GetDebugTextures() []DebugTexture
 }
 
 type HasProjection interface {

@@ -73,6 +73,13 @@ func (p *VignettePass) GetResultFramebuffer() *rhi.Framebuffer {
 	return p.fbo
 }
 
+// GetDebugTextures implementing debug interface
+func (p *VignettePass) GetDebugTextures() []DebugTexture {
+	return []DebugTexture{
+		{"vignette.color", p.fbo.GetColorTexture(0)},
+	}
+}
+
 // RenderPass texture index 0 is color
 func (p *VignettePass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.fbo.BindForDrawing()

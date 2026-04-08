@@ -83,10 +83,11 @@ func (p *SSAOPass) ResizeCallback() {
 
 func (p *SSAOPass) initFramebuffers() error {
 
-	fbWidth, fbHeight := p.screen.GetScreenSize()
+	W, H := p.screen.GetScreenSize()
+	hW, hH := W/2, H/2
 
 	// init ssao buffer
-	ssao := rhi.NewFramebuffer(fbWidth, fbHeight)
+	ssao := rhi.NewFramebuffer(hW, hH)
 	ssao.Bind()
 	ssao.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
 	if !ssao.Check() {
@@ -96,7 +97,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	p.ssao = ssao
 
 	// init blur buffer
-	blur := rhi.NewFramebuffer(fbWidth, fbHeight)
+	blur := rhi.NewFramebuffer(hW, hH)
 	blur.Bind()
 	blur.NewColorAttachment(rhi.FormatR8, rhi.FilterLinear)
 	if !blur.Check() {
@@ -106,7 +107,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	p.blur = blur
 
 	// init composition buffer
-	composition := rhi.NewFramebuffer(fbWidth, fbHeight)
+	composition := rhi.NewFramebuffer(W, H)
 	composition.Bind()
 	composition.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
 	if !composition.Check() {
@@ -165,19 +166,13 @@ func (p *SSAOPass) GetColor() *rhi.Texture {
 	return p.composition.GetColorTexture(0)
 }
 
-// returns raw ssao color
-func (p *SSAOPass) GetOcclusion() *rhi.Texture {
-	return p.ssao.GetColorTexture(0)
-}
-
-// returns kernel rotation noise
-func (p *SSAOPass) GetNoise() *rhi.Texture {
-	return p.noiseTexture
-}
-
-// returns blurred ssao color
-func (p *SSAOPass) GetBlur() *rhi.Texture {
-	return p.blur.GetColorTexture(0)
+// GetDebugTextures implementing debug interface
+func (p *SSAOPass) GetDebugTextures() []DebugTexture {
+	return []DebugTexture{
+		{"ssao.occlusion", p.ssao.GetColorTexture(0)},
+		{"ssao.noise", p.noiseTexture},
+		{"ssao.blurred", p.blur.GetColorTexture(0)},
+	}
 }
 
 // returns result fbo

@@ -204,6 +204,15 @@ func (p *PostProcessingPipeline) Build() error {
 	return nil
 }
 
+// GetExecutionList returns current execution list
+// UNSAFE! may not be relevant
+func (p *PostProcessingPipeline) GetExecutionList() []PostProcessingPass {
+	if p.dirty {
+		logger.Warnf("GetExecutionList: execution list is dirty, Build() required")
+	}
+	return p.execution
+}
+
 // Execute - run baked pipeline
 // and returns result texture and framebuffer
 func (p *PostProcessingPipeline) Execute(ctx PostProcessContext) (resultColor *rhi.Texture, resultFbo *rhi.Framebuffer) {

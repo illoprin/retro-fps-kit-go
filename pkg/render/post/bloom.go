@@ -89,12 +89,16 @@ func (p *BloomPass) GetColor() *rhi.Texture {
 	return p.result.GetColorTexture(0)
 }
 
-func (p *BloomPass) GetBlur() *rhi.Texture {
-	return p.blur.GetColorTexture(0)
-}
-
 func (p *BloomPass) GetResultFramebuffer() *rhi.Framebuffer {
 	return p.result
+}
+
+// GetDebugTextures implementing debug interface
+func (p *BloomPass) GetDebugTextures() []DebugTexture {
+	return []DebugTexture{
+		{"bloom.blur", p.blur.GetColorTexture(0)},
+		{"bloom.color", p.result.GetColorTexture(0)},
+	}
 }
 
 func (p *BloomPass) ResizeCallback() {

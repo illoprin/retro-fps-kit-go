@@ -3,11 +3,80 @@ package app
 import (
 	"fmt"
 
-	"github.com/illoprin/retro-fps-kit-go/pkg/app/config"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/files"
 	"github.com/illoprin/retro-fps-kit-go/pkg/core/window"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/post"
 	"github.com/illoprin/retro-fps-kit-go/pkg/render/rhi"
+)
+
+const (
+	WindowWidth                    = 1600
+	WindowHeight                   = 720
+	WindowTitle                    = "Retro FPS Kit - Demo"
+	DefaultResolutionRatio float32 = 0.5
+)
+
+var (
+	EyeAdaptionConfig = &post.EyeAdaptionConfig{
+		Use:           true,
+		Radius:        300,
+		AvgGray:       0.18,
+		AdaptionSpeed: 0.008,
+		Exposure:      1,
+	}
+
+	SSAOConfig = &post.SSAOConfig{
+		Use:        false,
+		KernelSize: 30,
+		Radius:     0.5,
+		Bias:       0.005,
+		WhitePoint: 0.971,
+		BlackPoint: 0.39,
+		BlurSize:   2,
+	}
+
+	CavityConfig = &post.CavityConfig{
+		Use:        true,
+		Radius:     14,
+		DepthBias:  0.001,
+		Intensity:  2.48,
+		KernelSize: 51,
+		WhitePoint: 1.0,
+		BlackPoint: 0.26,
+		BlurSize:   3,
+	}
+
+	BloomConfig = &post.BloomConfig{
+		Use:       true,
+		Threshold: 1.124,
+		Levels:    4,
+		MinRadius: 0.6,
+		MaxRadius: 4.2,
+		Tint:      [3]float32{0.65, 0.82, 1.0},
+		Intensity: 1.6,
+	}
+
+	ToneMappingConfig = &post.ToneMappingConfig{
+		Gamma:   2.2,
+		Tonemap: post.ACESFilmTonemap,
+	}
+
+	ColorGradingConfig = &post.ColorGradingConfig{
+		Contrast:       2.28,
+		Saturation:     0.84,
+		Brightness:     1.57,
+		ShadowsColor:   [3]float32{.16, .18, .3},
+		MidColor:       [3]float32{.68, .518, .33},
+		HighlightColor: [3]float32{.938, .641, .438},
+		ColorStrength:  0.47,
+		Use:            true,
+	}
+
+	VignetteConfig = &post.VignetteConfig{
+		Radius:   0.9,
+		Softness: 0.535,
+		Use:      true,
+	}
 )
 
 var (
@@ -72,14 +141,14 @@ func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
 	// helper function to create pass
 
 	// -- eye adaption pass
-	eyeAdaptionPass, err := post.NewEyeAdaptionPass(shared, config.EyeAdaptionConfig)
+	eyeAdaptionPass, err := post.NewEyeAdaptionPass(shared, EyeAdaptionConfig)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("eye adaption pass - %w", err)
 	}
 
 	// -- ssao
-	ssaoPass, err := post.NewSSAOPass(shared, config.SSAOConfig,
+	ssaoPass, err := post.NewSSAOPass(shared, SSAOConfig,
 		noiseTexture, blurProg, compProg)
 	if err != nil {
 		p.Delete()
@@ -87,7 +156,7 @@ func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
 	}
 
 	// -- cavity occlusion
-	cavityPass, err := post.NewCavityPass(shared, config.CavityConfig,
+	cavityPass, err := post.NewCavityPass(shared, CavityConfig,
 		blurProg, compProg)
 	if err != nil {
 		p.Delete()
@@ -95,28 +164,28 @@ func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
 	}
 
 	// -- bloomPass
-	bloomPass, err := post.NewBloomPass(shared, config.BloomConfig)
+	bloomPass, err := post.NewBloomPass(shared, BloomConfig)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("bloom pass - %w", err)
 	}
 
 	// -- tone mapping
-	toneMappingPass, err := post.NewToneMappingPass(shared, config.ToneMappingConfig)
+	toneMappingPass, err := post.NewToneMappingPass(shared, ToneMappingConfig)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("tone mapping pass - %w", err)
 	}
 
 	// -- color grading
-	colorGradingPass, err := post.NewColorGradingPass(shared, config.ColorGradingConfig)
+	colorGradingPass, err := post.NewColorGradingPass(shared, ColorGradingConfig)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("color grading pass - %w", err)
 	}
 
 	// -- vignettePass
-	vignettePass, err := post.NewVignettePass(shared, config.VignetteConfig)
+	vignettePass, err := post.NewVignettePass(shared, VignetteConfig)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("vignette pass - %w", err)
@@ -159,11 +228,6 @@ func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
 		After: ColorGradingID,
 		Pass:  vignettePass,
 	})
-	err = p.Build()
-	if err != nil {
-		p.Delete()
-		return nil, err
-	}
 
 	return p, nil
 }

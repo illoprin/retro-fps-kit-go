@@ -73,6 +73,13 @@ func (p *ToneMappingPass) GetResultFramebuffer() *rhi.Framebuffer {
 	return p.fbo
 }
 
+// GetDebugTextures implementing debug interface
+func (p *ToneMappingPass) GetDebugTextures() []DebugTexture {
+	return []DebugTexture{
+		{"tonemapping.color", p.fbo.GetColorTexture(0)},
+	}
+}
+
 func (p *ToneMappingPass) ResizeCallback() {
 	w, h := p.screen.GetScreenSize()
 	p.fbo.Resize(w, h)

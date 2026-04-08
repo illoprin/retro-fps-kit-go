@@ -20,9 +20,11 @@ type FramebuffersUI struct {
 
 func NewFramebuffersUI(
 	res *pipeline.DeferredRenderResult,
-	renderPasses []post.PostProcessingPass,
+	p *post.PostProcessingPipeline,
 	screenCfg *window.ScreenConfig,
 ) *FramebuffersUI {
+
+	passes := p.GetExecutionList()
 
 	f := &FramebuffersUI{
 		screen:  screenCfg,
@@ -49,58 +51,26 @@ func NewFramebuffersUI(
 		},
 	}
 
-	// prepare pass textures
-	f.passTextures = make([]ImageTexture, 0)
-	for _, p := range renderPasses {
-
-		if p.GetID() == "ssao" {
-			ssao := p.(*passes.SSAOPass)
-			rawSSAO := ImageTexture{
-				ID:   ssao.GetOcclusion().ID,
-				Name: "ssao.raw",
+	// build passes textures
+	for _, pass := range passes {
+		if dbg, ok := pass.(post.DebuggablePass); ok {
+			for _, tex := range dbg.GetDebugTextures() {
+				f.passTextures = append(f.passTextures, ImageTexture{
+					ID:   tex.Texture.ID,
+					Name: tex.Name,
+				})
 			}
-			noiseSSAO := ImageTexture{
-				ID:   ssao.GetNoise().ID,
-				Name: "ssao.noise",
-			}
-			blurSSAO := ImageTexture{
-				ID:   ssao.GetBlur().ID,
-				Name: "ssao.blur",
-			}
-			f.passTextures = append(f.passTextures, rawSSAO, noiseSSAO, blurSSAO)
+			continue
 		}
 
-		if p.GetID() == "cavity" {
-			crease := p.(*passes.CavityPass)
-			rawCrease := ImageTexture{
-				ID:   crease.GetOcclusion().ID,
-				Name: "cavity.raw",
-			}
-			creaseBlur := ImageTexture{
-				ID:   crease.GetBlur().ID,
-				Name: "cavity.blur",
-			}
-			f.passTextures = append(f.passTextures, rawCrease, creaseBlur)
-		}
-
-		if p.GetID() == "bloom" {
-			bloom := p.(*passes.BloomPass)
-			bloomBlurred := ImageTexture{
-				ID:   bloom.GetBlur().ID,
-				Name: "bloom.blurred",
-			}
-			f.passTextures = append(f.passTextures, bloomBlurred)
-		}
-
-		t := ImageTexture{
-			ID:   p.GetColor().ID,
-			Name: string(p.GetID()),
-		}
-		f.passTextures = append(f.passTextures, t)
+		// fallback
+		f.passTextures = append(f.passTextures, ImageTexture{
+			ID:   pass.GetColor().ID,
+			Name: "pass",
+		})
 	}
 
 	return f
-
 }
 
 // window shows different render targets
