@@ -11,14 +11,14 @@ import (
 )
 
 type ColorGradingConfig struct {
-	Contrast       float32
-	Saturation     float32
-	Brightness     float32
-	ShadowsColor   [3]float32
-	MidColor       [3]float32
-	HighlightColor [3]float32
-	ColorStrength  float32
-	Use            bool
+	Contrast       float32    `yaml:"contrast"`
+	Saturation     float32    `yaml:"saturation"`
+	Brightness     float32    `yaml:"brightness"`
+	ShadowsColor   [3]float32 `yaml:"shadowsColor"`
+	MidColor       [3]float32 `yaml:"midColor"`
+	HighlightColor [3]float32 `yaml:"highlightColor"`
+	ColorStrength  float32    `yaml:"colorStrength"`
+	Use            bool       `yaml:"use"`
 }
 
 type ColorGradingPass struct {

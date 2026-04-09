@@ -11,8 +11,9 @@ import (
 )
 
 type VignetteConfig struct {
-	Radius, Softness float32
-	Use              bool
+	Radius   float32 `yaml:"radius"`
+	Softness float32 `yaml:"softness"`
+	Use      bool    `yaml:"use"`
 }
 
 type VignettePass struct {

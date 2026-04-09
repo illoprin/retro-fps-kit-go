@@ -1,0 +1,60 @@
+display:
+  width: 1280
+  height: 720
+  resolution_ratio: .5
+
+post_processing:
+  eye_adaption:
+    use: true
+    radius: 300
+    avgGray: 0.18
+    adaptionSpeed: 0.008
+    exposure: 1
+
+  color_grading:
+    use: true
+    contrast: 2.28
+    saturation: 0.84
+    brightness: 1.57
+    shadowsColor: [.16, .18, .3]
+    midColor: [.68, .518, .33]
+    highlightColor: [.938, .641, .438]
+    colorStrength: 0.47
+
+  ssao:
+    use: false
+    kernelSize: 30
+    radius: 0.5
+    bias: 0.005
+    whitePoint: 0.971
+    blackPoint: 0.39
+    blurSize: 2
+
+  cavity:
+    use: true
+    radius: 14
+    depthBias: 0.001
+    intensity: 2.48
+    kernelSize: 51
+    whitePoint: 1.0
+    blackPoint: 0.26
+    blurSize: 3
+
+  bloom:
+    use: true
+    threshold: 1.124
+    levels: 4
+    minRadius: 0.6
+    maxRadius: 4.2
+    lensDirtIntensity: 3.7
+    tint: [0.65, 0.82, 1.0]
+    intensity: 0.7
+
+  tonemapping:
+    gamma: 2.2
+    tonemap: "aces"
+
+  vignette:
+    radius: 0.9
+    softness: 0.535
+    use: true

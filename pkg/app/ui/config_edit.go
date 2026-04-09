@@ -57,21 +57,22 @@ func (c *ToneMappingConfigUI) ShowUI() {
 	imgui.SliderFloat("tm_Gamma", &c.Gamma, 0.5, 4)
 
 	// combo item
+
 	items := []string{
-		"ACES Filmic",
-		"Uncharted 2",
-		"Reinhard",
+		"aces",
+		"uncharted",
+		"reinhard",
 	}
 
 	// enum (1,2,3) → index (0,1,2)
-	current := int(c.Tonemap) - 1
+	current := post.GetToneMapEnum(c.Tonemap) - 1
 
 	if imgui.BeginCombo("##combo", items[current]) {
 		for i, _ := range items {
-			isSelected := current == i
+			isSelected := current == int32(i)
 			if imgui.SelectableBool(items[i]) {
-				current = i
-				c.Tonemap = post.ToneMapType(current) + 1
+				current = int32(i)
+				c.Tonemap = items[current]
 			}
 			if isSelected {
 				imgui.SetItemDefaultFocus()

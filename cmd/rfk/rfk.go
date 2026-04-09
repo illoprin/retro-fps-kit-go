@@ -2,12 +2,18 @@ package main
 
 import (
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/app"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/app/config"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/states/demo"
 )
 
 func main() {
 
-	e, err := app.NewApp()
+	config, err := config.LoadConfig("config.yaml")
+	if err != nil {
+		panic(err)
+	}
+
+	e, err := app.NewApp(config)
 	if err != nil {
 		panic(err)
 	}

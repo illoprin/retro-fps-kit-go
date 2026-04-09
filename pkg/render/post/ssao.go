@@ -15,13 +15,13 @@ import (
 )
 
 type SSAOConfig struct {
-	Use        bool
-	KernelSize int32
-	Radius     float32
-	Bias       float32
-	BlackPoint float32
-	WhitePoint float32
-	BlurSize   int32
+	Use        bool    `yaml:"use"`
+	KernelSize int32   `yaml:"kernelSize"` // max - 64
+	Radius     float32 `yaml:"radius"`
+	Bias       float32 `yaml:"bias"`
+	WhitePoint float32 `yaml:"whitePoint"`
+	BlackPoint float32 `yaml:"blackPoint"`
+	BlurSize   int32   `yaml:"blurSize"`
 }
 
 type SSAOPass struct {
@@ -203,7 +203,11 @@ func (p *SSAOPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	// projection
 	p.ssaoProgram.Set2f("u_proj_info", mgl.Vec2{p.proj.At(0, 0), p.proj.At(1, 1)})
 	// samples
-	p.ssaoProgram.Set1i("u_kernel_size", p.cfg.KernelSize)
+	if p.cfg.KernelSize > 64 {
+		p.ssaoProgram.Set1i("u_kernel_size", 64)
+	} else {
+		p.ssaoProgram.Set1i("u_kernel_size", p.cfg.KernelSize)
+	}
 	// noise texture size
 	noiseScale := mgl.Vec2{
 		float32(p.screen.Width) / float32(noiseSize),

@@ -38,6 +38,7 @@ type App struct {
 	window  *window.Window
 	input   *window.InputManager
 	monitor *monitor.Monitor
+	cfg     *config.Config
 
 	// initial imgui debug screen
 	iUI *ui.InitialUI
@@ -52,11 +53,12 @@ type App struct {
 	pipeline *DefaultPipeline
 }
 
-func NewApp() (*App, error) {
+func NewApp(cfg *config.Config) (*App, error) {
 	runtime.LockOSThread()
 
 	e := &App{
 		monitor: monitor.NewMonitor(),
+		cfg:     cfg,
 	}
 
 	if err := e.initSystems(); err != nil {
@@ -138,7 +140,10 @@ func (a *App) initRenderingPipeline() error {
 	}
 
 	// setup post processing pipeline
-	a.pipeline, err = NewDefaultPipeline(a.window.GetConfig())
+	a.pipeline, err = NewDefaultPipeline(
+		a.window.GetConfig(),
+		&a.cfg.PostProcessing,
+	)
 	if err != nil {
 		logger.Errorf("failed to create post processing pipeline %v", err)
 		return err
@@ -338,6 +343,11 @@ func (a *App) SetCursor(t CursorType) {
 func (a *App) initSystems() error {
 	logger.Init(slog.LevelDebug)
 
+	if a.cfg == nil {
+		logger.Warnf("failed to load config -> we init with default one")
+		a.cfg = &DefaultConfig
+	}
+
 	if err := window.InitGLFW(); err != nil {
 		return fmt.Errorf("failed to init glfw - %v", err)
 	}
@@ -364,10 +374,10 @@ func (a *App) createWindow() error {
 	// create window
 	var err error
 	a.window, err = window.NewWindow(
-		WindowWidth,
-		WindowHeight,
+		a.cfg.Window.Width,
+		a.cfg.Window.Height,
 		WindowTitle,
-		DefaultResolutionRatio,
+		a.cfg.Window.Ratio,
 	)
 	if err != nil {
 		return fmt.Errorf("failed init window %v", err)

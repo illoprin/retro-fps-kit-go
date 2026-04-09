@@ -25,7 +25,24 @@ func NewInitialUI() (*InitialUI, error) {
 		return nil, fmt.Errorf("failed to load imgui font")
 	}
 
+	iui.customize()
+
 	return iui, nil
+}
+
+func (ui *InitialUI) customize() {
+	style := imgui.CurrentStyle()
+	colors := style.Colors()
+
+	// customize color
+	// colors[imgui.ColWindowBg] = imgui.Vec4{0.302, 0.302, 0.302, 0.8}
+
+	// customize other params
+	style.SetWindowRounding(8)
+	style.SetFrameRounding(5)
+	style.SetTabRounding(5)
+
+	style.SetColors(&colors)
 }
 
 func (ui *InitialUI) AttachDebugUI(d *DebugUI) {

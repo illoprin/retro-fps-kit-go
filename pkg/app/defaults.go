@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/app/config"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/files"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/logger"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/window"
@@ -12,73 +13,79 @@ import (
 )
 
 const (
-	WindowWidth                    = 1600
-	WindowHeight                   = 720
-	WindowTitle                    = "Retro FPS Kit - Demo"
-	DefaultResolutionRatio float32 = 0.5
+	WindowTitle = "Retro FPS Kit"
 )
 
 var (
-	EyeAdaptionConfig = &post.EyeAdaptionConfig{
-		Use:           true,
-		Radius:        300,
-		AvgGray:       0.18,
-		AdaptionSpeed: 0.008,
-		Exposure:      1,
-	}
+	DefaultConfig = config.Config{
+		Window: config.DisplayConfig{
+			Width:  1600,
+			Height: 720,
+			Ratio:  .5,
+		},
+		PostProcessing: config.PostProcessingConfig{
+			EyeAdaption: &post.EyeAdaptionConfig{
+				Use:           true,
+				Radius:        300,
+				AvgGray:       0.18,
+				AdaptionSpeed: 0.008,
+				Exposure:      1,
+			},
 
-	SSAOConfig = &post.SSAOConfig{
-		Use:        false,
-		KernelSize: 30,
-		Radius:     0.5,
-		Bias:       0.005,
-		WhitePoint: 0.971,
-		BlackPoint: 0.39,
-		BlurSize:   2,
-	}
+			SSAO: &post.SSAOConfig{
+				Use:        false,
+				KernelSize: 30,
+				Radius:     0.5,
+				Bias:       0.005,
+				WhitePoint: 0.971,
+				BlackPoint: 0.39,
+				BlurSize:   2,
+			},
 
-	CavityConfig = &post.CavityConfig{
-		Use:        true,
-		Radius:     14,
-		DepthBias:  0.001,
-		Intensity:  2.48,
-		KernelSize: 51,
-		WhitePoint: 1.0,
-		BlackPoint: 0.26,
-		BlurSize:   3,
-	}
+			Cavity: &post.CavityConfig{
+				Use:        true,
+				Radius:     14,
+				DepthBias:  0.001,
+				Intensity:  2.48,
+				KernelSize: 51,
+				WhitePoint: 1.0,
+				BlackPoint: 0.26,
+				BlurSize:   3,
+			},
 
-	BloomConfig = &post.BloomConfig{
-		Use:               true,
-		Threshold:         1.124,
-		Levels:            4,
-		MinRadius:         0.6,
-		MaxRadius:         4.2,
-		LensDirtIntensity: 4.7,
-		Tint:              [3]float32{0.65, 0.82, 1.0},
-		Intensity:         0.7,
-	}
+			Bloom: &post.BloomConfig{
+				Use:               true,
+				Threshold:         1.124,
+				Levels:            4,
+				MinRadius:         0.6,
+				MaxRadius:         4.2,
+				LensDirtIntensity: 4.7,
+				Tint:              [3]float32{0.65, 0.82, 1.0},
+				Intensity:         0.7,
+			},
 
-	ToneMappingConfig = &post.ToneMappingConfig{
-		Gamma:   2.2,
-		Tonemap: post.ACESFilmTonemap,
-	}
+			Tonemapping: &post.ToneMappingConfig{
+				Gamma:   2.2,
+				Tonemap: "aces",
+			},
 
-	ColorGradingConfig = &post.ColorGradingConfig{
-		Contrast:       2.28,
-		Saturation:     0.84,
-		Brightness:     1.57,
-		ShadowsColor:   [3]float32{.16, .18, .3},
-		MidColor:       [3]float32{.68, .518, .33},
-		HighlightColor: [3]float32{.938, .641, .438},
-		ColorStrength:  0.47,
-		Use:            true,
-	}
+			ColorGrading: &post.ColorGradingConfig{
+				Contrast:       2.28,
+				Saturation:     0.84,
+				Brightness:     1.57,
+				ShadowsColor:   [3]float32{.16, .18, .3},
+				MidColor:       [3]float32{.68, .518, .33},
+				HighlightColor: [3]float32{.938, .641, .438},
+				ColorStrength:  0.47,
+				Use:            true,
+			},
 
-	VignetteConfig = &post.VignetteConfig{
-		Radius:   0.9,
-		Softness: 0.535,
-		Use:      true,
+			Vignette: &post.VignetteConfig{
+				Radius:   0.9,
+				Softness: 0.535,
+				Use:      true,
+			},
+		},
 	}
 )
 
@@ -99,7 +106,7 @@ type DefaultPipeline struct {
 
 // NewDefaultPipeline - allocates memory and create
 // resources for default post processing pipeline
-func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
+func NewDefaultPipeline(screen *window.ScreenConfig, cfg *config.PostProcessingConfig) (*DefaultPipeline, error) {
 	// create default pipeline object
 	p := &DefaultPipeline{
 		PostProcessingPipeline: post.NewPipeline(),
@@ -148,14 +155,14 @@ func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
 	// helper function to create pass
 
 	// -- eye adaption pass
-	eyeAdaptionPass, err := post.NewEyeAdaptionPass(shared, EyeAdaptionConfig)
+	eyeAdaptionPass, err := post.NewEyeAdaptionPass(shared, cfg.EyeAdaption)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("eye adaption pass - %w", err)
 	}
 
 	// -- ssao
-	ssaoPass, err := post.NewSSAOPass(shared, SSAOConfig,
+	ssaoPass, err := post.NewSSAOPass(shared, cfg.SSAO,
 		noiseTexture, blurProg, compProg)
 	if err != nil {
 		p.Delete()
@@ -163,7 +170,7 @@ func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
 	}
 
 	// -- cavity occlusion
-	cavityPass, err := post.NewCavityPass(shared, CavityConfig,
+	cavityPass, err := post.NewCavityPass(shared, cfg.Cavity,
 		blurProg, compProg)
 	if err != nil {
 		p.Delete()
@@ -171,28 +178,28 @@ func NewDefaultPipeline(screen *window.ScreenConfig) (*DefaultPipeline, error) {
 	}
 
 	// -- bloomPass
-	bloomPass, err := post.NewBloomPass(shared, BloomConfig, lensDirt)
+	bloomPass, err := post.NewBloomPass(shared, cfg.Bloom, lensDirt)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("bloom pass - %w", err)
 	}
 
 	// -- tone mapping
-	toneMappingPass, err := post.NewToneMappingPass(shared, ToneMappingConfig)
+	toneMappingPass, err := post.NewToneMappingPass(shared, cfg.Tonemapping)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("tone mapping pass - %w", err)
 	}
 
 	// -- color grading
-	colorGradingPass, err := post.NewColorGradingPass(shared, ColorGradingConfig)
+	colorGradingPass, err := post.NewColorGradingPass(shared, cfg.ColorGrading)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("color grading pass - %w", err)
 	}
 
 	// -- vignettePass
-	vignettePass, err := post.NewVignettePass(shared, VignetteConfig)
+	vignettePass, err := post.NewVignettePass(shared, cfg.Vignette)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("vignette pass - %w", err)

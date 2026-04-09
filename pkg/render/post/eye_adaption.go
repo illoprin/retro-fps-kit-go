@@ -20,11 +20,11 @@ const (
 )
 
 type EyeAdaptionConfig struct {
-	Use           bool
-	Radius        float32
-	AvgGray       float32
-	AdaptionSpeed float32
-	Exposure      float32
+	Use           bool    `yaml:"use"`
+	Radius        float32 `yaml:"radius"`
+	AvgGray       float32 `yaml:"avgGray"`
+	AdaptionSpeed float32 `yaml:"adaptionSpeed"`
+	Exposure      float32 `yaml:"exposure"`
 }
 
 type EyeAdaptionPass struct {

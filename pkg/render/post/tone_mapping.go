@@ -10,17 +10,15 @@ import (
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/render/rhi"
 )
 
-type ToneMapType uint8
-
 const (
-	ACESFilmTonemap ToneMapType = 1
+	ACESFilmTonemap int32 = 1
 	UnchartedTonemap
 	ReinhardTonemap
 )
 
 type ToneMappingConfig struct {
-	Gamma   float32
-	Tonemap ToneMapType
+	Gamma   float32 `yaml:"gamma"`
+	Tonemap string  `yaml:"tonemap"`
 }
 
 type ToneMappingPass struct {
@@ -127,9 +125,21 @@ func (p *ToneMappingPass) RenderPass(src *pipeline.DeferredRenderResult) {
 
 	// uniforms
 	p.program.Set1f("u_gamma", p.cfg.Gamma)
-	p.program.Set1i("u_tonemap_type", int32(p.cfg.Tonemap))
+	p.program.Set1i("u_tonemap_type", GetToneMapEnum(p.cfg.Tonemap))
 
 	p.mesh.Draw()
+}
+
+func GetToneMapEnum(t string) int32 {
+	switch t {
+	case "aces":
+		return ACESFilmTonemap
+	case "reinhard":
+		return ReinhardTonemap
+	case "uncharted":
+		return UnchartedTonemap
+	}
+	return ACESFilmTonemap
 }
 
 func (p *ToneMappingPass) Delete() {

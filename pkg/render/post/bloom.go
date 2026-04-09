@@ -14,14 +14,14 @@ import (
 )
 
 type BloomConfig struct {
-	Use               bool
-	Threshold         float32
-	Levels            int32
-	MinRadius         float32
-	MaxRadius         float32
-	LensDirtIntensity float32
-	Tint              [3]float32
-	Intensity         float32
+	Use               bool       `yaml:"use"`
+	Threshold         float32    `yaml:"threshold"`
+	Levels            int32      `yaml:"levels"`
+	MinRadius         float32    `yaml:"minRadius"`
+	MaxRadius         float32    `yaml:"maxRadius"`
+	LensDirtIntensity float32    `yaml:"lensDirtIntensity"`
+	Tint              [3]float32 `yaml:"tint"`
+	Intensity         float32    `yaml:"intensity"`
 }
 
 // Blur radiuses:

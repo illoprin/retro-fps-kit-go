@@ -20,14 +20,14 @@ const (
 )
 
 type CavityConfig struct {
-	Use        bool
-	Radius     float32
-	DepthBias  float32
-	Intensity  float32
-	BlurSize   int32
-	KernelSize int32 // max - 256
-	BlackPoint float32
-	WhitePoint float32
+	Use        bool    `yaml:"use"`
+	Radius     float32 `yaml:"radius"`
+	DepthBias  float32 `yaml:"depthBias"`
+	Intensity  float32 `yaml:"intensity"`
+	BlurSize   int32   `yaml:"blurSize"`
+	KernelSize int32   `yaml:"kernelSize"` // max - 256
+	BlackPoint float32 `yaml:"blackPoint"`
+	WhitePoint float32 `yaml:"whitePoint"`
 }
 
 type CavityPass struct {
@@ -202,7 +202,11 @@ func (p *CavityPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	// send intensity
 	p.cavityProgram.Set1f("u_intensity", p.cfg.Intensity)
 	// send kernel size
-	p.cavityProgram.Set1i("u_kernel_size", p.cfg.KernelSize)
+	if p.cfg.KernelSize > 256 {
+		p.cavityProgram.Set1i("u_kernel_size", 256)
+	} else {
+		p.cavityProgram.Set1i("u_kernel_size", p.cfg.KernelSize)
+	}
 	// send inv projection
 	p.cavityProgram.SetMat4("u_invprojection", p.projection.Inv())
 

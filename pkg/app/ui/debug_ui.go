@@ -5,6 +5,7 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/camera"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/logger"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/monitor"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/window"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/render/pipeline"
@@ -27,6 +28,10 @@ type DebugUI struct {
 	showCamera      bool
 	showDrawCalls   bool
 	showVertices    bool
+
+	// callbacks
+	saveCallback  func()
+	resetCallback func()
 }
 
 // NewDebugUI creates a new debug menu instance
@@ -147,6 +152,14 @@ func (m *DebugUI) showSceneTab() {
 	}
 }
 
+func (d *DebugUI) SetSaveButtonCallback(c func()) {
+	d.saveCallback = c
+}
+
+func (d *DebugUI) SetResetButtonCallback(c func()) {
+	d.resetCallback = c
+}
+
 // renderPostProcessingTab renders post-processing effect controls
 func (d *DebugUI) showRenderingTab() {
 	// Wireframe control
@@ -155,11 +168,31 @@ func (d *DebugUI) showRenderingTab() {
 	// Resolution ratio
 	imgui.SliderFloat("Resolution Ratio", &d.windowCfg.ResolutionRatio, 0.2, 1)
 
+	imgui.Separator()
+
 	// Passes UI
 	for i, o := range d.passesUI {
 		if imgui.CollapsingHeaderBoolPtr(o.GetName(), &d.passesShow[i]) {
 			o.ShowUI()
 		}
+	}
+
+	imgui.Separator()
+
+	if imgui.Button("Save") {
+		if d.saveCallback != nil {
+			d.saveCallback()
+		}
+		logger.Infof("saving config...")
+	}
+
+	imgui.SameLine()
+
+	if imgui.Button("Reset") {
+		if d.resetCallback != nil {
+			d.resetCallback()
+		}
+		logger.Infof("reset config!")
 	}
 
 }
