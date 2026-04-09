@@ -1,0 +1,125 @@
+# define name
+
+name: "Dungeon Entrance"
+author: illoprin
+music: dark_synth.ogg
+ambience: dark_ambient.ogg
+
+# define surfaces (material)
+surface:
+  - path: dark_brick.png
+    name: brick
+
+  # indexed animated sprite (lava_0, lava_1, lava_2)
+  - path: animated/lava/lava_0.png
+    frames: 3
+    name: lava
+
+  - path: tiles.png
+    name: floor
+
+  - path: stone.png
+    name: stone
+
+  - path: torch.png #
+    name: torch # surface name
+    emi: torch_emissive.png # surface emissive
+    emi_s: 1.2 # emissive strength
+
+  - path: wood.png
+    name: dark_wood
+
+# define props
+
+props:
+  - path: torch.obj
+    name: torch
+    surf: torch
+
+  - path: table.obj
+    name: table
+    surf: table
+
+# define verts (x, y)
+verts:
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+  - [0, 0]
+  - [0, 1]
+
+# define walls
+walls:
+  - v1: 0 # first vertex
+    v2: 1 # second vertex
+    tex: brick # texture
+    portal: NULL # if portal - index of sector
+
+  - v1: 2 # first vertex
+    v2:
+      3 # second vertex
+      # below tex # upper tex
+    tex: NULL # two textures if portal
+    ltex: brick # lower texture of portal
+    utex: brick # upper texture of portal
+    portal: 2 # if portal - index of sector
+
+# define sectors
+
+sectors:
+  - w_ptr: 0 # pointer to start wall
+    w_num: 4 # number of walls
+    f_h: -.5 # floor height
+    c_h: 3.5 # ceiling height
+    f_tex: lava # floor texture
+    c_tex: stone # ceiling texture
+
+# define lights
+
+# point lights
+p_lights:
+  - c: [1, 1, 0.8] # color
+    i: 4 # intensity
+    r: 10 # radius
+
+# spot lights
+s_lights:
+  - c: [0.5, 1, 1] # color
+    f: [1, 1, 1] # forward vector
+    r: 4.3 # attenuation
+    in: 45 # inner angle
+    out: 90 # outer angle
+    i: 3 # intensity
+
+# ambient light
+a_light:
+  - c: [.7, .7, 1] # color
+    i: 0.32 # intensity
+
+# define entities
+
+entities:
+  # define player start
+  - name: player_start
+    pos: [10, 0, 1.5]
+
+  # use prefabs (based on models)
+  - name: torch
+    model: torch
+    pos: [2, 2, 1]
+    rot: [0, 90, 0]
+    scl: [.25, .25, .25]
+    p_light:
+      - c: [1, 1, 0.8] # color
+        i: 4 # intensity
+        r: 10 # radius
+
