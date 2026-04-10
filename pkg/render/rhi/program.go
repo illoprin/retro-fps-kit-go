@@ -40,14 +40,14 @@ func NewProgram(vertexPath, fragmentPath string) (*Program, error) {
 	vertShader, err := loadShader(vertexPath, gl.VERTEX_SHADER)
 	if err != nil {
 		logger.Errorf("failed to resolve vertex shader path=%s", vertexPath)
-		return nil, fmt.Errorf("failed to load vertex shader: %w", err)
+		return nil, fmt.Errorf("failed to load vertex shader - %w", err)
 	}
 
 	// load fragment shader
 	fragShader, err := loadShader(fragmentPath, gl.FRAGMENT_SHADER)
 	if err != nil {
 		logger.Errorf("failed to resolve fragment shader path=%s", fragmentPath)
-		return nil, fmt.Errorf("failed to load fragment shader: %w", err)
+		return nil, fmt.Errorf("failed to load fragment shader - %w", err)
 	}
 
 	// create program
@@ -68,7 +68,7 @@ func NewProgram(vertexPath, fragmentPath string) (*Program, error) {
 		// print log and delete program
 		gl.GetProgramInfoLog(program, infoLogLength, nil, log)
 		gl.DeleteProgram(program)
-		return nil, fmt.Errorf("program link error: %s", gl.GoStr(log))
+		return nil, fmt.Errorf("program link error - %s", gl.GoStr(log))
 	}
 	prog.handle = program
 
@@ -103,11 +103,29 @@ func (p *Program) getUniformLocation(name string) int32 {
 	return loc
 }
 
+func (p *Program) SetAttachUniformBlock(blockName string, ubo *UniformBuffer) error {
+	blockIndex := gl.GetUniformBlockIndex(p.handle, gl.Str(blockName+"\x00"))
+
+	if blockIndex == gl.INVALID_INDEX {
+		logger.Warnf("uniform block '%s' not found", blockName)
+		return fmt.Errorf("%s uniform block not found")
+	}
+
+	// связываем block → binding point
+	gl.UniformBlockBinding(p.handle, blockIndex, ubo.binding)
+
+	// связываем binding point → buffer
+	gl.BindBufferBase(gl.UNIFORM_BUFFER, ubo.binding, ubo.handle)
+
+	return nil
+}
+
 func (p *Program) Set1i(name string, v int32) {
 	if loc := p.getUniformLocation(name); loc != -1 {
 		gl.Uniform1i(loc, v)
 	}
 }
+
 func (p *Program) Set1f(name string, v float32) {
 	if loc := p.getUniformLocation(name); loc != -1 {
 		gl.Uniform1f(loc, v)

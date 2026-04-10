@@ -1,125 +1,475 @@
-# define name
+# Demo
+name: "Demo"
+author: "illoprin"
+music: "..."
+ambience: "..."
 
-name: "Dungeon Entrance"
-author: illoprin
-music: dark_synth.ogg
-ambience: dark_ambient.ogg
+# ============================================
+# SURFACES (определения материалов/текстур)
+# ============================================
+surfaces:
+  - id: "brick"
+    dif_file: "textures/brick_1.bmp"
+    frames: 1
+    emi_file: ""
+    emi_strength: 0.0
 
-# define surfaces (material)
-surface:
-  - path: dark_brick.png
-    name: brick
+  - id: "gray_rock"
+    dif_file: "textures/gray_rock.bmp"
+    frames: 1
+    emi_file: ""
+    emi_strength: 0.0
 
-  # indexed animated sprite (lava_0, lava_1, lava_2)
-  - path: animated/lava/lava_0.png
-    frames: 3
-    name: lava
+  - id: "brown_rock"
+    dif_file: "textures/brown_rock.bmp"
+    frames: 1
+    emi_file: ""
+    emi_strength: 0.0
 
-  - path: tiles.png
-    name: floor
+  - id: "tiles"
+    dif_file: "textures/tiles_1.bmp"
+    frames: 1
+    emi_file: ""
+    emi_strength: 0.0
 
-  - path: stone.png
-    name: stone
+  - id: "blue_glowing"
+    color: [0.349, 0.573, 1]
+    emi_strength: 1.0
 
-  - path: torch.png #
-    name: torch # surface name
-    emi: torch_emissive.png # surface emissive
-    emi_s: 1.2 # emissive strength
+  - id: "red_glowing"
+    color: [1, 0.345, 0.271]
+    emi_strength: 1.0
 
-  - path: wood.png
-    name: dark_wood
+# ============================================
+# PROPDEFS (определения пропов)
+# ============================================
 
-# define props
+# propdefs:
 
-props:
-  - path: torch.obj
-    name: torch
-    surf: torch
+# ============================================
+# VERTICES (2D точки карты)
+# ============================================
+vertices:
+  - [2.5, 0] # 1
+  - [1, 2] # 2
+  - [8, 2] # 3
+  - [6, 0] # 4
+  - [1, 5] # 5
+  - [8, 5] # 6
+  - [2.5, 7] # 7
+  - [6, 7] # 8
+  - [6, 9] # 9
+  - [2.5, 12] # 10
+  - [4, 13] # 11
+  - [7, 10] # 12
+  - [9, 10] # 13
+  - [9, 13] # 14
+  - [10.5, 14] # 15
+  - [10.5, 9] # 16
+  - [15, 9] # 17
+  - [17, 10] # 18
+  - [17, 13] # 19
+  - [15, 14] # 20
+  - [17, 9] # 21
 
-  - path: table.obj
-    name: table
-    surf: table
-
-# define verts (x, y)
-verts:
-  - [0, 0]
-  - [0, 1]
-  - [0, 0]
-  - [0, 1]
-  - [0, 0]
-  - [0, 1]
-  - [0, 0]
-  - [0, 1]
-  - [0, 0]
-  - [0, 1]
-  - [0, 0]
-  - [0, 1]
-  - [0, 0]
-  - [0, 1]
-
-# define walls
+# ============================================
+# WALLS (определения стен между вершинами)
+# ============================================
 walls:
-  - v1: 0 # first vertex
-    v2: 1 # second vertex
-    tex: brick # texture
-    portal: NULL # if portal - index of sector
+  # Сектор 1
+  - id: "wall_1_0"
+    v1: 3
+    v2: 0
+    portal: null
+    tex: *brick
+    ltex: null
+    utex: null
 
-  - v1: 2 # first vertex
-    v2:
-      3 # second vertex
-      # below tex # upper tex
-    tex: NULL # two textures if portal
-    ltex: brick # lower texture of portal
-    utex: brick # upper texture of portal
-    portal: 2 # if portal - index of sector
+  - id: "wall_1_1"
+    v1: 2
+    v2: 3
+    portal: null
+    tex: *brick
+    ltex: null
+    utex: null
 
-# define sectors
+  - id: "wall_1_2"
+    v1: 1
+    v2: 2
+    portal: 2 # портал в сектор 2
+    tex: *brick
+    ltex: *gray_rock # нижняя текстура портала
+    utex: *brown_rock # верхняя текстура портала
 
+  - id: "wall_1_3"
+    v1: 0
+    v2: 1
+    portal: null
+    tex: *brick
+    ltex: null
+    utex: null
+
+  # Сектор 2
+  - id: "wall_2_0"
+    v1: 2
+    v2: 1
+    portal: 1
+    tex: *brick
+    ltex: *gray_rock
+    utex: *brown_rock
+
+  - id: "wall_2_1"
+    v1: 5
+    v2: 2
+    portal: null
+    tex: *gray_rock
+    ltex: null
+    utex: null
+
+  - id: "wall_2_2"
+    v1: 4
+    v2: 5
+    portal: 3
+    tex: *gray_rock
+    ltex: *brick
+    utex: *tiles
+
+  - id: "wall_2_3"
+    v1: 1
+    v2: 4
+    portal: null
+    tex: *gray_rock
+    ltex: null
+    utex: null
+
+  # Сектор 3
+  - id: "wall_3_0"
+    v1: 5
+    v2: 4
+    portal: 2
+    tex: *brown_rock
+    ltex: *brick
+    utex: *tiles
+
+  - id: "wall_3_1"
+    v1: 7
+    v2: 5
+    portal: null
+    tex: *brown_rock
+    ltex: null
+    utex: null
+
+  - id: "wall_3_2"
+    v1: 6
+    v2: 7
+    portal: 4
+    tex: *brown_rock
+    ltex: *gray_rock
+    utex: *tiles
+
+  - id: "wall_3_3"
+    v1: 4
+    v2: 6
+    portal: null
+    tex: *brown_rock
+    ltex: null
+    utex: null
+
+  # Сектор 4
+  - id: "wall_4_0"
+    v1: 7
+    v2: 6
+    portal: 3
+    tex: *tiles
+    ltex: *brick
+    utex: *gray_rock
+
+  - id: "wall_4_1"
+    v1: 8
+    v2: 7
+    portal: null
+    tex: *tiles
+    ltex: null
+    utex: null
+
+  - id: "wall_4_2"
+    v1: 9
+    v2: 8
+    portal: 5
+    tex: *tiles
+    ltex: *brown_rock
+    utex: *gray_rock
+
+  - id: "wall_4_3"
+    v1: 6
+    v2: 9
+    portal: null
+    tex: *tiles
+    ltex: null
+    utex: null
+
+  # Сектор 5
+  - id: "wall_5_0"
+    v1: 8
+    v2: 9
+    portal: 4
+    tex: *gray_rock
+    ltex: *tiles
+    utex: *brick
+
+  - id: "wall_5_1"
+    v1: 11
+    v2: 8
+    portal: null
+    tex: *gray_rock
+    ltex: null
+    utex: null
+
+  - id: "wall_5_2"
+    v1: 10
+    v2: 11
+    portal: 6
+    tex: *gray_rock
+    ltex: *brown_rock
+    utex: *tiles
+
+  - id: "wall_5_3"
+    v1: 9
+    v2: 10
+    portal: null
+    tex: *gray_rock
+    ltex: null
+    utex: null
+
+  # Сектор 6
+  - id: "wall_6_0"
+    v1: 11
+    v2: 10
+    portal: 5
+    tex: *brown_rock
+    ltex: *gray_rock
+    utex: *tiles
+
+  - id: "wall_6_1"
+    v1: 12
+    v2: 11
+    portal: null
+    tex: *brown_rock
+    ltex: null
+    utex: null
+
+  - id: "wall_6_2"
+    v1: 13
+    v2: 12
+    portal: 7
+    tex: *brown_rock
+    ltex: *tiles
+    utex: *gray_rock
+
+  - id: "wall_6_3"
+    v1: 10
+    v2: 13
+    portal: null
+    tex: *brown_rock
+    ltex: null
+    utex: null
+
+  # Сектор 7
+  - id: "wall_7_0"
+    v1: 12
+    v2: 13
+    portal: 6
+    tex: *tiles
+    ltex: *brown_rock
+    utex: *gray_rock
+
+  - id: "wall_7_1"
+    v1: 15
+    v2: 12
+    portal: null
+    tex: *tiles
+    ltex: null
+    utex: null
+
+  - id: "wall_7_2"
+    v1: 14
+    v2: 15
+    portal: 8
+    tex: *tiles
+    ltex: *brick
+    utex: *gray_rock
+
+  - id: "wall_7_3"
+    v1: 13
+    v2: 14
+    portal: null
+    tex: *tiles
+    ltex: null
+    utex: null
+
+  # Сектор 8
+  - id: "wall_8_0"
+    v1: 15
+    v2: 14
+    portal: 7
+    tex: *gray_rock
+    ltex: *tiles
+    utex: *brick
+
+  - id: "wall_8_1"
+    v1: 16
+    v2: 15
+    portal: null
+    tex: *gray_rock
+    ltex: null
+    utex: null
+
+  - id: "wall_8_2"
+    v1: 19
+    v2: 16
+    portal: 9
+    tex: *gray_rock
+    ltex: *brown_rock
+    utex: *tiles
+
+  - id: "wall_8_3"
+    v1: 14
+    v2: 19
+    portal: null
+    tex: *gray_rock
+    ltex: null
+    utex: null
+
+  # Сектор 9
+  - id: "wall_9_0"
+    v1: 16
+    v2: 19
+    portal: 8
+    tex: *brown_rock
+    ltex: *gray_rock
+    utex: *tiles
+
+  - id: "wall_9_1"
+    v1: 17
+    v2: 16
+    portal: 10
+    tex: *brown_rock
+    ltex: *tiles
+    utex: *gray_rock
+
+  - id: "wall_9_2"
+    v1: 18
+    v2: 17
+    portal: null
+    tex: *brown_rock
+    ltex: null
+    utex: null
+
+  - id: "wall_9_3"
+    v1: 19
+    v2: 18
+    portal: null
+    tex: *brown_rock
+    ltex: null
+    utex: null
+
+  # Сектор 10
+  - id: "wall_10_0"
+    v1: 16
+    v2: 17
+    portal: 9
+    tex: *gray_rock
+    ltex: *brick
+    utex: *tiles
+
+  - id: "wall_10_1"
+    v1: 20
+    v2: 16
+    portal: null
+    tex: *blue_glow
+    ltex: null
+    utex: null
+
+  - id: "wall_10_2"
+    v1: 17
+    v2: 20
+    portal: null
+    tex: *red_glow
+    ltex: null
+    utex: null
+
+# ============================================
+# SECTORS (комнаты/области)
+# ============================================
 sectors:
-  - w_ptr: 0 # pointer to start wall
-    w_num: 4 # number of walls
-    f_h: -.5 # floor height
-    c_h: 3.5 # ceiling height
-    f_tex: lava # floor texture
-    c_tex: stone # ceiling texture
+  - walls: ["wall_1_0", "wall_1_1", "wall_1_2", "wall_1_3"]
+    floor_height: 0
+    ceiling_height: 3.5
+    floor_tex: *tiles
+    ceiling_tex: *gray_rock
 
-# define lights
+  - walls: ["wall_2_0", "wall_2_1", "wall_2_2", "wall_2_3"]
+    floor_height: -0.5
+    ceiling_height: 5.0
+    floor_tex: *brown_rock
+    ceiling_tex: *tiles
 
-# point lights
-p_lights:
-  - c: [1, 1, 0.8] # color
-    i: 4 # intensity
-    r: 10 # radius
+  - walls: ["wall_3_0", "wall_3_1", "wall_3_2", "wall_3_3"]
+    floor_height: 0
+    ceiling_height: 3.5
+    floor_tex: *tiles
+    ceiling_tex: *gray_rock
 
-# spot lights
-s_lights:
-  - c: [0.5, 1, 1] # color
-    f: [1, 1, 1] # forward vector
-    r: 4.3 # attenuation
-    in: 45 # inner angle
-    out: 90 # outer angle
-    i: 3 # intensity
+  - walls: ["wall_4_0", "wall_4_1", "wall_4_2", "wall_4_3"]
+    floor_height: 0
+    ceiling_height: 3.5
+    floor_tex: *tiles
+    ceiling_tex: *gray_rock
 
-# ambient light
-a_light:
-  - c: [.7, .7, 1] # color
-    i: 0.32 # intensity
+  - walls: ["wall_5_0", "wall_5_1", "wall_5_2", "wall_5_3"]
+    floor_height: 0
+    ceiling_height: 3.5
+    floor_tex: *tiles
+    ceiling_tex: *gray_rock
 
-# define entities
+  - walls: ["wall_6_0", "wall_6_1", "wall_6_2", "wall_6_3"]
+    floor_height: 0
+    ceiling_height: 3.5
+    floor_tex: *tiles
+    ceiling_tex: *gray_rock
 
+  - walls: ["wall_7_0", "wall_7_1", "wall_7_2", "wall_7_3"]
+    floor_height: 0
+    ceiling_height: 3.5
+    floor_tex: *tiles
+    ceiling_tex: *gray_rock
+
+  - walls: ["wall_8_0", "wall_8_1", "wall_8_2", "wall_8_3"]
+    floor_height: 0
+    ceiling_height: 3.5
+    floor_tex: *tiles
+    ceiling_tex: *gray_rock
+
+  - walls: ["wall_9_0", "wall_9_1", "wall_9_2", "wall_9_3"]
+    floor_height: 0
+    ceiling_height: 3.5
+    floor_tex: *tiles
+    ceiling_tex: *gray_rock
+
+  - walls: ["wall_10_0", "wall_10_1", "wall_10_2"]
+    floor_height: 1.0
+    ceiling_height: 1.64
+    floor_tex: *brown_rock
+    ceiling_tex: *tiles
+
+# ============================================
+# ENTITIES (игровые объекты)
+# ============================================
 entities:
-  # define player start
-  - name: player_start
-    pos: [10, 0, 1.5]
-
-  # use prefabs (based on models)
-  - name: torch
-    model: torch
-    pos: [2, 2, 1]
-    rot: [0, 90, 0]
-    scl: [.25, .25, .25]
-    p_light:
-      - c: [1, 1, 0.8] # color
-        i: 4 # intensity
-        r: 10 # radius
-
+  # Старт игрока
+  - name: "PlayerStart"
+    type: 0 # PlayerStart
+    def: "player_default"
+    pos: [2.5, 0.5, 2.0] # x, y, z (y - высота)
+    rot: [0, 0, 0]
+    scl: [1, 1, 1]

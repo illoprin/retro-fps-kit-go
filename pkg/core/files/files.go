@@ -8,7 +8,20 @@ const (
 	texturesFolder = "textures"
 	fontsFolder    = "fonts"
 	shadersFolder  = "shaders"
+	levelsFolder   = "levels"
 )
+
+func GetLevelTexturePath(levelName string, filename string) string {
+	return filepath.Join(GetLevelPath(levelName), texturesFolder, filename)
+}
+
+func GetLevelModelPath(levelName string, filename string) string {
+	return filepath.Join(GetLevelPath(levelName), modelsFolder, filename)
+}
+
+func GetLevelPath(levelName string) string {
+	return filepath.Join(assetsFolder, levelsFolder, levelName)
+}
 
 func GetModelPath(filename string) string {
 	return filepath.Join(assetsFolder, modelsFolder, filename)

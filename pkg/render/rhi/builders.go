@@ -20,6 +20,7 @@ import (
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/files"
 )
 
 // SetupBasicQuadMesh - setups buffers for basic quad mesh
@@ -121,23 +122,36 @@ func NewTextureFromImage(path string, config TextureConfig) (*Texture, error) {
 	return t, nil
 }
 
-// NewFontAtlasTexture создаёт текстуру для шрифтового атласа (1 байт на пиксель)
-func NewFontAtlasTexture(width, height int32, data []byte) *Texture {
-	config := DefaultTexture2DConfig(width, height)
-	config.Format = FormatR8
-	config.FilterMin = FilterLinear
-	config.FilterMag = FilterLinear
-	config.GenerateMipmaps = false
-	config.WrapS = WrapClampToEdge
-	config.WrapT = WrapClampToEdge
+// NewTextureArray builds RGBA8 Nearest texture array
+// and mipmaps for that
+func NewTextureArray(imgs []*files.ImageData) (*Texture, error) {
 
-	texture := NewTexture(config)
+	if len(imgs) <= 0 {
+		return nil, fmt.Errorf("empty texture set")
+	}
 
-	texture.Bind()
-	texture.Upload2D(0, 0, unsafe.Pointer(&data[0]))
-	texture.unbind()
+	tex := NewTexture(TextureConfig{
+		Type:            TextureType2DArray,
+		Width:           imgs[0].W,
+		Height:          imgs[0].H,
+		Depth:           int32(len(imgs)),
+		Format:          FormatRGBA8,
+		FilterMin:       FilterLinearMipmapLinear,
+		FilterMag:       FilterNearest,
+		WrapS:           WrapRepeat,
+		WrapT:           WrapRepeat,
+		GenerateMipmaps: true,
+	})
 
-	return texture
+	tex.Bind()
+
+	for i, img := range imgs {
+		tex.UploadLayer(0, 0, int32(i), unsafe.Pointer(&img.Data[0]))
+	}
+
+	tex.GenerateMipmaps()
+
+	return tex, nil
 }
 
 // NewFramebufferColorTexture создаёт текстуру для использования с Framebuffer

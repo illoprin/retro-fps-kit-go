@@ -7,7 +7,7 @@ type ModelVertex struct {
 	Nx, Ny, Nz float32
 }
 
-// Model describes 3D object
+// Model describes 3D object mesh
 type Model struct {
 	Vertices []ModelVertex
 	Indices  []uint32

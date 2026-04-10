@@ -149,7 +149,6 @@ func (m *Mesh) Draw() {
 	FrameStats.DrawCalls++
 	FrameStats.Vertices += uint64(m.indexCount)
 	FrameStats.Triangles += uint64(m.indexCount) / 3
-
 }
 
 func (m *Mesh) DrawInstanced(instances int32) {

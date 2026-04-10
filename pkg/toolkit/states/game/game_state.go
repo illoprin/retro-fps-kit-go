@@ -11,10 +11,12 @@ type GameState struct {
 	resources []rhi.Resource
 }
 
-func NewSectorGameState() *GameState {
-	return &GameState{
+func NewGameState() *GameState {
+	s := &GameState{
 		resources: make([]rhi.Resource, 0),
 	}
+
+	return s
 }
 
 func (g *GameState) Init(e app.AppAPI) error {
