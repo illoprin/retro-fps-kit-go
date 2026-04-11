@@ -5,8 +5,8 @@ import (
 	"unsafe"
 
 	mgl "github.com/go-gl/mathgl/mgl32"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/files"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/render/rhi"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/files"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 )
 
 // 32 bytes

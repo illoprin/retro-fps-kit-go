@@ -2,10 +2,10 @@ package prefabsystem
 
 import (
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/camera"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/files"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/core/math"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/render/rhi"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/camera"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/files"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/math"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/entities/prefab"
 )
 

@@ -2,8 +2,8 @@ package game
 
 import (
 	"github.com/go-gl/glfw/v3.3/glfw"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/app"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/render/rhi"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 )
 
 type GameState struct {

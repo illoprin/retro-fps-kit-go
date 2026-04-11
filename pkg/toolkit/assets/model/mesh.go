@@ -3,7 +3,7 @@ package modeldata
 import (
 	"unsafe"
 
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/render/rhi"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 )
 
 func SetupMeshFromModel(msh *rhi.Mesh, mod *Model) {

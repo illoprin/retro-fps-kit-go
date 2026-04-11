@@ -2,7 +2,7 @@ package prefab
 
 import (
 	mgl "github.com/go-gl/mathgl/mgl32"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/render/rhi"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 )
 
 type Prefab struct {
