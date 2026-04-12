@@ -11,9 +11,17 @@ import (
 )
 
 const (
-	ACESFilmTonemap int32 = 1
-	UnchartedTonemap
-	ReinhardTonemap
+	ACESFilmTonemap  = "aces"
+	UnchartedTonemap = "uncharted"
+	ReinhardTonemap  = "reinhard"
+)
+
+var (
+	ToneMapEnum = map[string]int{
+		ACESFilmTonemap:  1,
+		UnchartedTonemap: 2,
+		ReinhardTonemap:  3,
+	}
 )
 
 type ToneMappingConfig struct {
@@ -125,21 +133,9 @@ func (p *ToneMappingPass) RenderPass(src *pipeline.DeferredRenderResult) {
 
 	// uniforms
 	p.program.Set1f("u_gamma", p.cfg.Gamma)
-	p.program.Set1i("u_tonemap_type", GetToneMapEnum(p.cfg.Tonemap))
+	p.program.Set1i("u_tonemap_type", int32(ToneMapEnum[p.cfg.Tonemap]))
 
 	p.mesh.Draw()
-}
-
-func GetToneMapEnum(t string) int32 {
-	switch t {
-	case "aces":
-		return ACESFilmTonemap
-	case "reinhard":
-		return ReinhardTonemap
-	case "uncharted":
-		return UnchartedTonemap
-	}
-	return ACESFilmTonemap
 }
 
 func (p *ToneMappingPass) Delete() {

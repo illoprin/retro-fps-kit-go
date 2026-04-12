@@ -3,7 +3,7 @@ package resource
 import (
 	"sync"
 
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/render/rhi"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 )
 
 type ResourceScope struct {

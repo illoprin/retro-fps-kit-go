@@ -25,6 +25,8 @@ type EyeAdaptionConfig struct {
 	AvgGray       float32 `yaml:"avgGray"`
 	AdaptionSpeed float32 `yaml:"adaptionSpeed"`
 	Exposure      float32 `yaml:"exposure"`
+	ExposureMin   float32 `yaml:"exposureMin"`
+	ExposureMax   float32 `yaml:"exposureMax"`
 }
 
 type EyeAdaptionPass struct {
@@ -146,7 +148,7 @@ func (p *EyeAdaptionPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	alpha := p.cfg.AdaptionSpeed
 	currentExposure := p.cfg.AvgGray / max(currentLuma, 0.001)
 	smoothedExposure := p.prevExposure*(1.0-alpha) + currentExposure*alpha
-	smoothedExposure = mgl.Clamp(smoothedExposure, 0.5, 3.0)
+	smoothedExposure = mgl.Clamp(smoothedExposure, p.cfg.ExposureMin, p.cfg.ExposureMax)
 	p.prevExposure = smoothedExposure
 
 	// -- Result render pass (apply average exposure)

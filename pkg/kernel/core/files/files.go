@@ -3,12 +3,13 @@ package files
 import "path/filepath"
 
 const (
-	assetsFolder   = "assets"
-	modelsFolder   = "models"
-	texturesFolder = "textures"
-	fontsFolder    = "fonts"
-	shadersFolder  = "shaders"
-	levelsFolder   = "levels"
+	assetsFolder          = "assets"
+	modelsFolder          = "models"
+	texturesFolder        = "textures"
+	fontsFolder           = "fonts"
+	shadersFolder         = "shaders"
+	levelsFolder          = "levels"
+	DefaultConfigFilePath = "config.yaml"
 )
 
 func GetLevelTexturePath(levelName string, filename string) string {

@@ -38,7 +38,7 @@ type App struct {
 	window  *window.Window
 	input   *window.InputManager
 	monitor *monitor.Monitor
-	cfg     *config.Config
+	cfgMgr  *config.Manager
 
 	// initial imgui debug screen
 	iUI *ui.InitialUI
@@ -58,10 +58,9 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	e := &App{
 		monitor: monitor.NewMonitor(),
-		cfg:     cfg,
 	}
 
-	if err := e.initSystems(); err != nil {
+	if err := e.initSystems(cfg); err != nil {
 		return nil, err
 	}
 
@@ -142,7 +141,7 @@ func (a *App) initRenderingPipeline() error {
 	// setup post processing pipeline
 	a.pipeline, err = NewDefaultPipeline(
 		a.window.GetConfig(),
-		&a.cfg.PostProcessing,
+		&a.cfgMgr.Config().PostProcessing,
 	)
 	if err != nil {
 		logger.Errorf("failed to create post processing pipeline %v", err)
@@ -340,13 +339,19 @@ func (a *App) SetCursor(t CursorType) {
 
 // ---- Auxiliary methods
 
-func (a *App) initSystems() error {
+func (a *App) initSystems(cfg *config.Config) error {
+	// init logger
 	logger.Init(slog.LevelDebug)
 
-	if a.cfg == nil {
-		logger.Warnf("failed to load config -> we init with default one")
-		a.cfg = &DefaultConfig
+	// set config
+	c := cfg
+	if c == nil {
+		c = &DefaultConfig
+		logger.Warnf("failed to load config -> init with default one")
 	}
+
+	// create config manager
+	a.cfgMgr = config.NewManager(c, files.DefaultConfigFilePath)
 
 	if err := window.InitGLFW(); err != nil {
 		return fmt.Errorf("failed to init glfw - %v", err)
@@ -373,11 +378,12 @@ func (a *App) initSystems() error {
 func (a *App) createWindow() error {
 	// create window
 	var err error
+	windowCfg := a.cfgMgr.Config().Window
 	a.window, err = window.NewWindow(
-		a.cfg.Window.Width,
-		a.cfg.Window.Height,
+		windowCfg.Width,
+		windowCfg.Height,
 		WindowTitle,
-		a.cfg.Window.Ratio,
+		windowCfg.Ratio,
 	)
 	if err != nil {
 		return fmt.Errorf("failed init window %v", err)
@@ -453,14 +459,20 @@ func (a *App) initUI() {
 		editors = append(editors, editor)
 	}
 
-	a.iUI.AttachDebugUI(
-		ui.NewDebugUI(
-			a.window.GetConfig(),
-			a.monitor,
-			a.deferred,
-			editors,
-		),
+	dui := ui.NewDebugUI(
+		a.window.GetConfig(),
+		a.monitor,
+		a.deferred,
+		editors,
 	)
+	dui.SetResetButtonCallback(a.cfgMgr.Reset)
+	dui.SetSaveButtonCallback(func() {
+		if err := a.cfgMgr.Save(); err != nil {
+			logger.Errorf("failed to save config")
+		}
+	})
+
+	a.iUI.AttachDebugUI(dui)
 
 	a.iUI.AttachFramebuffersUI(
 		ui.NewFramebuffersUI(

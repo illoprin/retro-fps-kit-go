@@ -46,7 +46,6 @@ func NewLevelRenderer(l *LevelSystem) (*LevelRenderer, error) {
 
 	// build texture array
 	if err := r.buildSurfaces(); err != nil {
-		r.ubo.Delete()
 		return nil, fmt.Errorf("failed to build textures - %w", err)
 	}
 
@@ -72,18 +71,18 @@ func (r *LevelRenderer) buildSurfaces() error {
 	def := r.level.GetBuilder().GetDef()
 
 	// collect all images
-	diffImgs := make([]*files.ImageData, 0, len(def.Surfaces))
-	emiImgs := make([]*files.ImageData, 0, len(def.Surfaces))
+	diffImgs := make([]*files.RGBA8Data, 0, len(def.Surfaces))
+	emiImgs := make([]*files.RGBA8Data, 0, len(def.Surfaces))
 
 	// build a relations map (texture -> surface)
 	diffMap := map[string]int{}
 	emiMap := map[string]int{}
 
-	var diffW, diffH int32 = 0, 0
-	var emiW, emiH int32 = 0, 0
-	var difData, emiData *files.ImageData
-	var err error
-	var hasDiff, hasEmi bool
+	var diffW, diffH int32 = 0, 0         // diffuse texture size
+	var emiW, emiH int32 = 0, 0           // emissive texture size
+	var difData, emiData *files.RGBA8Data // textures rgba8 data
+	var err error                         // error
+	var hasDiff, hasEmi bool              // has surface diffuse or emissive
 	for i, s := range def.Surfaces {
 
 		hasDiff = s.DifFile != ""
@@ -207,6 +206,8 @@ func (r *LevelRenderer) Render() {
 		r.emiArr.BindToUnit(1)
 		r.program.Set1i("u_emissive", 1)
 	}
+
+	r.ubo.BindToShader(0)
 
 	// TODO lights
 

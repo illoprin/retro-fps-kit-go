@@ -41,9 +41,6 @@ func (u *UniformBuffer) Allocate(sizeBytes int, drawType BufferType) {
 	u.sizeBytes = sizeBytes
 	u.Bind()
 	gl.BufferData(gl.UNIFORM_BUFFER, sizeBytes, nil, GetBufferType(drawType))
-
-	// Привязка к binding point
-	u.BindToShader(u.binding)
 }
 
 // SetData - set data to UBO

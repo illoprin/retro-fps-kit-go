@@ -20,6 +20,7 @@ layout(std140, binding = 0) uniform SurfaceBlock {
 
 uniform sampler2DArray u_diffuse;
 uniform sampler2DArray u_emissive;
+uniform sampler2D u_null;
 
 uniform bool u_wireframe = false;
 
@@ -33,7 +34,8 @@ void main() {
     if(s.texIndex > -1)
       result = texture(u_diffuse, vec3(texcoord, float(s.texIndex)));
     // emissive
-    result += texture(u_emissive, vec3(texcoord, float(s.emiIndex))) * s.emiStrength;
+    if(s.emiIndex > -1)
+      result += texture(u_emissive, vec3(texcoord, float(s.emiIndex))) * s.emiStrength;
     // color
     result.rgb *= s.color.rgb;
     // apply lights ...

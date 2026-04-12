@@ -1,18 +1,22 @@
 package files
 
-import "image"
+import (
+	"image"
+
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
+)
 
 var (
 	nullPath = GetTexturePath("null.png")
 )
 
-type ImageData struct {
+type RGBA8Data struct {
 	W, H int32
 	Data []byte
 }
 
 // LoadTexture helper function for loading RGBA8 textures
-func LoadTexture(path string) (*ImageData, error) {
+func LoadTexture(path string) (*RGBA8Data, error) {
 	if path == "" {
 		path = nullPath
 	}
@@ -20,9 +24,9 @@ func LoadTexture(path string) (*ImageData, error) {
 	// load file
 	w, h, imgRaw, err := LoadImage(path)
 	if err != nil {
-		// fallback на null
-		w, h, imgRaw, err = LoadImage(nullPath)
+		w, h, imgRaw, err = LoadImage(GetTexturePath("null.png"))
 		if err != nil {
+			logger.Errorf("failed to load null texture")
 			return nil, err
 		}
 	}
@@ -36,7 +40,7 @@ func LoadTexture(path string) (*ImageData, error) {
 		img.Set(x, h-y-1, imgRaw.At(x, y))
 	}
 
-	return &ImageData{
+	return &RGBA8Data{
 		W:    int32(w),
 		H:    int32(h),
 		Data: img.Pix,

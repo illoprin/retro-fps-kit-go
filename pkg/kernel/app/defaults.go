@@ -24,15 +24,17 @@ var (
 			Ratio:  .5,
 		},
 		PostProcessing: config.PostProcessingConfig{
-			EyeAdaption: &post.EyeAdaptionConfig{
+			EyeAdaption: post.EyeAdaptionConfig{
 				Use:           true,
 				Radius:        300,
 				AvgGray:       0.18,
 				AdaptionSpeed: 0.008,
 				Exposure:      1,
+				ExposureMin:   0.7,
+				ExposureMax:   1.2,
 			},
 
-			SSAO: &post.SSAOConfig{
+			SSAO: post.SSAOConfig{
 				Use:        false,
 				KernelSize: 30,
 				Radius:     0.5,
@@ -42,7 +44,7 @@ var (
 				BlurSize:   2,
 			},
 
-			Cavity: &post.CavityConfig{
+			Cavity: post.CavityConfig{
 				Use:        true,
 				Radius:     14,
 				DepthBias:  0.001,
@@ -53,7 +55,7 @@ var (
 				BlurSize:   3,
 			},
 
-			Bloom: &post.BloomConfig{
+			Bloom: post.BloomConfig{
 				Use:               true,
 				Threshold:         1.124,
 				Levels:            4,
@@ -64,12 +66,12 @@ var (
 				Intensity:         0.7,
 			},
 
-			Tonemapping: &post.ToneMappingConfig{
+			Tonemapping: post.ToneMappingConfig{
 				Gamma:   2.2,
 				Tonemap: "aces",
 			},
 
-			ColorGrading: &post.ColorGradingConfig{
+			ColorGrading: post.ColorGradingConfig{
 				Contrast:       2.28,
 				Saturation:     0.84,
 				Brightness:     1.57,
@@ -80,7 +82,7 @@ var (
 				Use:            true,
 			},
 
-			Vignette: &post.VignetteConfig{
+			Vignette: post.VignetteConfig{
 				Radius:   0.9,
 				Softness: 0.535,
 				Use:      true,
@@ -155,14 +157,14 @@ func NewDefaultPipeline(screen *window.ScreenConfig, cfg *config.PostProcessingC
 	// helper function to create pass
 
 	// -- eye adaption pass
-	eyeAdaptionPass, err := post.NewEyeAdaptionPass(shared, cfg.EyeAdaption)
+	eyeAdaptionPass, err := post.NewEyeAdaptionPass(shared, &cfg.EyeAdaption)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("eye adaption pass - %w", err)
 	}
 
 	// -- ssao
-	ssaoPass, err := post.NewSSAOPass(shared, cfg.SSAO,
+	ssaoPass, err := post.NewSSAOPass(shared, &cfg.SSAO,
 		noiseTexture, blurProg, compProg)
 	if err != nil {
 		p.Delete()
@@ -170,7 +172,7 @@ func NewDefaultPipeline(screen *window.ScreenConfig, cfg *config.PostProcessingC
 	}
 
 	// -- cavity occlusion
-	cavityPass, err := post.NewCavityPass(shared, cfg.Cavity,
+	cavityPass, err := post.NewCavityPass(shared, &cfg.Cavity,
 		blurProg, compProg)
 	if err != nil {
 		p.Delete()
@@ -178,28 +180,28 @@ func NewDefaultPipeline(screen *window.ScreenConfig, cfg *config.PostProcessingC
 	}
 
 	// -- bloomPass
-	bloomPass, err := post.NewBloomPass(shared, cfg.Bloom, lensDirt)
+	bloomPass, err := post.NewBloomPass(shared, &cfg.Bloom, lensDirt)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("bloom pass - %w", err)
 	}
 
 	// -- tone mapping
-	toneMappingPass, err := post.NewToneMappingPass(shared, cfg.Tonemapping)
+	toneMappingPass, err := post.NewToneMappingPass(shared, &cfg.Tonemapping)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("tone mapping pass - %w", err)
 	}
 
 	// -- color grading
-	colorGradingPass, err := post.NewColorGradingPass(shared, cfg.ColorGrading)
+	colorGradingPass, err := post.NewColorGradingPass(shared, &cfg.ColorGrading)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("color grading pass - %w", err)
 	}
 
 	// -- vignettePass
-	vignettePass, err := post.NewVignettePass(shared, cfg.Vignette)
+	vignettePass, err := post.NewVignettePass(shared, &cfg.Vignette)
 	if err != nil {
 		p.Delete()
 		return nil, fmt.Errorf("vignette pass - %w", err)

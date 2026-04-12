@@ -124,7 +124,7 @@ func NewTextureFromImage(path string, config TextureConfig) (*Texture, error) {
 
 // NewTextureArray builds RGBA8 Nearest texture array
 // and mipmaps for that
-func NewTextureArray(imgs []*files.ImageData) (*Texture, error) {
+func NewTextureArray(imgs []*files.RGBA8Data) (*Texture, error) {
 
 	if len(imgs) <= 0 {
 		return nil, fmt.Errorf("empty texture set")

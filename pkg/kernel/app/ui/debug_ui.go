@@ -182,8 +182,8 @@ func (d *DebugUI) showRenderingTab() {
 	if imgui.Button("Save") {
 		if d.saveCallback != nil {
 			d.saveCallback()
+			logger.Infof("config saved...")
 		}
-		logger.Infof("saving config...")
 	}
 
 	imgui.SameLine()
@@ -191,8 +191,8 @@ func (d *DebugUI) showRenderingTab() {
 	if imgui.Button("Reset") {
 		if d.resetCallback != nil {
 			d.resetCallback()
+			logger.Infof("config reset!")
 		}
-		logger.Infof("reset config!")
 	}
 
 }

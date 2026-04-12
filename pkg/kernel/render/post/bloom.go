@@ -286,7 +286,7 @@ func (p *BloomPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	p.combineProgram.Set3f("u_tint", p.cfg.Tint)
 
 	// lens params
-	p.combineProgram.Set1i("u_use_lens", 1)
+	p.combineProgram.Set1i("u_use_lens", 0)
 	if p.lensDirt != nil {
 		p.lensDirt.BindToUnit(2)
 		p.combineProgram.Set1i("u_lens", 2)

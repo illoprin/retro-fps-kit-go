@@ -20,10 +20,12 @@ func (c *EyeAdaptionConfigUI) GetName() string {
 
 func (c *EyeAdaptionConfigUI) ShowUI() {
 	imgui.Checkbox("ea_Use", &c.Use)
-	imgui.SliderFloat("ea_Radius", &c.Radius, 4, 100)
+	imgui.SliderFloat("ea_Radius", &c.Radius, 4, 500)
 	imgui.SliderFloat("ea_Speed", &c.AdaptionSpeed, 0.003, 0.06)
 	imgui.SliderFloat("ea_Gray", &c.AvgGray, 0.01, 0.3)
 	imgui.SliderFloat("ea_Exposure", &c.Exposure, 0.5, 3.0)
+	imgui.SliderFloat("ea_ExposureMin", &c.ExposureMin, 0.1, 1.0)
+	imgui.SliderFloat("ea_ExposureMax", &c.ExposureMax, 1.1, 20.0)
 }
 
 type BloomConfigUI struct {
@@ -53,26 +55,26 @@ func (c *ToneMappingConfigUI) GetName() string {
 	return "Tone Mapping (HDR -> LDR)"
 }
 
+var toneMapTypeItems = []string{
+	post.ACESFilmTonemap,
+	post.UnchartedTonemap,
+	post.ReinhardTonemap,
+}
+
 func (c *ToneMappingConfigUI) ShowUI() {
 	imgui.SliderFloat("tm_Gamma", &c.Gamma, 0.5, 4)
 
-	// combo item
-
-	items := []string{
-		"aces",
-		"uncharted",
-		"reinhard",
-	}
+	// combo items
 
 	// enum (1,2,3) → index (0,1,2)
-	current := post.GetToneMapEnum(c.Tonemap) - 1
+	current := post.ToneMapEnum[c.Tonemap] - 1
 
-	if imgui.BeginCombo("##combo", items[current]) {
-		for i, _ := range items {
-			isSelected := current == int32(i)
-			if imgui.SelectableBool(items[i]) {
-				current = int32(i)
-				c.Tonemap = items[current]
+	if imgui.BeginCombo("##combo", c.Tonemap) {
+		for i, _ := range toneMapTypeItems {
+			isSelected := current == (i - 1)
+			if imgui.SelectableBool(toneMapTypeItems[i]) {
+				current = i
+				c.Tonemap = toneMapTypeItems[i]
 			}
 			if isSelected {
 				imgui.SetItemDefaultFocus()

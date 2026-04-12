@@ -53,7 +53,7 @@ func NewTexture(config TextureConfig) *Texture {
 
 	texture.Bind()
 	texture.setParams()
-	texture.allocateStorage()
+	texture.AllocateStorage()
 
 	return texture
 }
@@ -144,8 +144,8 @@ func (t *Texture) GetPixels(format TextureFormat, mipMapLevel int32, ptr unsafe.
 	gl.GetTexImage(target, mipMapLevel, channelData, dataType, ptr)
 }
 
-// allocateStorage - allocates memory
-func (t *Texture) allocateStorage() {
+// AllocateStorage - allocates memory based on current config
+func (t *Texture) AllocateStorage() {
 	target := GetTextureType(t.Config.Type)
 	internalFormat := GetInternalFormat(t.Config.Format)
 	format := GetFormat(t.Config.Format)
@@ -243,6 +243,6 @@ func (t *Texture) Resize(width, height int32) {
 	t.Config.Height = height
 
 	t.Bind()
-	t.allocateStorage()
+	t.AllocateStorage()
 	t.unbind()
 }
