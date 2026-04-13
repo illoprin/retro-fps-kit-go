@@ -1,11 +1,16 @@
-package level
+package levelasset
 
 import (
+	"cmp"
+	"fmt"
+	"slices"
+
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/entities/lights"
 )
 
 type LevelEntityType uint32
+type SurfaceDefIndex uint32
 
 const (
 	PlayerStart LevelEntityType = iota
@@ -27,7 +32,6 @@ type LevelDef struct {
 	// geometry
 	Surfaces []SurfaceDef // used for sector coloring
 	Vertices []mgl.Vec2
-	Walls    []Wall
 	Sectors  []Sector
 
 	// lights
@@ -52,21 +56,21 @@ type SurfaceDef struct {
 type Wall struct {
 	V1, V2 int // index of vertex
 
-	Surf  *SurfaceDef // regular wall
-	LSurf *SurfaceDef // lower (portal)
-	USurf *SurfaceDef // Upper (portal)
+	Surf  SurfaceDefIndex // regular wall
+	LSurf SurfaceDefIndex // lower (portal)
+	USurf SurfaceDefIndex // Upper (portal)
 
 	Portal *Sector
 }
 
 type Sector struct {
-	Walls []*Wall
+	Walls []Wall
 
 	FloorHeight   float32
 	CeilingHeight float32
 
-	FloorSurf   *SurfaceDef
-	CeilingSurf *SurfaceDef
+	FloorSurf   SurfaceDefIndex
+	CeilingSurf SurfaceDefIndex
 	Dynamic     bool
 }
 
@@ -87,4 +91,16 @@ type PropDef struct {
 	Diff        string
 	Emi         string
 	EmiStrength float32
+}
+
+// GetPlayerStart returns entity type PlayerStart
+func (l *LevelDef) GetPlayerStart() (*EntityDef, error) {
+	index, found := slices.BinarySearchFunc(l.Entites, PlayerStart, func(e EntityDef, t LevelEntityType) int {
+		return cmp.Compare(e.Type, t)
+	})
+	if found {
+		return &l.Entites[index], nil
+	}
+
+	return nil, fmt.Errorf("not found")
 }

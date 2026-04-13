@@ -8,6 +8,7 @@ import (
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app/assets"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app/config"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app/ui"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/files"
@@ -35,10 +36,11 @@ const (
 )
 
 type App struct {
-	window  *window.Window
-	input   *window.InputManager
-	monitor *monitor.Monitor
-	cfgMgr  *config.Manager
+	window        *window.Window
+	input         *window.InputManager
+	monitor       *monitor.Monitor
+	cfgMgr        *config.Manager
+	defaultAssets *assets.DefaultAssets
 
 	// initial imgui debug screen
 	iUI *ui.InitialUI
@@ -62,6 +64,11 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	if err := e.initSystems(cfg); err != nil {
 		return nil, err
+	}
+
+	if err := e.initDefaultAssets(); err != nil {
+		logger.Errorf("failes to init default assets - %v", err)
+		return nil, fmt.Errorf("failed to init default assets - %w", err)
 	}
 
 	if err := e.initRenderingPipeline(); err != nil {
@@ -141,6 +148,7 @@ func (a *App) initRenderingPipeline() error {
 	// setup post processing pipeline
 	a.pipeline, err = NewDefaultPipeline(
 		a.window.GetConfig(),
+		a.defaultAssets.MeshQuad,
 		&a.cfgMgr.Config().PostProcessing,
 	)
 	if err != nil {
@@ -308,6 +316,10 @@ func (a *App) GetGBuffer() *rhi.Framebuffer {
 	return a.deferred.GetFramebuffer()
 }
 
+func (a *App) GetDefaultAssets() *assets.DefaultAssets {
+	return a.defaultAssets
+}
+
 func (a *App) GUIWantCaptureMouse() bool {
 	io := imgui.CurrentIO()
 	return io.WantCaptureMouse()
@@ -373,6 +385,11 @@ func (a *App) initSystems(cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+func (a *App) initDefaultAssets() (err error) {
+	a.defaultAssets, err = assets.NewDefaultAssets()
+	return err
 }
 
 func (a *App) createWindow() error {
@@ -490,6 +507,9 @@ func (a *App) Destroy() {
 	if a.activeState != nil {
 		a.activeState.Destroy()
 	}
+
+	// clear default assets
+	a.defaultAssets.Delete()
 
 	// clear deferred fbo
 	a.deferred.Delete()

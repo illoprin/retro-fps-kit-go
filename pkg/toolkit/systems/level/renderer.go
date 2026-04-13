@@ -1,4 +1,4 @@
-package levelsystem
+package levelsys
 
 import (
 	"fmt"

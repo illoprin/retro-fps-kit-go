@@ -103,6 +103,22 @@ func SetupForGeometry() {
 	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
 }
 
+func SetDepth(v bool) {
+	if v {
+		gl.Enable(gl.DEPTH_TEST)
+	} else {
+		gl.Disable(gl.DEPTH_TEST)
+	}
+}
+
+func SetFaceCulling(v bool) {
+	if v {
+		gl.Enable(gl.CULL_FACE)
+	} else {
+		gl.Disable(gl.CULL_FACE)
+	}
+}
+
 func SetClearColor(r, g, b, a float32) {
 	gl.ClearColor(r, g, b, a)
 }

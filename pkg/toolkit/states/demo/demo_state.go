@@ -25,6 +25,7 @@ type DemoState struct {
 	renderer   *prefabsystem.PrefabRenderer
 	controller *controllers.EditorController
 	lastTime   time.Time
+	drawGrid   bool
 
 	prefabEmissive *prefab.Prefab
 }
@@ -187,9 +188,10 @@ func (s *DemoState) Init(api app.AppAPI) error {
 }
 
 func (s *DemoState) ShowImgui() {
-	imgui.Begin("Prefab")
+	imgui.Begin("Scene")
 
 	imgui.SliderFloat("Emissive Strength", &s.prefabEmissive.EmissiveStrength, 0.0, 100.0)
+	imgui.Checkbox("Draw Grid", &s.drawGrid)
 
 	imgui.End()
 }
@@ -229,6 +231,8 @@ func (s *DemoState) Update(deltaTime float32) {
 }
 
 func (s *DemoState) RenderGBuffer() {
+	defaultAssets := s.api.GetDefaultAssets()
+
 	// render scene
 	winConfig := s.api.GetWindow().GetConfig()
 	s.renderer.Prepare(
@@ -238,6 +242,9 @@ func (s *DemoState) RenderGBuffer() {
 	)
 	for _, p := range s.prefabs {
 		s.renderer.Render(p)
+	}
+	if s.drawGrid {
+		defaultAssets.DrawGrid(s.controller.GetCamera(), 1, 1.0, 10.0)
 	}
 }
 

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app/assets"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app/config"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/monitor"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/window"
@@ -28,6 +29,9 @@ type AppAPI interface {
 
 	// GetConfig - returns the current engine and application configuration settings.
 	GetConfig() *config.Config
+
+	// GetDefaultAssets - returns object with pre-init assets (primitives and programs)
+	GetDefaultAssets() *assets.DefaultAssets
 
 	// GetWindow - provides access to the native window instance and its properties.
 	GetWindow() *window.Window

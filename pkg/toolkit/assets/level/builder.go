@@ -1,4 +1,4 @@
-package level
+package levelasset
 
 import (
 	mgl "github.com/go-gl/mathgl/mgl32"
@@ -22,8 +22,9 @@ type LevelModel struct {
 }
 
 type LevelBuilder struct {
-	def   *LevelDef
-	model *LevelModel
+	def         *LevelDef
+	model       *LevelModel
+	playerStart *EntityDef
 }
 
 func NewLevelBuilder(def *LevelDef) *LevelBuilder {

@@ -108,17 +108,17 @@ type DefaultPipeline struct {
 
 // NewDefaultPipeline - allocates memory and create
 // resources for default post processing pipeline
-func NewDefaultPipeline(screen *window.ScreenConfig, cfg *config.PostProcessingConfig) (*DefaultPipeline, error) {
+func NewDefaultPipeline(
+	screen *window.ScreenConfig,
+	quad *rhi.Mesh,
+	cfg *config.PostProcessingConfig,
+) (*DefaultPipeline, error) {
 	// create default pipeline object
 	p := &DefaultPipeline{
 		PostProcessingPipeline: post.NewPipeline(),
 	}
 
 	// create auxiliary resources
-
-	// init screen quad mesh
-	quad := rhi.NewMesh()
-	rhi.SetupBasicQuadMesh(quad)
 
 	noiseTexture := post.CreateNoiseTexture()
 
@@ -144,7 +144,7 @@ func NewDefaultPipeline(screen *window.ScreenConfig, cfg *config.PostProcessingC
 
 	var lensDirt *rhi.Texture = loadLensDirtTexture()
 
-	p.resources = append(p.resources, quad, noiseTexture, blurProg, compProg)
+	p.resources = append(p.resources, noiseTexture, blurProg, compProg)
 
 	// create pass objects
 
