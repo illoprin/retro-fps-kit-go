@@ -1,4 +1,4 @@
-package levelasset
+package leveldata
 
 import (
 	mgl "github.com/go-gl/mathgl/mgl32"

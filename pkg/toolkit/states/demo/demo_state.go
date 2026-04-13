@@ -16,6 +16,7 @@ import (
 	modeldata "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/model"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/entities/prefab"
 	prefabsystem "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/prefab"
+	earcut "github.com/rclancey/go-earcut"
 )
 
 type DemoState struct {
@@ -184,7 +185,71 @@ func (s *DemoState) Init(api app.AppAPI) error {
 		s.prefabEmissive,
 	)
 
+	s.createConvexMesh(texBrick)
 	return nil
+}
+
+func (s *DemoState) createConvexMesh(texture *rhi.Texture) {
+	// triangulate
+	shift := []float32{3, 2}
+	verts := []float64{
+		// flat
+		2, 3,
+		3, 2,
+		5, 2,
+		6, 3,
+		6, 8,
+		5, 9,
+		3, 9,
+		2, 8,
+		// hole
+		4.5, 4.5,
+		4.5, 6.5,
+		4, 7,
+		3.5, 6.5,
+		3.5, 4.5,
+	} // CCW
+	holes := []int{8} // CCW
+	indices, _ := earcut.Earcut(verts, holes, 2)
+
+	// create model vertices
+	modelVertices := make([]modeldata.ModelVertex, len(verts)/2)
+	for i, _ := range modelVertices {
+		vertIndex := i * 2
+		x := float32(verts[vertIndex]) - shift[0]
+		z := float32(verts[vertIndex+1]) - shift[1]
+		modelVertices[i] = modeldata.ModelVertex{
+			X:  x,
+			Y:  1.5,
+			Z:  z,
+			U:  x,
+			V:  z,
+			Nx: 0,
+			Ny: 1,
+			Nz: 0,
+		}
+	}
+
+	// create model indices
+	modelIndices := make([]uint32, len(indices))
+	for i, _ := range indices {
+		modelIndices[i] = uint32(indices[len(indices)-i-1])
+	}
+
+	// setup model
+	model := modeldata.Model{
+		Vertices: modelVertices,
+		Indices:  modelIndices,
+	}
+	mesh := rhi.NewMesh()
+	modeldata.SetupMeshFromModel(mesh, &model)
+
+	// create prefab
+	s.prefabs = append(s.prefabs,
+		prefab.NewPrefab(mesh, texture, nil),
+	)
+
+	s.resources = append(s.resources, mesh)
 }
 
 func (s *DemoState) ShowImgui() {

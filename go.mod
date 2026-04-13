@@ -9,4 +9,5 @@ require (
 	github.com/go-gl/mathgl v1.2.0 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/inkyblackness/imgui-go v1.12.0 // indirect
+	github.com/rclancey/go-earcut v0.0.0-20180411045245-f3ec78d87470 // indirect
 )

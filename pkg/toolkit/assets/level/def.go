@@ -1,4 +1,4 @@
-package levelasset
+package leveldata
 
 import (
 	"cmp"
@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	mgl "github.com/go-gl/mathgl/mgl32"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/entities/lights"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/lights"
 )
 
 type LevelEntityType uint32
@@ -56,9 +56,9 @@ type SurfaceDef struct {
 type Wall struct {
 	V1, V2 int // index of vertex
 
-	Surf  SurfaceDefIndex // regular wall
-	LSurf SurfaceDefIndex // lower (portal)
-	USurf SurfaceDefIndex // Upper (portal)
+	MSurf SurfaceDefIndex // middle surface
+	LSurf SurfaceDefIndex // lower (for portal)
+	USurf SurfaceDefIndex // Upper (for portal)
 
 	Portal *Sector
 }

@@ -1,10 +1,12 @@
 #version 410 core
 
-#define KERNEL_SIZE 16
+// #extension GL_ARB_shading_language_include : enable
 
 float luminance(vec3 color) {
   return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
+
+#define KERNEL_SIZE 16
 
 uniform sampler2D u_color;
 uniform vec2 u_samples[KERNEL_SIZE];

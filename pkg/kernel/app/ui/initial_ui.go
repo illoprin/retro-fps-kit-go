@@ -27,6 +27,9 @@ func NewInitialUI() (*InitialUI, error) {
 
 	iui.customize()
 
+	// apply custom font
+	imgui.PushFont(iui.font, 18.0)
+
 	return iui, nil
 }
 
@@ -71,10 +74,6 @@ func (ui *InitialUI) GetFramebuffersUI() *FramebuffersUI {
 }
 
 func (ui *InitialUI) Draw() {
-	// apply custom font
-	imgui.PushFont(ui.font, 18.0)
 	ui.debugUI.Show()
 	ui.fbosUI.Show()
-	// detach custom font
-	imgui.PopFont()
 }

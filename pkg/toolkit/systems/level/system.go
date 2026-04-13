@@ -3,17 +3,17 @@ package levelsys
 import "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/level"
 
 type LevelSystem struct {
-	builder *levelasset.LevelBuilder
+	builder *leveldata.LevelBuilder
 }
 
-func NewLevelSystem(b *levelasset.LevelBuilder) *LevelSystem {
+func NewLevelSystem(b *leveldata.LevelBuilder) *LevelSystem {
 	l := &LevelSystem{
 		builder: b,
 	}
 	return l
 }
 
-func (l *LevelSystem) GetBuilder() *levelasset.LevelBuilder {
+func (l *LevelSystem) GetBuilder() *leveldata.LevelBuilder {
 	return l.builder
 }
 

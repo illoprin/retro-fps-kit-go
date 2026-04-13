@@ -1,4 +1,4 @@
-package levelasset
+package leveldata
 
 func LevelFromYAML(path string) (*LevelDef, error) {
 	return nil, nil

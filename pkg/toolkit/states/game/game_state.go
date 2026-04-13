@@ -10,13 +10,13 @@ import (
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/camera"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/level"
+	leveldata "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/level"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/level"
 )
 
 type GameState struct {
 	api        app.AppAPI
-	builder    *levelasset.LevelBuilder
+	builder    *leveldata.LevelBuilder
 	renderer   *levelsys.LevelRenderer
 	level      *levelsys.LevelSystem
 	controller *controllers.EditorController
@@ -28,9 +28,9 @@ func NewGameState() *GameState {
 		resources: make([]rhi.Resource, 0),
 	}
 
-	def := &levelasset.LevelDef{}
+	def := &leveldata.LevelDef{}
 
-	s.builder = levelasset.NewLevelBuilder(def)
+	s.builder = leveldata.NewLevelBuilder(def)
 	s.level = levelsys.NewLevelSystem(s.builder)
 
 	return s
@@ -55,7 +55,7 @@ func (g *GameState) Init(e app.AppAPI) error {
 	playerStart, err := def.GetPlayerStart()
 	if err != nil {
 		logger.Warnf("player start not defined, init with default value")
-		playerStart = &levelasset.EntityDef{
+		playerStart = &leveldata.EntityDef{
 			Pos: mgl.Vec3{0, 0, 0},
 		}
 	}
