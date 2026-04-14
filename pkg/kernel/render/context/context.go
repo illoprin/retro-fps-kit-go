@@ -119,6 +119,19 @@ func SetFaceCulling(v bool) {
 	}
 }
 
+func SetBlending(v bool) {
+	if v {
+		gl.Enable(gl.BLEND)
+	} else {
+		gl.Disable(gl.BLEND)
+	}
+}
+
+func SetupBlending() {
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+}
+
 func SetClearColor(r, g, b, a float32) {
 	gl.ClearColor(r, g, b, a)
 }

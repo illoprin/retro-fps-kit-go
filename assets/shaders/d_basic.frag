@@ -81,7 +81,7 @@ float getGrayScale(vec3 color) {
 	return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
-const int bayerMatrix[] = int[](0, 4, 6, 1);
+const int bayerMatrix[] = int[](0, 2, 3, 1);
 
 // const int bayerMatrix[] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
 

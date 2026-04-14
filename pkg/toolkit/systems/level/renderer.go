@@ -207,7 +207,7 @@ func (r *LevelRenderer) Render() {
 		r.program.Set1i("u_emissive", 1)
 	}
 
-	r.ubo.BindToShader(0)
+	r.program.SetAttachUniformBlock("SurfaceBlock", r.ubo)
 
 	// TODO lights
 

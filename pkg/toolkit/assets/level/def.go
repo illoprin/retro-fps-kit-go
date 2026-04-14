@@ -10,7 +10,12 @@ import (
 )
 
 type LevelEntityType uint32
-type SurfaceDefIndex uint32
+
+// -1 means null surface
+type SurfaceIndex int32
+
+// -1 means null sector
+type SectorIndex int32
 
 const (
 	PlayerStart LevelEntityType = iota
@@ -30,8 +35,9 @@ type LevelDef struct {
 	Ambience string
 
 	// geometry
-	Surfaces []SurfaceDef // used for sector coloring
+	Surfaces []Surface // used for sector coloring
 	Vertices []mgl.Vec2
+	Walls    []Wall
 	Sectors  []Sector
 
 	// lights
@@ -46,7 +52,7 @@ type LevelDef struct {
 
 // ======== Level Geometry and Surfaces ========
 
-type SurfaceDef struct {
+type Surface struct {
 	DifFile     string   // diffuse texture file
 	EmiFile     string   // emissive texture  file
 	EmiStrength float32  // emissive strength
@@ -56,22 +62,29 @@ type SurfaceDef struct {
 type Wall struct {
 	V1, V2 int // index of vertex
 
-	MSurf SurfaceDefIndex // middle surface
-	LSurf SurfaceDefIndex // lower (for portal)
-	USurf SurfaceDefIndex // Upper (for portal)
+	MSurf SurfaceIndex // middle surface
+	LSurf SurfaceIndex // lower (for portal)
+	USurf SurfaceIndex // Upper (for portal)
+
+	FrontSector SectorIndex
+	BackSector  SectorIndex
 
 	Portal *Sector
 }
 
 type Sector struct {
-	Walls []Wall
+	Sub []SectorIndex // holes or solids in sector (e. g. room)
 
 	FloorHeight   float32
 	CeilingHeight float32
 
-	FloorSurf   SurfaceDefIndex
-	CeilingSurf SurfaceDefIndex
+	FloorSurf   SurfaceIndex
+	CeilingSurf SurfaceIndex
 	Dynamic     bool
+	// if the sector is a hole...
+	// the normals to the walls will point inside
+	// otherwise, the normals will point outward.
+	// Hole bool
 }
 
 // ======== Entities ========

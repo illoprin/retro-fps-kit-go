@@ -66,8 +66,8 @@ func (u *UniformBuffer) SetAllData(data unsafe.Pointer) {
 
 // BindToShader - bind UBO to shader binding point
 // shaderBindingIndex - index в shader layout(binding = X)
-func (u *UniformBuffer) BindToShader(shaderBindingIndex uint32) {
-	gl.BindBufferBase(gl.UNIFORM_BUFFER, shaderBindingIndex, u.handle)
+func (u *UniformBuffer) BindToShader() {
+	gl.BindBufferBase(gl.UNIFORM_BUFFER, u.binding, u.handle)
 }
 
 // Delete - удаляет UBO

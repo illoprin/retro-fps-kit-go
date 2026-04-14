@@ -260,7 +260,9 @@ func (a *App) Run() {
 		if state, ok := a.activeState.(FlatDrawer); ok {
 			// render flat of current app state
 			// on top of last render target
+			context.SetupBlending()
 			state.RenderFlat(lastRenderTarget)
+			context.SetBlending(false)
 		}
 
 		if lastRenderTarget != nil {

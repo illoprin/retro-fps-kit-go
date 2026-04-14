@@ -15,6 +15,7 @@ import (
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 	modeldata "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/model"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/entities/prefab"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/gui"
 	prefabsystem "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/prefab"
 	earcut "github.com/rclancey/go-earcut"
 )
@@ -24,9 +25,11 @@ type DemoState struct {
 	prefabs    [](*prefab.Prefab)
 	resources  []rhi.Resource
 	renderer   *prefabsystem.PrefabRenderer
+	canvas     *gui.GUICanvas
 	controller *controllers.EditorController
 	lastTime   time.Time
 	drawGrid   bool
+	showUI     bool
 
 	prefabEmissive *prefab.Prefab
 }
@@ -53,6 +56,20 @@ func (s *DemoState) Init(api app.AppAPI) error {
 	} else {
 		s.renderer = renderer
 	}
+
+	// init gui canvas
+	canvas, err := gui.NewGUICanvas()
+	if err != nil {
+		return fmt.Errorf("failed to create canvas - %w", err)
+	}
+	s.canvas = canvas
+	s.resources = append(s.resources, s.canvas)
+
+	// set canvas objects
+	s.canvas.Circle(mgl.Vec2{-.25, -.25}, 0.1, mgl.Vec4{0.89, 0.706, 0.102, .5}, 16)
+	s.canvas.Rect(mgl.Vec2{.25, -.25}, mgl.Vec2{.48, .25}, mgl.Vec4{0.161, 0.486, 0.878, 0.9})
+	s.canvas.Line(mgl.Vec2{-.5, .7}, mgl.Vec2{.5, .6}, mgl.Vec4{0.929, 0.059, 0.361, .7}, 0.1)
+	s.canvas.Update()
 
 	// create obj parser
 	parser := modeldata.NewOBJParser()
@@ -255,13 +272,15 @@ func (s *DemoState) createConvexMesh(texture *rhi.Texture) {
 }
 
 func (s *DemoState) ShowImgui() {
-	imgui.Begin("Scene")
+	if s.showUI {
+		imgui.Begin("Scene")
 
-	imgui.SliderFloat("Emissive Strength", &s.prefabEmissive.EmissiveStrength, 0.0, 100.0)
-	imgui.Checkbox("Draw Grid", &s.drawGrid)
-	imgui.Checkbox("Dithering", &s.renderer.Dithering)
+		imgui.SliderFloat("Emissive Strength", &s.prefabEmissive.EmissiveStrength, 0.0, 100.0)
+		imgui.Checkbox("Draw Grid", &s.drawGrid)
+		imgui.Checkbox("Dithering", &s.renderer.Dithering)
 
-	imgui.End()
+		imgui.End()
+	}
 }
 
 func (s *DemoState) Update(deltaTime float32) {
@@ -296,6 +315,8 @@ func (s *DemoState) Update(deltaTime float32) {
 	if canUpdateController {
 		s.controller.Update(deltaTime)
 	}
+
+	// draw gui
 }
 
 func (s *DemoState) RenderGBuffer() {
@@ -318,7 +339,12 @@ func (s *DemoState) RenderGBuffer() {
 }
 
 func (s *DemoState) GetCamera() *camera.Camera3D {
+	s.api.GetWindow().GetConfig()
 	return s.controller.GetCamera()
+}
+
+func (s *DemoState) RenderFlat(_ *rhi.Framebuffer) {
+	s.canvas.Draw(s.api.GetWindow().GetConfig().Aspect)
 }
 
 func (s *DemoState) OnKey(key glfw.Key, action glfw.Action, mods glfw.ModifierKey) {
@@ -327,6 +353,9 @@ func (s *DemoState) OnKey(key glfw.Key, action glfw.Action, mods glfw.ModifierKe
 	if action == glfw.Press {
 		if key == glfw.KeyF8 {
 			window.ToggleCursor()
+		}
+		if key == glfw.KeyF2 {
+			s.showUI = !s.showUI
 		}
 	}
 }

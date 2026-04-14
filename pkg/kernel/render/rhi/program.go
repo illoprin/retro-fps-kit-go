@@ -111,11 +111,11 @@ func (p *Program) SetAttachUniformBlock(blockName string, ubo *UniformBuffer) er
 		return fmt.Errorf("%s uniform block not found")
 	}
 
-	// связываем block → binding point
+	// block → binding point
 	gl.UniformBlockBinding(p.handle, blockIndex, ubo.binding)
 
-	// связываем binding point → buffer
-	gl.BindBufferBase(gl.UNIFORM_BUFFER, ubo.binding, ubo.handle)
+	// binding point → buffer
+	ubo.BindToShader()
 
 	return nil
 }

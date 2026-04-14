@@ -4,16 +4,13 @@ import (
 	mgl "github.com/go-gl/mathgl/mgl32"
 )
 
-// 68 bytes
+// 40 bytes
 type LevelVertex struct {
-	Position         mgl.Vec3
-	TexCoord         mgl.Vec2
-	Normal           mgl.Vec3
-	TexIndex         uint16
-	EmiIndex         uint16
-	Color            mgl.Vec3
-	EmissiveStrength float32
-	SectorID         uint32
+	Position  mgl.Vec3
+	TexCoord  mgl.Vec2
+	Normal    mgl.Vec3
+	SurfaceID uint32
+	SectorID  uint32
 }
 
 type LevelModel struct {
@@ -25,6 +22,11 @@ type LevelBuilder struct {
 	def         *LevelDef
 	model       *LevelModel
 	playerStart *EntityDef
+}
+
+type contour struct {
+	points []float64 // x, y, x, y...
+	isHole bool
 }
 
 func NewLevelBuilder(def *LevelDef) *LevelBuilder {
@@ -39,5 +41,27 @@ func (b *LevelBuilder) GetDef() *LevelDef {
 }
 
 func (b *LevelBuilder) BuildModel() {
+	b.model = &LevelModel{
+		Vertices: make([]LevelVertex, 0),
+		Indices:  make([]uint32, 0),
+	}
+
+	// build walls
+	for _, w := range b.def.Walls {
+		b.buildWall(w)
+	}
+
+	// build sectors
+	for i, s := range b.def.Sectors {
+		b.buildSector(s, uint32(i))
+	}
+
+}
+
+func (b *LevelBuilder) buildSector(s Sector, sectorIndex uint32) {
+
+}
+
+func (b *LevelBuilder) buildWall(s Wall) {
 
 }
