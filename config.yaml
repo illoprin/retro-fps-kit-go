@@ -1,24 +1,24 @@
 display:
   width: 1600
   height: 720
-  resolution_ratio: 0.5
+  resolution_ratio: 0.25
 post_processing:
   color_grading:
     contrast: 2.28
     saturation: 0.84
     brightness: 1.57
     shadowsColor:
-    - 0.16
-    - 0.18
-    - 0.3
+      - 0.16
+      - 0.18
+      - 0.3
     midColor:
-    - 0.68
-    - 0.518
-    - 0.33
+      - 0.68
+      - 0.518
+      - 0.33
     highlightColor:
-    - 0.938
-    - 0.641
-    - 0.438
+      - 0.938
+      - 0.641
+      - 0.438
     colorStrength: 0.47
     use: true
   eye_adaption:
@@ -27,8 +27,8 @@ post_processing:
     avgGray: 0.18
     adaptionSpeed: 0.008
     exposure: 1.0
-    exposureMin: 0.892
-    exposureMax: 1.344
+    exposureMin: 0.942
+    exposureMax: 1.283
   ssao:
     use: false
     kernelSize: 30
@@ -52,12 +52,12 @@ post_processing:
     levels: 4
     minRadius: 0.6
     maxRadius: 4.2
-    lensDirtIntensity: 4.142
+    lensDirtIntensity: 2.621
     tint:
-    - 0.65
-    - 0.82
-    - 1.0
-    intensity: 1.115
+      - 0.65
+      - 0.82
+      - 1.0
+    intensity: 0.685
   tonemapping:
     gamma: 2.2
     tonemap: aces

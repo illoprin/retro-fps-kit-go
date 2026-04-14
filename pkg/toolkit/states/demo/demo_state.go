@@ -191,7 +191,8 @@ func (s *DemoState) Init(api app.AppAPI) error {
 
 func (s *DemoState) createConvexMesh(texture *rhi.Texture) {
 	// triangulate
-	shift := []float32{3, 2}
+	shift := []float32{3, 4}
+	scale := []float32{2, 2}
 	verts := []float64{
 		// flat
 		2, 3,
@@ -202,7 +203,8 @@ func (s *DemoState) createConvexMesh(texture *rhi.Texture) {
 		5, 9,
 		3, 9,
 		2, 8,
-		// hole
+
+		// hole 1
 		4.5, 4.5,
 		4.5, 6.5,
 		4, 7,
@@ -216,8 +218,8 @@ func (s *DemoState) createConvexMesh(texture *rhi.Texture) {
 	modelVertices := make([]modeldata.ModelVertex, len(verts)/2)
 	for i, _ := range modelVertices {
 		vertIndex := i * 2
-		x := float32(verts[vertIndex]) - shift[0]
-		z := float32(verts[vertIndex+1]) - shift[1]
+		x := float32(verts[vertIndex])*scale[0] - shift[0]
+		z := float32(verts[vertIndex+1])*scale[1] - shift[1]
 		modelVertices[i] = modeldata.ModelVertex{
 			X:  x,
 			Y:  1.5,
@@ -257,6 +259,7 @@ func (s *DemoState) ShowImgui() {
 
 	imgui.SliderFloat("Emissive Strength", &s.prefabEmissive.EmissiveStrength, 0.0, 100.0)
 	imgui.Checkbox("Draw Grid", &s.drawGrid)
+	imgui.Checkbox("Dithering", &s.renderer.Dithering)
 
 	imgui.End()
 }
@@ -304,6 +307,7 @@ func (s *DemoState) RenderGBuffer() {
 		int(winConfig.Width),
 		int(winConfig.Height),
 		s.controller.GetCamera(),
+		float32(s.api.GetTime()),
 	)
 	for _, p := range s.prefabs {
 		s.renderer.Render(p)

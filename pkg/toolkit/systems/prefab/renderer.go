@@ -10,7 +10,8 @@ import (
 )
 
 type PrefabRenderer struct {
-	p *rhi.Program
+	p         *rhi.Program
+	Dithering bool
 }
 
 func NewPrefabRenderer() (*PrefabRenderer, error) {
@@ -22,16 +23,18 @@ func NewPrefabRenderer() (*PrefabRenderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &PrefabRenderer{program}, nil
+	return &PrefabRenderer{program, false}, nil
 }
 
-func (r *PrefabRenderer) Prepare(w, h int, c *camera.Camera3D) {
+func (r *PrefabRenderer) Prepare(w, h int, c *camera.Camera3D, time float32) {
 	// prepare shader
 	r.p.Use()
 
 	// set global uniforms
 	r.p.SetMat4("u_projection", c.GetProjection(w, h))
 	r.p.SetMat4("u_view", c.GetView())
+	r.p.Set1f("u_time", time)
+	r.p.Set1i("u_useDithering", math.BoolToInt32(r.Dithering))
 	r.p.Set3f("u_light_pos", c.Position)
 	r.p.Set3f("u_light_color", mgl32.Vec3{0.761 / 2, 0.835 / 2, 0.988 / 2})
 }

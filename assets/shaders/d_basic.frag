@@ -25,7 +25,10 @@ uniform float u_light_radius = 37;
 // fog
 uniform vec3 u_fogColor = vec3(0.17, 0.23, 0.29);
 
+// misc
 uniform mat4 u_view;
+uniform float u_time = 0.0;
+uniform bool u_useDithering = true;
 
 // Light Attenuation Algo
 float getLightAttenuation(float d, float r) {
@@ -74,6 +77,32 @@ vec3 getFog(vec3 src) {
 	return mix(u_fogColor, src, fogFactor);
 }
 
+float getGrayScale(vec3 color) {
+	return dot(color, vec3(0.299, 0.587, 0.114));
+}
+
+const int bayerMatrix[] = int[](0, 4, 6, 1);
+
+// const int bayerMatrix[] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+
+vec3 getDithered(vec3 color) {
+	// coords
+	float speed = 2.0;
+	vec2 coord = gl_FragCoord.xy + vec2(u_time * speed);
+
+	// treshold
+	int matrixSize = 2;
+	ivec2 matrixCoord = ivec2(coord) % matrixSize;
+	int treshold = bayerMatrix[matrixCoord.x + matrixCoord.y * matrixSize];
+
+	// dither
+	float grayscale = getGrayScale(color);
+	float dithered = grayscale > (float(treshold) / 16.0) ? 1.0 : 0.5;
+
+	// out
+	return vec3(dithered) * color;
+}
+
 void main() {
 	vec4 result;
 
@@ -96,6 +125,9 @@ void main() {
 		// -- lights
 		result.rgb *= getLights();
 	}
+	// -- dither
+	if(u_useDithering)
+		result.rgb = getDithered(result.rgb);
 
 	// color
 	out_fragcolor = result;
