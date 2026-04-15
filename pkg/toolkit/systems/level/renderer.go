@@ -36,8 +36,8 @@ func NewLevelRenderer(l *LevelSystem) (*LevelRenderer, error) {
 
 	// load level program
 	program, err := rhi.NewProgram(
-		files.GetShaderPath("d_level.vert"),
-		files.GetShaderPath("d_level.frag"),
+		files.GetShaderPath("deferred/d_level.vert"),
+		files.GetShaderPath("deferred/d_level.frag"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load level shader - %w", err)
@@ -92,7 +92,7 @@ func (r *LevelRenderer) buildSurfaces() error {
 		if hasDiff {
 			if _, ok := diffMap[s.DifFile]; !ok {
 				// load
-				difFile := files.GetLevelTexturePath(def.Name, s.DifFile)
+				difFile := files.GetTexturePath(s.DifFile)
 				difData, err = files.LoadTexture(difFile)
 				if err != nil {
 					return err
@@ -117,7 +117,7 @@ func (r *LevelRenderer) buildSurfaces() error {
 		if hasEmi {
 			if _, ok := emiMap[s.EmiFile]; !ok {
 				// load
-				emiFile := files.GetLevelTexturePath(def.Name, s.EmiFile)
+				emiFile := files.GetTexturePath(s.EmiFile)
 				emiData, err = files.LoadTexture(emiFile)
 				if err != nil {
 					return err

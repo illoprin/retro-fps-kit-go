@@ -77,8 +77,8 @@ func NewEyeAdaptionPass(
 
 	// create luma program
 	lumaProgram, err := rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("average_luma.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/average_luma.frag"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create luma program - %w", err)
@@ -87,8 +87,8 @@ func NewEyeAdaptionPass(
 
 	// create ldr (composition) program
 	ldrProgram, err := rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("eye_adaption.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/eye_adaption.frag"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ldr program - %w", err)

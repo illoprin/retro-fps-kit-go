@@ -109,8 +109,8 @@ func (p *ToneMappingPass) initFramebuffer() error {
 
 func (p *ToneMappingPass) initProgram() error {
 	program, err := rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("tone_mapping.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/tone_mapping.frag"),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to load shader - %w", err)

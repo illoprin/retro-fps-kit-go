@@ -151,8 +151,8 @@ func (p *SSAOPass) buildAndSendSamples() {
 func (p *SSAOPass) initPrograms() error {
 	// init ssao drawing program
 	ssaoProgram, err := rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("ssao.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/ssao.frag"),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to load ssao program - %w", err)

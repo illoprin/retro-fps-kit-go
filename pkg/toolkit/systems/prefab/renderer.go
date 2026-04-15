@@ -17,13 +17,13 @@ type PrefabRenderer struct {
 func NewPrefabRenderer() (*PrefabRenderer, error) {
 	// init shader program
 	program, err := rhi.NewProgram(
-		files.GetShaderPath("d_basic.vert"),
-		files.GetShaderPath("d_basic.frag"),
+		files.GetShaderPath("deferred/d_basic.vert"),
+		files.GetShaderPath("deferred/d_basic.frag"),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return &PrefabRenderer{program, false}, nil
+	return &PrefabRenderer{program, true}, nil
 }
 
 func (r *PrefabRenderer) Prepare(w, h int, c *camera.Camera3D, time float32) {

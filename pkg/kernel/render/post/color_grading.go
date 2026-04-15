@@ -56,8 +56,8 @@ func NewColorGradingPass(
 
 	// create program
 	program, err := rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("color_grading.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/color_grading.frag"),
 	)
 	if err != nil {
 		fbo.Delete()

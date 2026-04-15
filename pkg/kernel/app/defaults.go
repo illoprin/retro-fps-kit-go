@@ -124,8 +124,8 @@ func NewDefaultPipeline(
 
 	// blur - uses ssao and cavity
 	blurProg, err := rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("overlay_blur.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/overlay_blur.frag"),
 	)
 	if err != nil {
 		return nil, err
@@ -133,8 +133,8 @@ func NewDefaultPipeline(
 
 	// compositor - uses ssao and cavity
 	compProg, err := rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("overlay_compositor.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/overlay_compositor.frag"),
 	)
 	if err != nil {
 		return nil, err
@@ -249,7 +249,7 @@ func NewDefaultPipeline(
 }
 
 func loadLensDirtTexture() (lensDirt *rhi.Texture) {
-	W, H, img, err := files.LoadImage(files.GetTexturePath("lens_dirt.png"))
+	W, H, img, err := files.LoadImage(files.GetTexturePath("initial/lens_dirt.png"))
 
 	if err != nil {
 		logger.Warnf("lens dirt not found")

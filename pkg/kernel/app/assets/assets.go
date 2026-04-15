@@ -36,8 +36,8 @@ func NewDefaultAssets() (*DefaultAssets, error) {
 
 func (a *DefaultAssets) initPrograms() (err error) {
 	a.ProgGrid, err = rhi.NewProgram(
-		files.GetShaderPath("grid.vert"),
-		files.GetShaderPath("grid.frag"),
+		files.GetShaderPath("initial/grid.vert"),
+		files.GetShaderPath("initial/grid.frag"),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to load grid program - %w", err)

@@ -51,8 +51,8 @@ func NewVignettePass(
 
 	// create program
 	program, err := rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("vignette.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/vignette.frag"),
 	)
 	if err != nil {
 		fbo.Delete()

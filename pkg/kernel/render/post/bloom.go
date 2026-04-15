@@ -162,32 +162,32 @@ func (p *BloomPass) initPrograms() error {
 	var err error
 
 	p.brightProgram, err = rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("bloom_bright.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/bloom_bright.frag"),
 	)
 	if err != nil {
 		return err
 	}
 
 	p.blurProgram, err = rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("blur.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/blur.frag"),
 	)
 	if err != nil {
 		return err
 	}
 
 	p.addProgram, err = rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("bloom_accumulate.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/bloom_accumulate.frag"),
 	)
 	if err != nil {
 		return err
 	}
 
 	p.combineProgram, err = rhi.NewProgram(
-		files.GetShaderPath("screen.vert"),
-		files.GetShaderPath("bloom_combine.frag"),
+		files.GetShaderPath("initial/screen.vert"),
+		files.GetShaderPath("initial/bloom_combine.frag"),
 	)
 	if err != nil {
 		return err

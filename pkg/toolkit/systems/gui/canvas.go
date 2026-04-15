@@ -32,8 +32,8 @@ func NewGUICanvas() (*GUICanvas, error) {
 
 	// init program
 	program, err := rhi.NewProgram(
-		files.GetShaderPath("gui_canvas.vert"),
-		files.GetShaderPath("gui_canvas.frag"),
+		files.GetShaderPath("flat/gui_canvas.vert"),
+		files.GetShaderPath("flat/gui_canvas.frag"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load gui canvas program - %w", err)

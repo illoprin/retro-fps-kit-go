@@ -3,6 +3,7 @@ package demo
 import (
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -29,6 +30,7 @@ type DemoState struct {
 	controller *controllers.EditorController
 	lastTime   time.Time
 	drawGrid   bool
+	drawShapes bool
 	showUI     bool
 
 	prefabEmissive *prefab.Prefab
@@ -64,12 +66,6 @@ func (s *DemoState) Init(api app.AppAPI) error {
 	}
 	s.canvas = canvas
 	s.resources = append(s.resources, s.canvas)
-
-	// set canvas objects
-	s.canvas.Circle(mgl.Vec2{-.25, -.25}, 0.1, mgl.Vec4{0.89, 0.706, 0.102, .5}, 16)
-	s.canvas.Rect(mgl.Vec2{.25, -.25}, mgl.Vec2{.48, .25}, mgl.Vec4{0.161, 0.486, 0.878, 0.9})
-	s.canvas.Line(mgl.Vec2{-.5, .7}, mgl.Vec2{.5, .6}, mgl.Vec4{0.929, 0.059, 0.361, .7}, 0.1)
-	s.canvas.Update()
 
 	// create obj parser
 	parser := modeldata.NewOBJParser()
@@ -271,19 +267,9 @@ func (s *DemoState) createConvexMesh(texture *rhi.Texture) {
 	s.resources = append(s.resources, mesh)
 }
 
-func (s *DemoState) ShowImgui() {
-	if s.showUI {
-		imgui.Begin("Scene")
-
-		imgui.SliderFloat("Emissive Strength", &s.prefabEmissive.EmissiveStrength, 0.0, 100.0)
-		imgui.Checkbox("Draw Grid", &s.drawGrid)
-		imgui.Checkbox("Dithering", &s.renderer.Dithering)
-
-		imgui.End()
-	}
-}
-
 func (s *DemoState) Update(deltaTime float32) {
+
+	// time
 
 	elapsed := time.Since(s.lastTime)
 
@@ -291,10 +277,14 @@ func (s *DemoState) Update(deltaTime float32) {
 		s.lastTime = time.Now()
 	}
 
+	// prefabs
+
 	shotgun := s.prefabs[0]
 	shotgun.Position = mgl.Vec3{0, 1.446, 0}
 	shotgun.Scaling = mgl.Vec3{0.25, 0.25, 0.25}
 	shotgun.Rotation[1] = -90
+
+	// input
 
 	input := s.api.GetInputManager()
 	window := s.api.GetWindow()
@@ -316,7 +306,27 @@ func (s *DemoState) Update(deltaTime float32) {
 		s.controller.Update(deltaTime)
 	}
 
-	// draw gui
+	// gui
+
+	// clear canvas
+	s.canvas.Clear()
+
+	// demo shapes
+	if s.drawShapes {
+		t := s.api.GetTime()
+		radiusDelta := .1
+		radiusBase := .25
+		radius := radiusBase + math.Sin(t)*(radiusDelta/2)
+
+		s.canvas.Circle(mgl.Vec2{-.25, -.25}, float32(radius), mgl.Vec4{0.89, 0.706, 0.102, .5}, 16)
+		s.canvas.Rect(mgl.Vec2{.25, -.25}, mgl.Vec2{.48, .25}, mgl.Vec4{0.161, 0.486, 0.878, 0.9})
+		s.canvas.Line(mgl.Vec2{-.5, .7}, mgl.Vec2{.5, .6}, mgl.Vec4{0.929, 0.059, 0.361, .7}, 0.02)
+	}
+
+	// crosshair dot
+	s.canvas.Circle(mgl.Vec2{0, 0}, 0.005, mgl.Vec4{1, 1, 1, .8}, 4)
+
+	s.canvas.Update()
 }
 
 func (s *DemoState) RenderGBuffer() {
@@ -338,13 +348,27 @@ func (s *DemoState) RenderGBuffer() {
 	}
 }
 
-func (s *DemoState) GetCamera() *camera.Camera3D {
-	s.api.GetWindow().GetConfig()
-	return s.controller.GetCamera()
+func (s *DemoState) ShowImgui() {
+	if s.showUI {
+		imgui.Begin("Scene")
+
+		imgui.SliderFloat("Emissive Strength", &s.prefabEmissive.EmissiveStrength, 0.0, 100.0)
+		imgui.Checkbox("Draw Grid", &s.drawGrid)
+		imgui.Checkbox("Dithering", &s.renderer.Dithering)
+		imgui.Checkbox("2D Shapes", &s.drawShapes)
+
+		imgui.End()
+	}
 }
 
 func (s *DemoState) RenderFlat(_ *rhi.Framebuffer) {
-	s.canvas.Draw(s.api.GetWindow().GetConfig().Aspect)
+	aspect := s.api.GetWindow().GetConfig().Aspect
+	s.canvas.Draw(aspect)
+}
+
+func (s *DemoState) GetCamera() *camera.Camera3D {
+	s.api.GetWindow().GetConfig()
+	return s.controller.GetCamera()
 }
 
 func (s *DemoState) OnKey(key glfw.Key, action glfw.Action, mods glfw.ModifierKey) {
