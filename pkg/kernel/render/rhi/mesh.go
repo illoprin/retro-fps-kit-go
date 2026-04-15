@@ -109,6 +109,7 @@ func (m *Mesh) SetElementBufferData(offset int, data []uint32) {
 }
 
 // SetAttribute - set attribute pointer
+// Allows you to set attributes for GL_FLOAT, GL_UNSIGNED_INT, and GL_INT
 // !!! BIND BEFORE USE
 func (m *Mesh) SetAttribute(vboIndex int, a VertexAttribute) {
 	if vboIndex < 0 || vboIndex >= len(m.vbos) {
@@ -117,14 +118,25 @@ func (m *Mesh) SetAttribute(vboIndex int, a VertexAttribute) {
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, m.vbos[vboIndex])
 
-	gl.VertexAttribPointer(
-		a.Index,
-		a.Components,
-		GetDataType(a.Type),
-		false,
-		a.StrideBytes,
-		unsafe.Pointer(uintptr(a.OffsetBytes)),
-	)
+	if a.Type == Integer || a.Type == UnsignedInteger {
+		gl.VertexAttribIPointer(
+			a.Index,
+			a.Components,
+			GetDataType(a.Type),
+			a.StrideBytes,
+			unsafe.Pointer(uintptr(a.OffsetBytes)),
+		)
+	} else {
+		gl.VertexAttribPointer(
+			a.Index,
+			a.Components,
+			GetDataType(a.Type),
+			false,
+			a.StrideBytes,
+			unsafe.Pointer(uintptr(a.OffsetBytes)),
+		)
+	}
+
 	gl.EnableVertexAttribArray(a.Index)
 
 	if a.Divisor > 0 {

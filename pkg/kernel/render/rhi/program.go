@@ -169,8 +169,14 @@ func (p *Program) Use() {
 
 // Delete frees the shader program resources
 func (p *Program) Delete() {
+	if p == nil {
+		return
+	}
+
 	if p.handle > 0 {
 		gl.DeleteProgram(p.handle)
+		logger.Infof("program id=%d deleted", p.handle)
+		p.handle = 0
 	}
 }
 

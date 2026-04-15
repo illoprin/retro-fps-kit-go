@@ -225,6 +225,8 @@ func (a *App) Run() {
 		}
 
 		// -- Render
+		context.BindFramebuffer(nil)
+		context.ClearColorBuffer()
 
 		// perform gbuffer rendering of current state (if needs)
 		var lastRenderTarget *rhi.Framebuffer
@@ -314,8 +316,8 @@ func (a *App) GetMonitor() *monitor.Monitor {
 	return a.monitor
 }
 
-func (a *App) GetGBuffer() *rhi.Framebuffer {
-	return a.deferred.GetFramebuffer()
+func (a *App) GetDeferredRenderTarget() *pipeline.DeferredRenderTarget {
+	return a.deferred
 }
 
 func (a *App) GetDefaultAssets() *assets.DefaultAssets {
@@ -505,11 +507,6 @@ func (a *App) initUI() {
 // -- Destroy
 
 func (a *App) Destroy() {
-
-	if a.activeState != nil {
-		a.activeState.Destroy()
-	}
-
 	// clear default assets
 	a.defaultAssets.Delete()
 

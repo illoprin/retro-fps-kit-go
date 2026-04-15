@@ -37,21 +37,21 @@ func (u *UniformBuffer) Unbind() {
 }
 
 // Allocate - allocates ubo buffer WITHOUT data
+// !!! BIND BEFORE USE
 func (u *UniformBuffer) Allocate(sizeBytes int, drawType BufferType) {
 	u.sizeBytes = sizeBytes
-	u.Bind()
 	gl.BufferData(gl.UNIFORM_BUFFER, sizeBytes, nil, GetBufferType(drawType))
 }
 
 // SetData - set data to UBO
 // offsetBytes - which byte to write from
 // sizeBytes - how many bytes
+// !!! BIND BEFORE USE
 func (u *UniformBuffer) SetData(offsetBytes int, sizeBytes int, data unsafe.Pointer) {
 	if u.handle == 0 || sizeBytes <= 0 || offsetBytes < 0 {
 		return
 	}
 
-	u.Bind()
 	gl.BufferSubData(gl.UNIFORM_BUFFER, offsetBytes, sizeBytes, data)
 }
 
@@ -70,10 +70,11 @@ func (u *UniformBuffer) BindToShader() {
 	gl.BindBufferBase(gl.UNIFORM_BUFFER, u.binding, u.handle)
 }
 
-// Delete - удаляет UBO
+// Delete - deletes UBO
 func (u *UniformBuffer) Delete() {
 	if u.handle != 0 {
 		gl.DeleteBuffers(1, &u.handle)
+		logger.Infof("UBO %d deleted", u.handle)
 		u.handle = 0
 		u.sizeBytes = 0
 	}

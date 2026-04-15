@@ -56,6 +56,7 @@ func (a *DefaultAssets) initMeshes() {
 // DrawGrid renders xz plane with grid pattern
 // smallCellSize - size in units
 // bigCellSize - size in units
+// !!! CAMERA PROJECTION VIEW matrices must be updated
 func (a *DefaultAssets) DrawGrid(camera *camera.Camera3D, gridY float32, smallCellSize float32, bigCellSize float32) {
 	a.ProgGrid.Use()
 

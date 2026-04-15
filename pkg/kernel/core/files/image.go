@@ -7,6 +7,9 @@ import (
 	"os"
 )
 
+// LoadImage - loads image
+// Returns
+// Width, Height, Image, error
 func LoadImage(f string) (int, int, image.Image, error) {
 	file, err := os.Open(f)
 	if err != nil {

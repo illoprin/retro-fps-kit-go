@@ -5,8 +5,12 @@ import (
 	"unsafe"
 
 	mgl "github.com/go-gl/mathgl/mgl32"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/camera"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/files"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/math"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
+	leveldata "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/level"
 )
 
 // 32 bytes
@@ -31,7 +35,8 @@ type LevelRenderer struct {
 
 func NewLevelRenderer(l *LevelSystem) (*LevelRenderer, error) {
 	r := &LevelRenderer{
-		level: l,
+		level:     l,
+		resources: make([]rhi.Resource, 0, 5),
 	}
 
 	// load level program
@@ -55,7 +60,15 @@ func NewLevelRenderer(l *LevelSystem) (*LevelRenderer, error) {
 	// create and upload mesh
 	r.createMesh()
 
-	r.resources = append(r.resources, r.ubo, r.program, r.diffArr, r.emiArr, r.mesh)
+	r.program.SetAttachUniformBlock("SurfaceBlock", r.ubo)
+
+	r.resources = append(r.resources,
+		r.ubo,
+		r.program,
+		r.mesh,
+		r.diffArr,
+		r.emiArr,
+	)
 
 	return r, nil
 }
@@ -63,6 +76,7 @@ func NewLevelRenderer(l *LevelSystem) (*LevelRenderer, error) {
 func (r *LevelRenderer) createUBO() {
 	r.ubo = rhi.NewUniformBuffer(0)
 	size := int(unsafe.Sizeof(SurfaceUniform{})) * len(r.surfaces)
+	r.ubo.Bind()
 	r.ubo.Allocate(size, rhi.StaticDraw)
 	r.ubo.SetAllData(unsafe.Pointer(&r.surfaces[0]))
 }
@@ -83,6 +97,8 @@ func (r *LevelRenderer) buildSurfaces() error {
 	var difData, emiData *files.RGBA8Data // textures rgba8 data
 	var err error                         // error
 	var hasDiff, hasEmi bool              // has surface diffuse or emissive
+
+	// load images
 	for i, s := range def.Surfaces {
 
 		hasDiff = s.DifFile != ""
@@ -141,11 +157,17 @@ func (r *LevelRenderer) buildSurfaces() error {
 	}
 
 	// diffuse texture array
-	diffArr, err := rhi.NewTextureArray(diffImgs)
+	diffArr, _ := rhi.NewTextureArray(diffImgs)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to build diffuse texture array - %w", err)
+	// }
 	r.diffArr = diffArr
 
 	// emission texture array
-	emiArr, err := rhi.NewTextureArray(emiImgs)
+	emiArr, _ := rhi.NewTextureArray(emiImgs)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to build emissive texture array - %w", err)
+	// }
 	r.emiArr = emiArr
 
 	// create SurfaceUniform objects
@@ -185,17 +207,96 @@ func (r *LevelRenderer) hasEmissiveArray() bool {
 }
 
 func (r *LevelRenderer) createMesh() {
+	// create mesh
 	r.mesh = rhi.NewMesh()
+
+	// create buffers
+	r.mesh.Bind()
+	r.mesh.CreateVertexBuffer()
+	r.mesh.CreateElementBuffer()
+
+	// allocate and set buffers
 	r.Update()
+
+	// set attributes
+	stride := int32(unsafe.Sizeof(leveldata.LevelVertex{}))
+	texcoordOffset := int32(unsafe.Offsetof(leveldata.LevelVertex{}.TexCoord))
+	normalOffset := int32(unsafe.Offsetof(leveldata.LevelVertex{}.Normal))
+	surfaceIdOffset := int32(unsafe.Offsetof(leveldata.LevelVertex{}.SurfaceID))
+	r.mesh.SetAttribute(0, rhi.VertexAttribute{
+		Index:       0,
+		Components:  3,
+		Type:        rhi.Float32,
+		StrideBytes: stride,
+		OffsetBytes: 0,
+	})
+	r.mesh.SetAttribute(0, rhi.VertexAttribute{
+		Index:       1,
+		Components:  2,
+		Type:        rhi.Float32,
+		StrideBytes: stride,
+		OffsetBytes: texcoordOffset,
+	})
+	r.mesh.SetAttribute(0, rhi.VertexAttribute{
+		Index:       2,
+		Components:  3,
+		Type:        rhi.Float32,
+		StrideBytes: stride,
+		OffsetBytes: normalOffset,
+	})
+	r.mesh.SetAttribute(0, rhi.VertexAttribute{
+		Index:       3,
+		Components:  1,
+		Type:        rhi.Integer,
+		StrideBytes: stride,
+		OffsetBytes: surfaceIdOffset,
+	})
 }
 
 func (r *LevelRenderer) Update() {
-	r.mesh.Bind()
+	builder := r.level.GetBuilder()
+	model := builder.GetModel()
 
+	// check dirty flag
+	if builder.IsDirty() {
+		logger.Warnf("before updating the mesh, build the level model - builder.BuildModel()")
+		return
+	}
+
+	vertices := model.Vertices
+	indices := model.Indices
+	// check vertices
+	if len(vertices) < 3 || len(indices) < 3 {
+		logger.Warnf("empty level model")
+		return
+	}
+
+	// get data byte size
+	verticesSize := len(vertices) * int(unsafe.Sizeof(leveldata.LevelVertex{}))
+	indicesSize := len(indices) * int(unsafe.Sizeof(uint32(0)))
+
+	r.mesh.Bind()
+	// allocate and set buffers
+	r.mesh.AllocateVertexBuffer(0, verticesSize, rhi.StreamDraw)
+	r.mesh.SetVertexBufferData(0, 0, verticesSize, unsafe.Pointer(&vertices[0]))
+	r.mesh.AllocateElementBuffer(indicesSize, rhi.StreamDraw)
+	r.mesh.SetElementBufferData(0, indices)
 }
 
-func (r *LevelRenderer) Render() {
+func (r *LevelRenderer) Render(
+	w, h int, camera *camera.Camera3D, wireframe bool,
+) {
+
+	if camera == nil {
+		return
+	}
+
 	r.program.Use()
+
+	// projection
+	r.program.SetMat4("u_projection", camera.GetProjection(w, h))
+	// view
+	r.program.SetMat4("u_view", camera.GetView())
 
 	if r.hasDiffuseArray() {
 		r.diffArr.BindToUnit(0)
@@ -207,7 +308,7 @@ func (r *LevelRenderer) Render() {
 		r.program.Set1i("u_emissive", 1)
 	}
 
-	r.program.SetAttachUniformBlock("SurfaceBlock", r.ubo)
+	r.program.Set1i("u_wireframe", math.BoolToInt32(wireframe))
 
 	// TODO lights
 
@@ -216,8 +317,6 @@ func (r *LevelRenderer) Render() {
 
 func (r *LevelRenderer) Delete() {
 	for _, n := range r.resources {
-		if n != nil {
-			n.Delete()
-		}
+		n.Delete()
 	}
 }

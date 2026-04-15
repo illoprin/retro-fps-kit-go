@@ -68,8 +68,6 @@ type Wall struct {
 
 	FrontSector SectorIndex
 	BackSector  SectorIndex
-
-	Portal *Sector
 }
 
 type Sector struct {
@@ -81,10 +79,6 @@ type Sector struct {
 	FloorSurf   SurfaceIndex
 	CeilingSurf SurfaceIndex
 	Dynamic     bool
-	// if the sector is a hole...
-	// the normals to the walls will point inside
-	// otherwise, the normals will point outward.
-	// Hole bool
 }
 
 // ======== Entities ========

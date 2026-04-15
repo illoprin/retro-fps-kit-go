@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Window         DisplayConfig        `yaml:"display"`
 	PostProcessing PostProcessingConfig `yaml:"post_processing"`
+	Debug          bool                 `yaml:"debug"`
 }
 
 type DisplayConfig struct {

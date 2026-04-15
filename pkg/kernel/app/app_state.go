@@ -70,7 +70,7 @@ type FlatDrawer interface {
 }
 
 // Optional: custom render pass (Forward Rendering, Skybox, Transperency)
-type IndirectDrawer interface {
-	// RenderIndirect - custom internal rendering
-	RenderIndirect()
-}
+// type IndirectDrawer interface {
+// RenderIndirect - custom internal rendering
+// RenderIndirect()
+// }

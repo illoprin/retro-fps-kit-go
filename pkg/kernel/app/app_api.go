@@ -5,7 +5,7 @@ import (
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app/config"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/monitor"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/window"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/pipeline"
 )
 
 // AppAPI provides access to engine-level subsystems and shared resources.
@@ -24,8 +24,8 @@ type AppAPI interface {
 	// GetMonitor - returns the performance monitor containing FPS and frame timing data.
 	GetMonitor() *monitor.Monitor
 
-	// GetGBuffer - provides access to the geometry buffer for custom rendering operations.
-	GetGBuffer() *rhi.Framebuffer
+	// GetDeferredRenderTarget - provides access to deferred render target object
+	GetDeferredRenderTarget() *pipeline.DeferredRenderTarget
 
 	// GetConfig - returns the current engine and application configuration settings.
 	GetConfig() *config.Config

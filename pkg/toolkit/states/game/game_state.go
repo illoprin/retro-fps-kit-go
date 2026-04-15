@@ -9,9 +9,9 @@ import (
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app/controllers"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/camera"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/math"
 	leveldata "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/level"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/level"
+	levelsys "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/level"
 )
 
 type GameState struct {
@@ -20,24 +20,20 @@ type GameState struct {
 	renderer   *levelsys.LevelRenderer
 	level      *levelsys.LevelSystem
 	controller *controllers.EditorController
-	resources  []rhi.Resource
 }
 
 func NewGameState() *GameState {
 	s := &GameState{
-		resources: make([]rhi.Resource, 0),
+		builder: leveldata.NewLevelBuilder(&demoLevel),
 	}
 
-	def := &leveldata.LevelDef{}
-
-	s.builder = leveldata.NewLevelBuilder(def)
 	s.level = levelsys.NewLevelSystem(s.builder)
 
 	return s
 }
 
-func (g *GameState) Init(e app.AppAPI) error {
-	g.api = e
+func (g *GameState) Init(a app.AppAPI) error {
+	g.api = a
 
 	def := g.builder.GetDef()
 
@@ -60,7 +56,7 @@ func (g *GameState) Init(e app.AppAPI) error {
 		}
 	}
 	g.controller = controllers.NewEditorController(
-		e.GetInputManager(), playerStart.Pos, 0.1, 0.1,
+		a.GetInputManager(), playerStart.Pos, 10.5, 0.1,
 	)
 
 	return nil
@@ -101,13 +97,21 @@ func (g *GameState) OnKey(key glfw.Key, action glfw.Action, mods glfw.ModifierKe
 }
 
 func (g *GameState) RenderGBuffer() {
-	g.renderer.Render()
+	scrConfig := g.api.GetWindow().GetConfig()
+
+	g.renderer.Render(
+		int(scrConfig.Width),
+		int(scrConfig.Height),
+		g.GetCamera(),
+		g.api.GetDeferredRenderTarget().Wireframe,
+	)
+	g.api.GetDefaultAssets().DrawGrid(g.controller.GetCamera(), math.Epsilon, 1, 10)
 }
 
-func (g *GameState) GetActiveCamera() *camera.Camera3D {
+func (g *GameState) GetCamera() *camera.Camera3D {
 	return g.controller.GetCamera()
 }
 
 func (g *GameState) Destroy() {
-
+	g.renderer.Delete()
 }

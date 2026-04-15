@@ -88,8 +88,14 @@ func (t *Texture) BindToUnit(unit uint32) {
 
 // Delete - deletes texture
 func (t *Texture) Delete() {
+	if t == nil {
+		return
+	}
+
 	if t.ID > 0 {
 		gl.DeleteTextures(1, &t.ID)
+		logger.Infof("texture id=%d deleted", t.ID)
+		t.ID = 0
 	}
 }
 
@@ -199,7 +205,7 @@ func (t *Texture) UploadLayer(x, y, layer int32, data unsafe.Pointer) {
 
 	gl.TexSubImage3D(target, 0, x, y, layer, t.Config.Width, t.Config.Height, 1, format, dataType, data)
 
-	logger.Infof("texture 3D id=%d layer uploaded", t.ID)
+	logger.Infof("texture 3D id=%d layer %d uploaded", t.ID, layer)
 
 }
 

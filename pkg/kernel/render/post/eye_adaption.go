@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"unsafe"
 
+	"github.com/go-gl/gl/v4.1-core/gl"
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/files"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/window"
@@ -143,8 +144,12 @@ func (p *EyeAdaptionPass) RenderPass(src *pipeline.DeferredRenderResult) {
 
 	// save luma value
 	// WARN gpu stall
+	gl.Finish() // WARN
 	var currentLuma float32
+	// gl.PixelStorei(gl.PACK_ALIGNMENT, 1)
 	p.luma.ReadPixels(0, 0, 1, 1, 0, rhi.FormatR32F, unsafe.Pointer(&currentLuma))
+	// gl.PixelStorei(gl.PACK_ALIGNMENT, 4)
+
 	alpha := p.cfg.AdaptionSpeed
 	currentExposure := p.cfg.AvgGray / max(currentLuma, 0.001)
 	smoothedExposure := p.prevExposure*(1.0-alpha) + currentExposure*alpha
