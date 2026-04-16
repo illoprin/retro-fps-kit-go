@@ -55,6 +55,13 @@ var (
 				BlurSize:   3,
 			},
 
+			Dithering: post.DitheringConfig{
+				Use:   true,
+				Speed: 2.0,
+				Min:   0.5,
+				Max:   1.0,
+			},
+
 			Bloom: post.BloomConfig{
 				Use:               true,
 				Threshold:         1.124,
@@ -254,7 +261,7 @@ func NewDefaultPipeline(
 	})
 	p.AddPass(&post.PassDescriptor{
 		ID:    VignetteID,
-		After: ColorGradingID,
+		After: DitheringID,
 		Pass:  vignettePass,
 	})
 

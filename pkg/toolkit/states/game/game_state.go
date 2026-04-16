@@ -11,6 +11,7 @@ import (
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/math"
 	leveldata "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/level"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/gui"
 	levelsys "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/level"
 )
 
@@ -20,6 +21,7 @@ type GameState struct {
 	renderer   *levelsys.LevelRenderer
 	level      *levelsys.Level
 	controller *controllers.EditorController
+	canvas     *gui.GUICanvas
 }
 
 func NewGameState() *GameState {
@@ -58,6 +60,15 @@ func (g *GameState) Init(a app.AppAPI) error {
 	g.controller = controllers.NewEditorController(
 		a.GetInputManager(), playerStart.Pos, 10.5, 0.1,
 	)
+
+	// create gui canvas
+	canvas, err := gui.NewGUICanvas()
+	if err != nil {
+		return err
+	}
+	canvas.Circle(mgl.Vec2{0, 0}, 0.005, mgl.Vec4{1.0, 1.0, 1.0, 1.0}, 4)
+	canvas.Update()
+	g.canvas = canvas
 
 	return nil
 }
@@ -112,6 +123,12 @@ func (g *GameState) GetCamera() *camera.Camera3D {
 	return g.controller.GetCamera()
 }
 
+func (g *GameState) RenderFlat() {
+	aspect := g.api.GetWindow().GetConfig().Aspect
+	g.canvas.Render(aspect)
+}
+
 func (g *GameState) Destroy() {
 	g.renderer.Delete()
+	g.canvas.Delete()
 }

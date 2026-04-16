@@ -258,22 +258,23 @@ func (a *App) Run() {
 			a.iUI.GetDebugUI().SetActiveCamera(state.GetCamera())
 		}
 
-		context.BindFramebuffer(lastRenderTarget)
-		// perform flat rendering of current state (if needs)
-		if state, ok := a.activeState.(FlatDrawer); ok {
-			// render flat of current app state
-			// on top of last render target
-			context.SetupBlending()
-			state.RenderFlat(lastRenderTarget)
-			context.SetBlending(false)
-		}
-
 		if lastRenderTarget != nil {
 			// blit last render target to initial framebuffer
 			lastRenderTarget.Blit(
 				0, a.window.GetConfig().Width, a.window.GetConfig().Height,
 				rhi.FilterNearest,
 			)
+		}
+
+		context.Viewport(a.window.GetConfig().Width, a.window.GetConfig().Height)
+
+		// perform flat rendering of current state (if needs)
+		if state, ok := a.activeState.(FlatDrawer); ok {
+			// render flat of current app state
+			// on top of last render target
+			context.SetupBlending()
+			state.RenderFlat()
+			context.SetBlending(false)
 		}
 
 		// render imgui on top of screen
@@ -472,6 +473,8 @@ func (a *App) initUI() {
 			editor = &ui.ToneMappingConfigUI{ToneMappingConfig: p.GetConfig().(*post.ToneMappingConfig)}
 		case *post.ColorGradingPass:
 			editor = &ui.ColorGradingUI{ColorGradingConfig: p.GetConfig().(*post.ColorGradingConfig)}
+		case *post.DitheringPass:
+			editor = &ui.DitheringUI{DitheringConfig: p.GetConfig().(*post.DitheringConfig)}
 		case *post.VignettePass:
 			editor = &ui.VignetteUI{VignetteConfig: p.GetConfig().(*post.VignetteConfig)}
 		default:

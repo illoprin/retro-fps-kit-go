@@ -70,7 +70,7 @@ func DefaultTexture2DConfig(width, height int32) TextureConfig {
 		Height:    height,
 		Depth:     1,
 		Format:    FormatRGBA8,
-		FilterMin: FilterLinearMipmapLinear,
+		FilterMin: FilterNearestMipmapLinear,
 		FilterMag: FilterNearest,
 		WrapS:     WrapRepeat,
 		WrapT:     WrapRepeat,
@@ -112,8 +112,8 @@ func NewTextureFromImage(path string, config TextureConfig) (*Texture, error) {
 	config.Height = int32(height)
 
 	t := NewTexture(config)
-	t.Bind()
 	t.Upload2D(0, 0, unsafe.Pointer(&rgba.Pix[0]))
+	t.GenerateMipmaps()
 
 	return t, nil
 }
@@ -132,7 +132,7 @@ func NewTextureArray(imgs []*files.RGBA8Data) (*Texture, error) {
 		Height:    imgs[0].H,
 		Depth:     int32(len(imgs)),
 		Format:    FormatRGBA8,
-		FilterMin: FilterLinearMipmapLinear,
+		FilterMin: FilterNearestMipmapLinear,
 		FilterMag: FilterNearest,
 		WrapS:     WrapRepeat,
 		WrapT:     WrapRepeat,

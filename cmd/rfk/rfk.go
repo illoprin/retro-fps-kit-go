@@ -24,10 +24,11 @@ func main() {
 	a.SetActiveState(s)
 
 	// s := demo.NewDemoState()
-	// if err := s.Init(e); err != nil {
-	// panic(err)
+	// if err := s.Init(a); err != nil {
+	// 	panic(err)
 	// }
-	// e.SetActiveState(s)
+	// defer s.Destroy()
+	// a.SetActiveState(s)
 
 	a.Run()
 }

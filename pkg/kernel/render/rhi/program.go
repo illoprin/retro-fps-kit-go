@@ -13,7 +13,6 @@ package rhi
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"strings"
 
@@ -98,7 +97,7 @@ func (p *Program) getUniformLocation(name string) int32 {
 
 	// print warning
 	if loc == -1 {
-		slog.Warn("undefined uniform name %s", name)
+		logger.Warnf("undefined uniform name %s", name)
 	}
 	return loc
 }

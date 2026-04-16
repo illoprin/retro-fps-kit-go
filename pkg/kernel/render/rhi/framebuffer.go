@@ -150,7 +150,7 @@ func (fb *Framebuffer) Check() bool {
 		statusStr = "UNKNOWN_ERROR"
 	}
 	if status != gl.FRAMEBUFFER_COMPLETE {
-		logger.Infof("fbo id=%d broken, current status is %s", fb.ID, statusStr)
+		logger.Warnf("fbo id=%d broken, current status is %s", fb.ID, statusStr)
 		return false
 	}
 	return true

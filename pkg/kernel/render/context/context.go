@@ -216,3 +216,7 @@ func BindFramebuffer(f FramebufferProvider) {
 	}
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 }
+
+func Viewport(w, h int32) {
+	gl.Viewport(0, 0, w, h)
+}

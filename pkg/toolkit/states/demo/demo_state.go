@@ -331,7 +331,6 @@ func (s *DemoState) RenderGBuffer() {
 		int(winConfig.Width),
 		int(winConfig.Height),
 		s.controller.GetCamera(),
-		float32(s.api.GetTime()),
 	)
 	for _, p := range s.prefabs {
 		s.renderer.Render(p)
@@ -347,16 +346,15 @@ func (s *DemoState) ShowImgui() {
 
 		imgui.SliderFloat("Emissive Strength", &s.prefabEmissive.EmissiveStrength, 0.0, 100.0)
 		imgui.Checkbox("Draw Grid", &s.drawGrid)
-		imgui.Checkbox("Dithering", &s.renderer.Dithering)
 		imgui.Checkbox("2D Shapes", &s.drawShapes)
 
 		imgui.End()
 	}
 }
 
-func (s *DemoState) RenderFlat(_ *rhi.Framebuffer) {
+func (s *DemoState) RenderFlat() {
 	aspect := s.api.GetWindow().GetConfig().Aspect
-	s.canvas.Draw(aspect)
+	s.canvas.Render(aspect)
 }
 
 func (s *DemoState) GetCamera() *camera.Camera3D {

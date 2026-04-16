@@ -166,8 +166,6 @@ func (c *GUICanvas) Update() {
 		return
 	}
 
-	c.mesh.Bind()
-
 	c.mesh.SetVertexBufferData(
 		0,
 		0,
@@ -180,8 +178,8 @@ func (c *GUICanvas) Update() {
 	c.dirty = false
 }
 
-// Draw - render canvas in active framebuffer
-func (c *GUICanvas) Draw(aspect float32) {
+// Render - render canvas in active framebuffer
+func (c *GUICanvas) Render(aspect float32) {
 	if len(c.indices) == 0 {
 		return
 	}

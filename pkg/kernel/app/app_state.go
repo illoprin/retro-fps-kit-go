@@ -3,7 +3,6 @@ package app
 import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/camera"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 )
 
 // AppState defines the lifecycle and event
@@ -66,7 +65,7 @@ type UIDrawer interface {
 type FlatDrawer interface {
 	// RenderFlat - renders 2D on top of scene
 	// last - framebuffer on which something can be drawn
-	RenderFlat(last *rhi.Framebuffer)
+	RenderFlat()
 }
 
 // Optional: custom render pass (Forward Rendering, Skybox, Transperency)

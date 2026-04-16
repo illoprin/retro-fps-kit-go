@@ -140,6 +140,21 @@ func (c *ColorGradingUI) ShowUI() {
 	imgui.SliderFloat("cg_ColorStrength", &c.ColorStrength, 0, 1.1)
 }
 
+type DitheringUI struct {
+	*post.DitheringConfig
+}
+
+func (c *DitheringUI) GetName() string {
+	return "Dithering (LDR)"
+}
+
+func (c *DitheringUI) ShowUI() {
+	imgui.Checkbox("d_Use", &c.Use)
+	imgui.SliderFloat("d_Min", &c.Min, 0.0, 0.99)
+	imgui.SliderFloat("d_Max", &c.Max, 0.0, 1.0)
+	imgui.SliderFloat("d_Speed", &c.Speed, 0.0, 100.0)
+}
+
 type VignetteUI struct {
 	*post.VignetteConfig
 }
