@@ -54,7 +54,7 @@ func NewDebugUI(
 		showVertices:    true,
 
 		// set visibility
-		Visible: true,
+		Visible: false,
 	}
 
 	// prepare passes array

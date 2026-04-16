@@ -6,22 +6,22 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app/controllers"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/camera"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/math"
 	leveldata "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/level"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/entities/player"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/gui"
 	levelsys "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/level"
 )
 
 type GameState struct {
-	api        app.AppAPI
-	builder    *leveldata.LevelBuilder
-	renderer   *levelsys.LevelRenderer
-	level      *levelsys.Level
-	controller *controllers.EditorController
-	canvas     *gui.GUICanvas
+	api      app.AppAPI
+	builder  *leveldata.LevelBuilder
+	renderer *levelsys.LevelRenderer
+	level    *levelsys.Level
+	fps      *player.FPSController
+	canvas   *gui.GUICanvas
 }
 
 func NewGameState() *GameState {
@@ -57,8 +57,11 @@ func (g *GameState) Init(a app.AppAPI) error {
 			Pos: mgl.Vec3{0, 0, 0},
 		}
 	}
-	g.controller = controllers.NewEditorController(
-		a.GetInputManager(), playerStart.Pos, 10.5, 0.1,
+	g.fps = player.NewFPSController(
+		g.api.GetInputManager(),
+		playerStart.Pos,
+		playerStart.Rot[1],
+		0.1,
 	)
 
 	// create gui canvas
@@ -74,27 +77,28 @@ func (g *GameState) Init(a app.AppAPI) error {
 }
 
 func (g *GameState) Update(deltaTime float32) {
-	g.level.Update(deltaTime)
 
 	input := g.api.GetInputManager()
 	window := g.api.GetWindow()
 
-	canUpdateController := false
+	canProcessPlayerControls := false
 
 	// update the controller only if game mode
 	//
 	// or lmb pressed
 	if window.GetCursorDisabled() {
-		canUpdateController = true
+		canProcessPlayerControls = true
 	} else {
 		if !g.api.GUIWantCaptureMouse() && input.IsMouseButtonPressed(glfw.MouseButton1) {
-			canUpdateController = true
+			canProcessPlayerControls = true
 		}
 	}
-
-	if canUpdateController {
-		g.controller.Update(deltaTime)
+	if canProcessPlayerControls {
+		g.fps.ProcessInput(deltaTime)
 	}
+
+	g.fps.Update(deltaTime)
+	g.level.Update(deltaTime)
 }
 
 func (g *GameState) OnKey(key glfw.Key, action glfw.Action, mods glfw.ModifierKey) {
@@ -116,11 +120,11 @@ func (g *GameState) RenderGBuffer() {
 		g.GetCamera(),
 		g.api.GetDeferredRenderTarget().Wireframe,
 	)
-	g.api.GetDefaultAssets().DrawGrid(g.controller.GetCamera(), math.Epsilon, 1, 10)
+	g.api.GetDefaultAssets().DrawGrid(g.fps.GetCamera(), math.Epsilon, 1, 10)
 }
 
 func (g *GameState) GetCamera() *camera.Camera3D {
-	return g.controller.GetCamera()
+	return g.fps.GetCamera()
 }
 
 func (g *GameState) RenderFlat() {
