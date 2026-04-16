@@ -23,15 +23,14 @@ func CreateNoiseTexture() *rhi.Texture {
 		noiseRaw[i*3+2] = 0
 	}
 	noiseTextureConfig := rhi.TextureConfig{
-		Type:            rhi.TextureType2D,
-		Width:           noiseSize,
-		Height:          noiseSize,
-		Format:          rhi.FormatRGB8,
-		FilterMin:       rhi.FilterNearest,
-		FilterMag:       rhi.FilterNearest,
-		WrapS:           rhi.WrapRepeat,
-		WrapT:           rhi.WrapRepeat,
-		GenerateMipmaps: false,
+		Type:      rhi.TextureType2D,
+		Width:     noiseSize,
+		Height:    noiseSize,
+		Format:    rhi.FormatRGB8,
+		FilterMin: rhi.FilterNearest,
+		FilterMag: rhi.FilterNearest,
+		WrapS:     rhi.WrapRepeat,
+		WrapT:     rhi.WrapRepeat,
 	}
 	noiseTexture := rhi.NewTexture(noiseTextureConfig)
 	noiseTexture.Upload2D(0, 0, unsafe.Pointer(&noiseRaw[0]))

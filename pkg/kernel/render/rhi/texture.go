@@ -20,18 +20,17 @@ import (
 
 // TextureConfig config for texture create
 type TextureConfig struct {
-	Type            TextureType
-	Width           int32
-	Height          int32
-	Depth           int32 // for TextureType2DArray
-	Format          TextureFormat
-	FilterMin       TextureFilter
-	FilterMag       TextureFilter
-	WrapS           TextureWrap
-	WrapT           TextureWrap
-	WrapR           TextureWrap
-	GenerateMipmaps bool
-	LodBias         float32
+	Type      TextureType
+	Width     int32
+	Height    int32
+	Depth     int32 // for TextureType2DArray
+	Format    TextureFormat
+	FilterMin TextureFilter
+	FilterMag TextureFilter
+	WrapS     TextureWrap
+	WrapT     TextureWrap
+	WrapR     TextureWrap
+	LodBias   float32
 }
 
 // Texture - wrapper over an OpenGL object

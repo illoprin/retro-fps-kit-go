@@ -72,7 +72,7 @@ func NewSSAOPass(
 }
 
 func (p *SSAOPass) ResizeCallback() {
-	// get fb size
+	// get screen size
 	fbWidth, fbHeight := p.screen.GetScreenSize()
 
 	// resize attachments

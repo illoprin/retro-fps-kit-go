@@ -99,6 +99,7 @@ var (
 	ToneMappingID  post.PassID = "tonemapping"
 	ColorGradingID post.PassID = "color_grading"
 	VignetteID     post.PassID = "vignette"
+	DitheringID    post.PassID = "dithering"
 )
 
 type DefaultPipeline struct {
@@ -200,6 +201,13 @@ func NewDefaultPipeline(
 		return nil, fmt.Errorf("color grading pass - %w", err)
 	}
 
+	// -- dithering
+	ditheringPass, err := post.NewDitheringPass(shared, &cfg.Dithering)
+	if err != nil {
+		p.Delete()
+		return nil, fmt.Errorf("dithering pass - %w", err)
+	}
+
 	// -- vignettePass
 	vignettePass, err := post.NewVignettePass(shared, &cfg.Vignette)
 	if err != nil {
@@ -238,6 +246,11 @@ func NewDefaultPipeline(
 		ID:    ColorGradingID,
 		After: ToneMappingID,
 		Pass:  colorGradingPass,
+	})
+	p.AddPass(&post.PassDescriptor{
+		ID:    DitheringID,
+		After: ColorGradingID,
+		Pass:  ditheringPass,
 	})
 	p.AddPass(&post.PassDescriptor{
 		ID:    VignetteID,

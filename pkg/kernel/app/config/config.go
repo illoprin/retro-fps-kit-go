@@ -27,6 +27,7 @@ type PostProcessingConfig struct {
 	Bloom        post.BloomConfig        `yaml:"bloom"`
 	Tonemapping  post.ToneMappingConfig  `yaml:"tonemapping"`
 	Vignette     post.VignetteConfig     `yaml:"vignette"`
+	Dithering    post.DitheringConfig    `yaml:"dithering"`
 }
 
 // LoadConfig creates new config object from yaml

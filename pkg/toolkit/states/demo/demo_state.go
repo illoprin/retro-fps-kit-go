@@ -107,28 +107,22 @@ func (s *DemoState) Init(api app.AppAPI) error {
 	}
 
 	// shotgun mesh
-	meshShotgun := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(meshShotgun, shotgunModel)
+	meshShotgun := modeldata.NewMeshFromModel(shotgunModel)
 
 	// floor mesh
-	meshFloor := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(meshFloor, floorModel)
+	meshFloor := modeldata.NewMeshFromModel(floorModel)
 
 	// ceiling mesh
-	meshCeiling := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(meshCeiling, ceilingModel)
+	meshCeiling := modeldata.NewMeshFromModel(ceilingModel)
 
 	// walls mesh
-	meshWalls := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(meshWalls, wallsModel)
+	meshWalls := modeldata.NewMeshFromModel(wallsModel)
 
 	// walls mesh
-	meshTable := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(meshTable, tableModel)
+	meshTable := modeldata.NewMeshFromModel(tableModel)
 
 	// emissive part mesh
-	meshEmissive := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(meshEmissive, emissiveModel)
+	meshEmissive := modeldata.NewMeshFromModel(emissiveModel)
 
 	texConfig := rhi.DefaultTexture2DConfig(0, 0)
 
@@ -256,8 +250,7 @@ func (s *DemoState) createConvexMesh(texture *rhi.Texture) {
 		Vertices: modelVertices,
 		Indices:  modelIndices,
 	}
-	mesh := rhi.NewMesh()
-	modeldata.SetupMeshFromModel(mesh, &model)
+	mesh := modeldata.NewMeshFromModel(&model)
 
 	// create prefab
 	s.prefabs = append(s.prefabs,

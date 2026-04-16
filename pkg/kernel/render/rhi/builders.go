@@ -65,18 +65,17 @@ func SetupBasicQuadMesh(m *Mesh) {
 // DefaultTexture2DConfig - returns default texture config
 func DefaultTexture2DConfig(width, height int32) TextureConfig {
 	return TextureConfig{
-		Type:            TextureType2D,
-		Width:           width,
-		Height:          height,
-		Depth:           1,
-		Format:          FormatRGBA8,
-		FilterMin:       FilterLinearMipmapLinear,
-		FilterMag:       FilterNearest,
-		WrapS:           WrapRepeat,
-		WrapT:           WrapRepeat,
-		WrapR:           WrapRepeat,
-		GenerateMipmaps: true,
-		LodBias:         0,
+		Type:      TextureType2D,
+		Width:     width,
+		Height:    height,
+		Depth:     1,
+		Format:    FormatRGBA8,
+		FilterMin: FilterLinearMipmapLinear,
+		FilterMag: FilterNearest,
+		WrapS:     WrapRepeat,
+		WrapT:     WrapRepeat,
+		WrapR:     WrapRepeat,
+		LodBias:   0,
 	}
 }
 
@@ -116,12 +115,6 @@ func NewTextureFromImage(path string, config TextureConfig) (*Texture, error) {
 	t.Bind()
 	t.Upload2D(0, 0, unsafe.Pointer(&rgba.Pix[0]))
 
-	if config.GenerateMipmaps {
-		t.GenerateMipmaps()
-	}
-
-	t.unbind()
-
 	return t, nil
 }
 
@@ -134,16 +127,15 @@ func NewTextureArray(imgs []*files.RGBA8Data) (*Texture, error) {
 	}
 
 	tex := NewTexture(TextureConfig{
-		Type:            TextureType2DArray,
-		Width:           imgs[0].W,
-		Height:          imgs[0].H,
-		Depth:           int32(len(imgs)),
-		Format:          FormatRGBA8,
-		FilterMin:       FilterLinearMipmapLinear,
-		FilterMag:       FilterNearest,
-		WrapS:           WrapRepeat,
-		WrapT:           WrapRepeat,
-		GenerateMipmaps: true,
+		Type:      TextureType2DArray,
+		Width:     imgs[0].W,
+		Height:    imgs[0].H,
+		Depth:     int32(len(imgs)),
+		Format:    FormatRGBA8,
+		FilterMin: FilterLinearMipmapLinear,
+		FilterMag: FilterNearest,
+		WrapS:     WrapRepeat,
+		WrapT:     WrapRepeat,
 	})
 
 	tex.Bind()
@@ -168,7 +160,6 @@ func NewFramebufferColorTexture(
 	config.FilterMag = filter
 	config.WrapS = WrapClampToEdge
 	config.WrapT = WrapClampToEdge
-	config.GenerateMipmaps = false
 
 	return NewTexture(config)
 }
@@ -181,7 +172,6 @@ func NewFramebufferDepthTexture(width, height int32, format TextureFormat) *Text
 	config.FilterMag = FilterNearest
 	config.WrapS = WrapClampToEdge
 	config.WrapT = WrapClampToEdge
-	config.GenerateMipmaps = false
 
 	return NewTexture(config)
 }
@@ -189,17 +179,16 @@ func NewFramebufferDepthTexture(width, height int32, format TextureFormat) *Text
 // NewCubeMap создаёт Cubemap текстуру
 func NewCubeMap(size int32, generateMipmaps bool) *Texture {
 	config := TextureConfig{
-		Type:            TextureTypeCubeMap,
-		Width:           size,
-		Height:          size,
-		Depth:           1,
-		Format:          FormatRGBA8,
-		FilterMin:       FilterLinearMipmapLinear,
-		FilterMag:       FilterLinear,
-		WrapS:           WrapClampToEdge,
-		WrapT:           WrapClampToEdge,
-		WrapR:           WrapClampToEdge,
-		GenerateMipmaps: generateMipmaps,
+		Type:      TextureTypeCubeMap,
+		Width:     size,
+		Height:    size,
+		Depth:     1,
+		Format:    FormatRGBA8,
+		FilterMin: FilterLinearMipmapLinear,
+		FilterMag: FilterLinear,
+		WrapS:     WrapClampToEdge,
+		WrapT:     WrapClampToEdge,
+		WrapR:     WrapClampToEdge,
 	}
 
 	return NewTexture(config)

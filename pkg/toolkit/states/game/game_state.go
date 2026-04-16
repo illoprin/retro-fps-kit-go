@@ -18,7 +18,7 @@ type GameState struct {
 	api        app.AppAPI
 	builder    *leveldata.LevelBuilder
 	renderer   *levelsys.LevelRenderer
-	level      *levelsys.LevelSystem
+	level      *levelsys.Level
 	controller *controllers.EditorController
 }
 

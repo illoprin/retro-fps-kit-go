@@ -6,7 +6,7 @@ import (
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 )
 
-func SetupMeshFromModel(msh *rhi.Mesh, mod *Model) {
+func NewMeshFromModel(mod *Model) (msh *rhi.Mesh) {
 
 	if len(mod.Vertices) == 0 || len(mod.Indices) < 3 {
 		return
@@ -16,17 +16,14 @@ func SetupMeshFromModel(msh *rhi.Mesh, mod *Model) {
 	vertsSize := int(stride) * len(mod.Vertices)
 	indicesSize := int(unsafe.Sizeof(mod.Indices[0])) * len(mod.Indices)
 
-	msh.Bind() // CREATE BINDING
+	msh = rhi.NewMesh()
 
-	// buffer for position, texcoord, normal
+	// build layout
+	msh.Bind()
+
+	// create buffers
 	vboIndex := msh.CreateVertexBuffer()
-	msh.AllocateVertexBuffer(vboIndex, vertsSize, rhi.StaticDraw)
-	msh.SetVertexBufferData(vboIndex, 0, vertsSize, unsafe.Pointer(&mod.Vertices[0]))
-
-	// indices
 	msh.CreateElementBuffer()
-	msh.AllocateElementBuffer(indicesSize, rhi.StaticDraw)
-	msh.SetElementBufferData(0, mod.Indices)
 
 	// position
 	msh.SetAttribute(vboIndex, rhi.VertexAttribute{
@@ -55,4 +52,12 @@ func SetupMeshFromModel(msh *rhi.Mesh, mod *Model) {
 		OffsetBytes: 5 * rhi.SizeOfFloat32,
 	})
 
+	msh.Unbind()
+
+	msh.AllocateVertexBuffer(vboIndex, vertsSize, rhi.StaticDraw)
+	msh.SetVertexBufferData(vboIndex, 0, vertsSize, unsafe.Pointer(&mod.Vertices[0]))
+	msh.AllocateElementBuffer(indicesSize, rhi.StaticDraw)
+	msh.SetElementBufferData(0, mod.Indices)
+
+	return msh
 }

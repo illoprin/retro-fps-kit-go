@@ -96,7 +96,7 @@ func (p *ToneMappingPass) initFramebuffer() error {
 
 	fbo := rhi.NewFramebuffer(w, h)
 	fbo.Bind()
-	fbo.NewColorAttachment(rhi.FormatRGBA8, rhi.FilterNearest)
+	fbo.NewColorAttachment(rhi.FormatRGB8, rhi.FilterNearest)
 
 	if !fbo.Check() {
 		fbo.Delete()

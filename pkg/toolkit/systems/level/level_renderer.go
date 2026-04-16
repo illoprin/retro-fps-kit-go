@@ -29,11 +29,11 @@ type LevelRenderer struct {
 	emiArr    *rhi.Texture
 	ubo       *rhi.UniformBuffer
 	surfaces  []SurfaceUniform
-	level     *LevelSystem
+	level     *Level
 	resources []rhi.Resource
 }
 
-func NewLevelRenderer(l *LevelSystem) (*LevelRenderer, error) {
+func NewLevelRenderer(l *Level) (*LevelRenderer, error) {
 	r := &LevelRenderer{
 		level:     l,
 		resources: make([]rhi.Resource, 0, 5),
