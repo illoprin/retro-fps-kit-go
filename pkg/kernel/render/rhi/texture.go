@@ -32,7 +32,6 @@ type TextureConfig struct {
 	WrapR           TextureWrap
 	GenerateMipmaps bool
 	LodBias         float32
-	Anisotropy      float32 // уровень анизотропной фильтрации (0 = выкл)
 }
 
 // Texture - wrapper over an OpenGL object
@@ -122,7 +121,7 @@ func (t *Texture) setParams() {
 		t.Config.Format == FormatDepth24 ||
 		t.Config.Format == FormatDepth24Stencil8 ||
 		t.Config.Format == FormatDepth32F {
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.NONE)
+		gl.TexParameteri(target, gl.TEXTURE_COMPARE_MODE, gl.NONE)
 	}
 
 	// -- lod bias
@@ -130,16 +129,6 @@ func (t *Texture) setParams() {
 		gl.TexParameterf(target, gl.TEXTURE_LOD_BIAS, t.Config.LodBias)
 	}
 
-	// -- anisotropic filtering
-	if t.Config.Anisotropy > 0 {
-		var maxAnisotropy float32
-		gl.GetFloatv(gl.MAX_TEXTURE_MAX_ANISOTROPY, &maxAnisotropy)
-		anisotropy := t.Config.Anisotropy
-		if anisotropy > maxAnisotropy {
-			anisotropy = maxAnisotropy
-		}
-		gl.TexParameterf(target, gl.TEXTURE_MAX_ANISOTROPY, anisotropy)
-	}
 }
 
 func (t *Texture) GetPixels(format TextureFormat, mipMapLevel int32, ptr unsafe.Pointer) {

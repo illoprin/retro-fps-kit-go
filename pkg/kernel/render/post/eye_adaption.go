@@ -69,7 +69,7 @@ func NewEyeAdaptionPass(
 	sW, sH := p.screen.GetScreenSize()
 	ldr := rhi.NewFramebuffer(sW, sH)
 	ldr.Bind()
-	ldr.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
+	ldr.NewColorAttachment(rhi.FormatRGBA16F, rhi.FilterNearest)
 	if !ldr.Check() {
 		ldr.Delete()
 		return nil, fmt.Errorf("incomplete ldr fbo")
@@ -146,9 +146,7 @@ func (p *EyeAdaptionPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	// WARN gpu stall
 	gl.Finish() // WARN
 	var currentLuma float32
-	// gl.PixelStorei(gl.PACK_ALIGNMENT, 1)
 	p.luma.ReadPixels(0, 0, 1, 1, 0, rhi.FormatR32F, unsafe.Pointer(&currentLuma))
-	// gl.PixelStorei(gl.PACK_ALIGNMENT, 4)
 
 	alpha := p.cfg.AdaptionSpeed
 	currentExposure := p.cfg.AvgGray / max(currentLuma, 0.001)

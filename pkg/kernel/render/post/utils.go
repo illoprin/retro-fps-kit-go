@@ -32,7 +32,6 @@ func CreateNoiseTexture() *rhi.Texture {
 		WrapS:           rhi.WrapRepeat,
 		WrapT:           rhi.WrapRepeat,
 		GenerateMipmaps: false,
-		Anisotropy:      0,
 	}
 	noiseTexture := rhi.NewTexture(noiseTextureConfig)
 	noiseTexture.Upload2D(0, 0, unsafe.Pointer(&noiseRaw[0]))

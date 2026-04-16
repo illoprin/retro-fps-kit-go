@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/context"
 )
 
 type Mesh struct {
@@ -42,7 +43,6 @@ func (m *Mesh) CreateVertexBuffer() int {
 }
 
 // AllocateVertexBuffer - allocates memory for VBO
-// !!! BIND BEFORE USE
 func (m *Mesh) AllocateVertexBuffer(index int, sizeBytes int, bType BufferType) {
 	if index < 0 || index >= len(m.vbos) {
 		return
@@ -55,7 +55,6 @@ func (m *Mesh) AllocateVertexBuffer(index int, sizeBytes int, bType BufferType) 
 }
 
 // SetVertexBufferData - updates data in VBO
-// !!! BIND BEFORE USE
 func (m *Mesh) SetVertexBufferData(
 	index int,
 	offsetBytes int,
@@ -70,7 +69,7 @@ func (m *Mesh) SetVertexBufferData(
 	gl.BufferSubData(gl.ARRAY_BUFFER, offsetBytes, sizeBytes, data)
 }
 
-// CreateElementBuffer - creates EBO object
+// CreateElementBuffer - creates EBO object for VAO
 // !!! BIND BEFORE USE
 func (m *Mesh) CreateElementBuffer() {
 	if m.ebo != 0 {
@@ -78,10 +77,11 @@ func (m *Mesh) CreateElementBuffer() {
 	}
 
 	gl.GenBuffers(1, &m.ebo)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ebo)
 }
 
 // AllocateElementBuffer - allocates memory for EBO (indices) data
-// !!! BIND BEFORE USE
+// !!! BE CAREFUL WITH VAO BINDING (Binding = m.VAO; Binding = 0)
 func (m *Mesh) AllocateElementBuffer(sizeBytes int, bType BufferType) {
 	if m.ebo == 0 {
 		return
@@ -94,7 +94,7 @@ func (m *Mesh) AllocateElementBuffer(sizeBytes int, bType BufferType) {
 }
 
 // SetElementBufferData - update EBO (indices) data
-// !!! BIND BEFORE USE
+// !!! BE CAREFUL WITH VAO BINDING (Binding = m.VAO; Binding = 0)
 func (m *Mesh) SetElementBufferData(offset int, data []uint32) {
 	if m.ebo == 0 || len(data) == 0 {
 		return
@@ -108,7 +108,7 @@ func (m *Mesh) SetElementBufferData(offset int, data []uint32) {
 	m.indexCount = uint32(len(data))
 }
 
-// SetAttribute - set attribute pointer
+// SetAttribute - set attribute pointer based on VBO object
 // Allows you to set attributes for GL_FLOAT, GL_UNSIGNED_INT, and GL_INT
 // !!! BIND BEFORE USE
 func (m *Mesh) SetAttribute(vboIndex int, a VertexAttribute) {
@@ -148,6 +148,10 @@ func (m *Mesh) Bind() {
 	gl.BindVertexArray(m.vao)
 }
 
+func (m *Mesh) Unbind() {
+	gl.BindVertexArray(0)
+}
+
 func (m *Mesh) Draw() {
 
 	if m.vao <= 0 || m.indexCount < 3 || m.ebo == 0 {
@@ -156,6 +160,8 @@ func (m *Mesh) Draw() {
 	m.Bind()
 
 	gl.DrawElements(gl.TRIANGLES, int32(m.indexCount), gl.UNSIGNED_INT, nil)
+
+	context.Assert("Mesh.Draw")
 
 	// update stats
 	FrameStats.DrawCalls++
@@ -171,6 +177,8 @@ func (m *Mesh) DrawInstanced(instances int32) {
 
 	gl.DrawElementsInstanced(gl.TRIANGLES, int32(m.indexCount), gl.UNSIGNED_INT, nil, instances)
 
+	context.Assert("Mesh.Draw")
+
 	// update stats
 	FrameStats.DrawCalls++
 	FrameStats.Vertices += uint64(m.indexCount) * uint64(instances)
@@ -178,6 +186,10 @@ func (m *Mesh) DrawInstanced(instances int32) {
 }
 
 func (m *Mesh) Delete() {
+	if m == nil {
+		return
+	}
+
 	if m.vao != 0 {
 		gl.DeleteVertexArrays(1, &m.vao)
 	}

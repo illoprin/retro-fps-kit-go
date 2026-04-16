@@ -109,7 +109,7 @@ func (p *SSAOPass) initFramebuffers() error {
 	// init composition buffer
 	composition := rhi.NewFramebuffer(W, H)
 	composition.Bind()
-	composition.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
+	composition.NewColorAttachment(rhi.FormatRGBA16F, rhi.FilterNearest)
 	if !composition.Check() {
 		composition.Delete()
 		return fmt.Errorf("composition fbo not completed")

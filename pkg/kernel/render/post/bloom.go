@@ -130,7 +130,7 @@ func (p *BloomPass) initFramebuffers() error {
 	makeFBO := func(w, h int32, ft rhi.TextureFilter) (*rhi.Framebuffer, error) {
 		f := rhi.NewFramebuffer(w, h)
 		f.Bind()
-		f.NewColorAttachment(rhi.FormatRGB16F, ft)
+		f.NewColorAttachment(rhi.FormatRGBA16F, ft)
 		if !f.Check() {
 			f.Delete()
 			return nil, fmt.Errorf("bloom fbo not complete")

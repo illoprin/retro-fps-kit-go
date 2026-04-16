@@ -210,13 +210,12 @@ func (r *LevelRenderer) createMesh() {
 	// create mesh
 	r.mesh = rhi.NewMesh()
 
+	// build layout
+
 	// create buffers
 	r.mesh.Bind()
 	r.mesh.CreateVertexBuffer()
 	r.mesh.CreateElementBuffer()
-
-	// allocate and set buffers
-	r.Update()
 
 	// set attributes
 	stride := int32(unsafe.Sizeof(leveldata.LevelVertex{}))
@@ -251,9 +250,15 @@ func (r *LevelRenderer) createMesh() {
 		StrideBytes: stride,
 		OffsetBytes: surfaceIdOffset,
 	})
+
+	// allocate and set buffers
+	r.Update()
 }
 
 func (r *LevelRenderer) Update() {
+
+	r.mesh.Unbind() // glBindVertexArrays(0)
+
 	builder := r.level.GetBuilder()
 	model := builder.GetModel()
 
@@ -275,7 +280,6 @@ func (r *LevelRenderer) Update() {
 	verticesSize := len(vertices) * int(unsafe.Sizeof(leveldata.LevelVertex{}))
 	indicesSize := len(indices) * int(unsafe.Sizeof(uint32(0)))
 
-	r.mesh.Bind()
 	// allocate and set buffers
 	r.mesh.AllocateVertexBuffer(0, verticesSize, rhi.StreamDraw)
 	r.mesh.SetVertexBufferData(0, 0, verticesSize, unsafe.Pointer(&vertices[0]))

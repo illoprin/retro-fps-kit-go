@@ -55,10 +55,10 @@ func (t *DeferredRenderTarget) setupFramebuffer() error {
 	deferredFBO.NewColorAttachment(rhi.FormatRGBA16F, rhi.FilterNearest) // HDR
 
 	// normal
-	deferredFBO.NewColorAttachment(rhi.FormatRGB16F, rhi.FilterNearest)
+	deferredFBO.NewColorAttachment(rhi.FormatRGBA16F, rhi.FilterNearest)
 
 	// position
-	deferredFBO.NewColorAttachment(rhi.FormatRGB32F, rhi.FilterNearest)
+	deferredFBO.NewColorAttachment(rhi.FormatRGBA32F, rhi.FilterNearest)
 
 	// set draw buffers
 	deferredFBO.SetDrawBuffers([]int{0, 1, 2})

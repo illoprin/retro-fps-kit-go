@@ -185,6 +185,7 @@ func (a *App) resizeRenderTargets() {
 func (a *App) Run() {
 
 	a.SetCursor(CursorPointer)
+	context.Assert("app start")
 
 	for !a.window.ShouldClose() {
 

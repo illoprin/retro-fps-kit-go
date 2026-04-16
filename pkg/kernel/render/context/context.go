@@ -1,12 +1,13 @@
 package context
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
 )
 
 type ContextState struct {
@@ -87,10 +88,43 @@ func SetupDebugOutput() {
 			return // trash filter
 		}
 
-		log.Printf("[GL][%d][%d] severity=%d: %s\n",
-			source, gltype, severity, message,
+		logger.Warnf("GL - source:%d - type:%s - severity:%d - %s",
+			source,
+			errorString(gltype),
+			severity,
+			message,
 		)
 	}), nil)
+}
+
+func errorString(err uint32) string {
+	switch err {
+	case gl.NO_ERROR:
+		return "GL_NO_ERROR"
+	case gl.INVALID_ENUM:
+		return "GL_INVALID_ENUM"
+	case gl.INVALID_VALUE:
+		return "GL_INVALID_VALUE"
+	case gl.INVALID_OPERATION:
+		return "GL_INVALID_OPERATION"
+	case gl.OUT_OF_MEMORY:
+		return "GL_OUT_OF_MEMORY"
+	case gl.INVALID_FRAMEBUFFER_OPERATION:
+		return "GL_INVALID_FRAMEBUFFER_OPERATION"
+	default:
+		return fmt.Sprintf("UNKNOWN_GL_ERROR_%d", err)
+	}
+}
+
+func Assert(label string) {
+	for {
+		err := gl.GetError()
+		if err == gl.NO_ERROR {
+			break
+		}
+
+		logger.Warnf("[GL ASSERT] %s -> %s", label, errorString(err))
+	}
 }
 
 func SetupForGeometry() {
@@ -171,7 +205,11 @@ func SetupViewport(xo, yo, w, h int32) {
 	gl.Viewport(xo, yo, w, h)
 }
 
-func BindFramebuffer(f *rhi.Framebuffer) {
+type FramebufferProvider interface {
+	BindForDrawing()
+}
+
+func BindFramebuffer(f FramebufferProvider) {
 	if f != nil {
 		f.BindForDrawing()
 		return

@@ -3,8 +3,8 @@
 #define MAX_SURFACES 1024
 
 layout(location = 0) out vec4 out_frag_color;
-layout(location = 1) out vec3 out_normal;
-layout(location = 2) out vec3 out_position;
+layout(location = 1) out vec4 out_normal;
+layout(location = 2) out vec4 out_position;
 
 in vec2 texcoord;
 in vec3 normal;
@@ -32,11 +32,6 @@ uniform mat4 u_view;
 void main() {
   vec4 result = vec4(1.0);
 
-  // normal in view space
-  out_normal = normalize(mat3(u_view) * normal);
-	// position in view space
-  out_position = (u_view * vec4(position, 1.0)).xyz;
-
   Surface s = surfaces[surface_id];
   if(!u_wireframe) {
     // diffuse
@@ -56,5 +51,10 @@ void main() {
     result = vec4(1.0);
   }
 
+  // color
   out_frag_color = result;
+  // normal in view space
+  out_normal = vec4(normalize(mat3(u_view) * normal), result.a);
+	// position in view space
+  out_position = vec4((u_view * vec4(position, 1.0)).xyz, result.a);
 }

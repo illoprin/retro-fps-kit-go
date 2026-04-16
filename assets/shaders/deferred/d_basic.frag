@@ -1,8 +1,8 @@
 #version 410 core
 
 layout(location = 0) out vec4 out_fragcolor;
-layout(location = 1) out vec3 out_normal;
-layout(location = 2) out vec3 out_position;
+layout(location = 1) out vec4 out_normal;
+layout(location = 2) out vec4 out_position;
 
 in vec2 uv;
 in vec3 normal;
@@ -106,11 +106,6 @@ vec3 getDithered(vec3 color) {
 void main() {
 	vec4 result;
 
-	// normal in view space
-	out_normal = normalize(mat3(u_view) * normal);
-	// position in view space
-	out_position = (u_view * vec4(position, 1.0)).xyz;
-
 	// -- texture/color
 	result = getColor();
 	// -- fog
@@ -131,4 +126,8 @@ void main() {
 
 	// color
 	out_fragcolor = result;
+	// normal in view space
+	out_normal = vec4(normalize(mat3(u_view) * normal), result.a);
+	// position in view space
+	out_position = vec4((u_view * vec4(position, 1.0)).xyz, result.a);
 }

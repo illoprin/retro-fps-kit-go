@@ -26,7 +26,6 @@ import (
 // SetupBasicQuadMesh - setups buffers for basic quad mesh
 // 1 attribute - (location = 0) vec2 in_position
 func SetupBasicQuadMesh(m *Mesh) {
-
 	var (
 		basicQuadVertices = []float32{
 			-1, -1,
@@ -41,13 +40,11 @@ func SetupBasicQuadMesh(m *Mesh) {
 	)
 	sizeVerts := len(basicQuadVertices) * int(unsafe.Sizeof(basicQuadVertices[0]))
 	sizeIndices := len(basicQuadIndices) * int(unsafe.Sizeof(basicQuadIndices[0]))
+
+	// build layout
 	m.Bind()
 	m.CreateVertexBuffer()
-	m.AllocateVertexBuffer(0, sizeVerts, StaticDraw)
-	m.SetVertexBufferData(0, 0, sizeVerts, unsafe.Pointer(&basicQuadVertices[0]))
 	m.CreateElementBuffer()
-	m.AllocateElementBuffer(sizeIndices, StaticDraw)
-	m.SetElementBufferData(0, basicQuadIndices)
 	m.SetAttribute(0, VertexAttribute{
 		Index:       0,
 		Components:  2,
@@ -56,6 +53,13 @@ func SetupBasicQuadMesh(m *Mesh) {
 		OffsetBytes: 0,
 		Divisor:     0,
 	})
+	m.Unbind()
+
+	// allocate buffers
+	m.AllocateVertexBuffer(0, sizeVerts, StaticDraw)
+	m.SetVertexBufferData(0, 0, sizeVerts, unsafe.Pointer(&basicQuadVertices[0]))
+	m.AllocateElementBuffer(sizeIndices, StaticDraw)
+	m.SetElementBufferData(0, basicQuadIndices)
 }
 
 // DefaultTexture2DConfig - returns default texture config
@@ -73,7 +77,6 @@ func DefaultTexture2DConfig(width, height int32) TextureConfig {
 		WrapR:           WrapRepeat,
 		GenerateMipmaps: true,
 		LodBias:         0,
-		Anisotropy:      0,
 	}
 }
 
@@ -197,7 +200,6 @@ func NewCubeMap(size int32, generateMipmaps bool) *Texture {
 		WrapT:           WrapClampToEdge,
 		WrapR:           WrapClampToEdge,
 		GenerateMipmaps: generateMipmaps,
-		Anisotropy:      0,
 	}
 
 	return NewTexture(config)

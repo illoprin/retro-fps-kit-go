@@ -42,7 +42,7 @@ func NewVignettePass(
 	// create color framebuffer
 	fbo := rhi.NewFramebuffer(fbWidth, fbHeight)
 	fbo.Bind()
-	fbo.NewColorAttachment(rhi.FormatRGB8, rhi.FilterNearest)
+	fbo.NewColorAttachment(rhi.FormatRGBA8, rhi.FilterNearest)
 	if !fbo.Check() {
 		fbo.Delete()
 		return nil, fmt.Errorf("fbo not completed")
