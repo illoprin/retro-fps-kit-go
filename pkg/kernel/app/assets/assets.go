@@ -48,8 +48,7 @@ func (a *DefaultAssets) initPrograms() (err error) {
 }
 
 func (a *DefaultAssets) initMeshes() {
-	a.MeshQuad = rhi.NewMesh()
-	rhi.SetupBasicQuadMesh(a.MeshQuad)
+	a.MeshQuad = rhi.NewQuadMesh()
 	a.resources = append(a.resources, a.MeshQuad)
 }
 

@@ -54,9 +54,9 @@ func NewMeshFromModel(mod *Model) (msh *rhi.Mesh) {
 
 	msh.Unbind()
 
-	msh.AllocateVertexBuffer(vboIndex, vertsSize, rhi.StaticDraw)
+	msh.AllocateVertexBufferWithData(vboIndex, vertsSize, nil, rhi.StaticDraw)
 	msh.SetVertexBufferData(vboIndex, 0, vertsSize, unsafe.Pointer(&mod.Vertices[0]))
-	msh.AllocateElementBuffer(indicesSize, rhi.StaticDraw)
+	msh.AllocateElementBufferWithData(indicesSize, nil, rhi.StaticDraw)
 	msh.SetElementBufferData(0, mod.Indices)
 
 	return msh

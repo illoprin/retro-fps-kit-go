@@ -44,18 +44,20 @@ func NewGUICanvas() (*GUICanvas, error) {
 
 	m.Bind()
 
+	stride := int32(unsafe.Sizeof(guiVertex{}))
+
 	m.CreateVertexBuffer()
-	m.AllocateVertexBuffer(0, 1024*1024, rhi.StreamDraw) // reserve 1MB
+	m.AllocateVertexBufferWithData(0, 1024*1024, nil, rhi.StreamDraw) // reserve 1MB
 
 	m.CreateElementBuffer()
-	m.AllocateElementBuffer(1024*1024, rhi.StreamDraw) // reserve 1MB
+	m.AllocateElementBufferWithData(1024*1024, nil, rhi.StreamDraw) // reserve 1MB
 
 	// position
 	m.SetAttribute(0, rhi.VertexAttribute{
 		Index:       0,
 		Components:  2,
 		Type:        rhi.Float32,
-		StrideBytes: int32(unsafe.Sizeof(guiVertex{})),
+		StrideBytes: stride,
 		OffsetBytes: 0,
 	})
 
@@ -64,7 +66,7 @@ func NewGUICanvas() (*GUICanvas, error) {
 		Index:       1,
 		Components:  2,
 		Type:        rhi.Float32,
-		StrideBytes: int32(unsafe.Sizeof(guiVertex{})),
+		StrideBytes: stride,
 		OffsetBytes: 8,
 	})
 
@@ -73,9 +75,11 @@ func NewGUICanvas() (*GUICanvas, error) {
 		Index:       2,
 		Components:  4,
 		Type:        rhi.Float32,
-		StrideBytes: int32(unsafe.Sizeof(guiVertex{})),
+		StrideBytes: stride,
 		OffsetBytes: 16,
 	})
+
+	m.Unbind()
 
 	return &GUICanvas{
 		mesh:    m,

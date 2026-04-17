@@ -8,10 +8,15 @@ import (
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/context"
 )
 
+type vertexBuffer struct {
+	handle    uint32
+	allocated uint32
+}
+
 type Mesh struct {
 	vao        uint32
 	ebo        uint32
-	vbos       []uint32
+	vbos       []vertexBuffer
 	indexCount uint32
 }
 
@@ -26,7 +31,7 @@ type VertexAttribute struct {
 
 func NewMesh() *Mesh {
 	m := &Mesh{
-		vbos: make([]uint32, 0),
+		vbos: make([]vertexBuffer, 0),
 	}
 	gl.GenVertexArrays(1, &m.vao)
 	logger.Infof("mesh id=%d created", m.vao)
@@ -38,20 +43,21 @@ func (m *Mesh) CreateVertexBuffer() int {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
 
-	m.vbos = append(m.vbos, vbo)
+	m.vbos = append(m.vbos, vertexBuffer{handle: vbo})
 	return len(m.vbos) - 1
 }
 
 // AllocateVertexBuffer - allocates memory for VBO
-func (m *Mesh) AllocateVertexBuffer(index int, sizeBytes int, bType BufferType) {
+func (m *Mesh) AllocateVertexBufferWithData(index int, sizeBytes int, data unsafe.Pointer, bType BufferType) {
 	if index < 0 || index >= len(m.vbos) {
 		return
 	}
 
-	gl.BindBuffer(gl.ARRAY_BUFFER, m.vbos[index])
-	gl.BufferData(gl.ARRAY_BUFFER, sizeBytes, nil, GetBufferType(bType))
+	vbo := &m.vbos[index]
 
-	logger.Infof("mesh id=%d buffer allocate %d bytes", m.vao, sizeBytes)
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo.handle)
+	gl.BufferData(gl.ARRAY_BUFFER, sizeBytes, data, GetBufferType(bType))
+	vbo.allocated = uint32(sizeBytes)
 }
 
 // SetVertexBufferData - updates data in VBO
@@ -65,7 +71,14 @@ func (m *Mesh) SetVertexBufferData(
 		return
 	}
 
-	gl.BindBuffer(gl.ARRAY_BUFFER, m.vbos[index])
+	vbo := &m.vbos[index]
+
+	if sizeBytes > int(vbo.allocated) {
+		logger.Warnf("data size is greater than the allocated memory")
+		return
+	}
+
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo.handle)
 	gl.BufferSubData(gl.ARRAY_BUFFER, offsetBytes, sizeBytes, data)
 }
 
@@ -82,15 +95,14 @@ func (m *Mesh) CreateElementBuffer() {
 
 // AllocateElementBuffer - allocates memory for EBO (indices) data
 // !!! BE CAREFUL WITH VAO BINDING (Binding = m.VAO; Binding = 0)
-func (m *Mesh) AllocateElementBuffer(sizeBytes int, bType BufferType) {
+func (m *Mesh) AllocateElementBufferWithData(sizeBytes int, data unsafe.Pointer, bType BufferType) {
 	if m.ebo == 0 {
 		return
 	}
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ebo)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, sizeBytes, nil, GetBufferType(bType))
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, sizeBytes, data, GetBufferType(bType))
 
-	logger.Infof("mesh id=%d element buffer allocate %d bytes", m.vao, sizeBytes)
 }
 
 // SetElementBufferData - update EBO (indices) data
@@ -116,7 +128,8 @@ func (m *Mesh) SetAttribute(vboIndex int, a VertexAttribute) {
 		return
 	}
 
-	gl.BindBuffer(gl.ARRAY_BUFFER, m.vbos[vboIndex])
+	vbo := &m.vbos[vboIndex]
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo.handle)
 
 	if a.Type == Integer || a.Type == UnsignedInteger {
 		gl.VertexAttribIPointer(
@@ -194,7 +207,9 @@ func (m *Mesh) Delete() {
 		gl.DeleteVertexArrays(1, &m.vao)
 	}
 	if len(m.vbos) > 0 {
-		gl.DeleteBuffers(int32(len(m.vbos)), &m.vbos[0])
+		for _, b := range m.vbos {
+			gl.DeleteBuffers(1, &b.handle)
+		}
 	}
 	if m.ebo != 0 {
 		gl.DeleteBuffers(1, &m.ebo)
@@ -202,7 +217,7 @@ func (m *Mesh) Delete() {
 
 	logger.Infof("mesh id=%d deleted", m.vao)
 
-	m.vbos = make([]uint32, 0)
+	m.vbos = make([]vertexBuffer, 0)
 	m.vao = 0
 	m.ebo = 0
 	m.indexCount = 0

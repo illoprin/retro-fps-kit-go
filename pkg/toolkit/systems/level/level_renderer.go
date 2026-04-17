@@ -257,8 +257,6 @@ func (r *LevelRenderer) createMesh() {
 
 func (r *LevelRenderer) Update() {
 
-	r.mesh.Unbind() // glBindVertexArrays(0)
-
 	builder := r.level.GetBuilder()
 	model := builder.GetModel()
 
@@ -281,9 +279,9 @@ func (r *LevelRenderer) Update() {
 	indicesSize := len(indices) * int(unsafe.Sizeof(uint32(0)))
 
 	// allocate and set buffers
-	r.mesh.AllocateVertexBuffer(0, verticesSize, rhi.StreamDraw)
+	r.mesh.AllocateVertexBufferWithData(0, verticesSize, nil, rhi.StreamDraw)
 	r.mesh.SetVertexBufferData(0, 0, verticesSize, unsafe.Pointer(&vertices[0]))
-	r.mesh.AllocateElementBuffer(indicesSize, rhi.StreamDraw)
+	r.mesh.AllocateElementBufferWithData(indicesSize, nil, rhi.StreamDraw)
 	r.mesh.SetElementBufferData(0, indices)
 }
 

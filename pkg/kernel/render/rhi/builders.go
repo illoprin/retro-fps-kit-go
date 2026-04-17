@@ -23,9 +23,9 @@ import (
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/files"
 )
 
-// SetupBasicQuadMesh - setups buffers for basic quad mesh
+// NewQuadMesh - setups buffers for basic quad mesh
 // 1 attribute - (location = 0) vec2 in_position
-func SetupBasicQuadMesh(m *Mesh) {
+func NewQuadMesh() (m *Mesh) {
 	var (
 		basicQuadVertices = []float32{
 			-1, -1,
@@ -42,6 +42,7 @@ func SetupBasicQuadMesh(m *Mesh) {
 	sizeIndices := len(basicQuadIndices) * int(unsafe.Sizeof(basicQuadIndices[0]))
 
 	// build layout
+	m = NewMesh()
 	m.Bind()
 	m.CreateVertexBuffer()
 	m.CreateElementBuffer()
@@ -56,10 +57,12 @@ func SetupBasicQuadMesh(m *Mesh) {
 	m.Unbind()
 
 	// allocate buffers
-	m.AllocateVertexBuffer(0, sizeVerts, StaticDraw)
+	m.AllocateVertexBufferWithData(0, sizeVerts, nil, StaticDraw)
 	m.SetVertexBufferData(0, 0, sizeVerts, unsafe.Pointer(&basicQuadVertices[0]))
-	m.AllocateElementBuffer(sizeIndices, StaticDraw)
+	m.AllocateElementBufferWithData(sizeIndices, nil, StaticDraw)
 	m.SetElementBufferData(0, basicQuadIndices)
+
+	return m
 }
 
 // DefaultTexture2DConfig - returns default texture config
