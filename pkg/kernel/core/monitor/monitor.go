@@ -2,11 +2,18 @@ package monitor
 
 import (
 	"log"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	mathutils "github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/math"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
+)
+
+const (
+	smoothedStep = float32(0.1)
+	maxDeltaTime = 1.0 / 60.0
 )
 
 type Monitor struct {
@@ -22,8 +29,9 @@ type Monitor struct {
 	lastTriangles atomic.Uint64
 
 	// delta time
-	lastTime  time.Time
-	deltaTime float32
+	lastTime          time.Time
+	deltaTime         float32
+	smoothedDeltaTime float32
 
 	// capacitors to compute within second
 	frameCount   atomic.Uint64
@@ -61,7 +69,14 @@ func (m *Monitor) EndTimer(name string) int64 {
 
 func (m *Monitor) NewFrame() {
 	now := time.Now()
+	lastDeltaTime := m.deltaTime
 	m.deltaTime = float32(time.Since(m.lastTime).Seconds())
+	m.smoothedDeltaTime = float32(
+		math.Min(
+			float64(mathutils.Lerp(lastDeltaTime, m.deltaTime, smoothedStep)),
+			maxDeltaTime,
+		),
+	)
 	m.lastTime = now
 }
 
@@ -95,9 +110,10 @@ func (m *Monitor) Update() {
 }
 
 // Getters
-func (m *Monitor) GetFPS() float64       { return m.lastFPS.Load().(float64) }
-func (m *Monitor) GetFrameTime() float64 { return m.lastFrameTime.Load().(float64) }
-func (m *Monitor) GetDrawCalls() uint64  { return m.lastDrawCalls.Load() }
-func (m *Monitor) GetVertices() uint64   { return m.lastVertices.Load() }
-func (m *Monitor) GetTriangles() uint64  { return m.lastTriangles.Load() }
-func (m *Monitor) GetDeltaTime() float32 { return m.deltaTime }
+func (m *Monitor) GetFPS() float64               { return m.lastFPS.Load().(float64) }
+func (m *Monitor) GetFrameTime() float64         { return m.lastFrameTime.Load().(float64) }
+func (m *Monitor) GetDrawCalls() uint64          { return m.lastDrawCalls.Load() }
+func (m *Monitor) GetVertices() uint64           { return m.lastVertices.Load() }
+func (m *Monitor) GetTriangles() uint64          { return m.lastTriangles.Load() }
+func (m *Monitor) GetDeltaTime() float32         { return m.deltaTime }
+func (m *Monitor) GetSmoothedDeltaTime() float32 { return m.smoothedDeltaTime }

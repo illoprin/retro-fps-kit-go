@@ -97,7 +97,7 @@ func (g *GameState) Update(deltaTime float32) {
 		g.fps.ProcessInput(deltaTime)
 	}
 
-	g.fps.Update(deltaTime)
+	g.fps.Update(g.api.GetMonitor().GetSmoothedDeltaTime())
 	g.level.Update(deltaTime)
 }
 

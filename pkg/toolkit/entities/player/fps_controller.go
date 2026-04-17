@@ -13,7 +13,7 @@ import (
 const (
 	speed            = float32(0.53) // m/s
 	sprintMultiplier = float32(2.0)
-	bobSpeed         = 200.0
+	bobSpeed         = 150.0
 	bobYAmount       = 0.12
 	bobXAmount       = 0.1
 	strafeRollAmount = 2.0  // deg
@@ -100,15 +100,13 @@ func (c *FPSController) updateCamera(dt float32) {
 		c.roll = 0
 	}
 
-	// apply camera position
+	// apply to camera
 	y := c.getEyesHeight(c.pos[1]) + bobY
 	c.camera.Position = mgl.Vec3{
 		c.pos[0] + bobX,
 		y,
 		c.pos[2] + bobX,
 	}
-
-	// apply camera rotation
 	c.camera.SetRoll(c.roll)
 
 	// update camera matrices
