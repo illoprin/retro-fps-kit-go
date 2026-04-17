@@ -155,6 +155,21 @@ func (c *DitheringUI) ShowUI() {
 	imgui.SliderFloat("d_Speed", &c.Speed, 0.0, 100.0)
 }
 
+type ChromaticAbberationUI struct {
+	*post.ChromaticConfig
+}
+
+func (c *ChromaticAbberationUI) GetName() string {
+	return "Chromatic Abberation (LDR)"
+}
+
+func (c *ChromaticAbberationUI) ShowUI() {
+	imgui.Checkbox("ca_Use", &c.Use)
+	imgui.SliderFloat("ca_Radius", &c.Radius, 0.05, 1.0)
+	imgui.SliderFloat("ca_Strength", &c.Strength, 0.01, 0.1)
+	imgui.SliderFloat("ca_Power", &c.Power, 0.1, 5.0)
+}
+
 type VignetteUI struct {
 	*post.VignetteConfig
 }

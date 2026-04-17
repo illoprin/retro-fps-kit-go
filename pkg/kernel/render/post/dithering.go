@@ -7,6 +7,7 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/files"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/window"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/context"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/pipeline"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 )
@@ -105,26 +106,11 @@ func (d *DitheringPass) createMatrix() {
 	d.matrix = tex
 }
 
-func (d *DitheringPass) GetColor() *rhi.Texture {
-	return d.fbo.GetColorTexture(0)
-}
-
-func (d *DitheringPass) GetResultFramebuffer() *rhi.Framebuffer {
-	return d.fbo
-}
-
-func (d *DitheringPass) GetConfig() interface{} {
-	return d.cfg
-}
-
-func (d *DitheringPass) Use() bool {
-	return d.cfg.Use
-}
-
 func (d *DitheringPass) RenderPass(src *pipeline.DeferredRenderResult) {
 	d.program.Use()
 
 	d.fbo.BindForDrawing()
+	context.ClearColorBuffer()
 
 	// color
 	src.Color.BindToUnit(0)
@@ -161,6 +147,22 @@ func (d *DitheringPass) GetDebugTextures() []DebugTexture {
 			Texture: d.GetColor(),
 		},
 	}
+}
+
+func (d *DitheringPass) GetColor() *rhi.Texture {
+	return d.fbo.GetColorTexture(0)
+}
+
+func (d *DitheringPass) GetResultFramebuffer() *rhi.Framebuffer {
+	return d.fbo
+}
+
+func (d *DitheringPass) GetConfig() interface{} {
+	return d.cfg
+}
+
+func (d *DitheringPass) Use() bool {
+	return d.cfg.Use
 }
 
 func (d *DitheringPass) Delete() {

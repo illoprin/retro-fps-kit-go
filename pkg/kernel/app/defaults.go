@@ -89,6 +89,13 @@ var (
 				Use:            true,
 			},
 
+			ChromaticConfig: post.ChromaticConfig{
+				Use:      true,
+				Radius:   0.25,
+				Strength: 0.045,
+				Power:    1.115,
+			},
+
 			Vignette: post.VignetteConfig{
 				Radius:   0.9,
 				Softness: 0.535,
@@ -107,6 +114,7 @@ var (
 	ColorGradingID post.PassID = "color_grading"
 	VignetteID     post.PassID = "vignette"
 	DitheringID    post.PassID = "dithering"
+	ChromaticID    post.PassID = "chromatic"
 )
 
 type DefaultPipeline struct {
@@ -216,6 +224,13 @@ func NewDefaultPipeline(
 	}
 
 	// -- vignettePass
+	chromaticPass, err := post.NewChromaticPass(shared, &cfg.ChromaticConfig)
+	if err != nil {
+		p.Delete()
+		return nil, fmt.Errorf("chromatic abberation pass - %w", err)
+	}
+
+	// -- vignettePass
 	vignettePass, err := post.NewVignettePass(shared, &cfg.Vignette)
 	if err != nil {
 		p.Delete()
@@ -260,8 +275,13 @@ func NewDefaultPipeline(
 		Pass:  ditheringPass,
 	})
 	p.AddPass(&post.PassDescriptor{
+		ID:    ChromaticID,
+		After: ColorGradingID,
+		Pass:  chromaticPass,
+	})
+	p.AddPass(&post.PassDescriptor{
 		ID:    VignetteID,
-		After: DitheringID,
+		After: ChromaticID,
 		Pass:  vignettePass,
 	})
 

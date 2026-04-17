@@ -20,14 +20,15 @@ type DisplayConfig struct {
 }
 
 type PostProcessingConfig struct {
-	ColorGrading post.ColorGradingConfig `yaml:"color_grading"`
-	EyeAdaption  post.EyeAdaptionConfig  `yaml:"eye_adaption"`
-	SSAO         post.SSAOConfig         `yaml:"ssao"`
-	Cavity       post.CavityConfig       `yaml:"cavity"`
-	Bloom        post.BloomConfig        `yaml:"bloom"`
-	Tonemapping  post.ToneMappingConfig  `yaml:"tonemapping"`
-	Vignette     post.VignetteConfig     `yaml:"vignette"`
-	Dithering    post.DitheringConfig    `yaml:"dithering"`
+	ColorGrading    post.ColorGradingConfig `yaml:"color_grading"`
+	EyeAdaption     post.EyeAdaptionConfig  `yaml:"eye_adaption"`
+	SSAO            post.SSAOConfig         `yaml:"ssao"`
+	Cavity          post.CavityConfig       `yaml:"cavity"`
+	Bloom           post.BloomConfig        `yaml:"bloom"`
+	Tonemapping     post.ToneMappingConfig  `yaml:"tonemapping"`
+	Vignette        post.VignetteConfig     `yaml:"vignette"`
+	Dithering       post.DitheringConfig    `yaml:"dithering"`
+	ChromaticConfig post.ChromaticConfig    `yaml:"chromatic"`
 }
 
 // LoadConfig creates new config object from yaml

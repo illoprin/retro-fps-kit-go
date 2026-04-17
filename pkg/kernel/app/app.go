@@ -475,6 +475,8 @@ func (a *App) initUI() {
 			editor = &ui.ColorGradingUI{ColorGradingConfig: p.GetConfig().(*post.ColorGradingConfig)}
 		case *post.DitheringPass:
 			editor = &ui.DitheringUI{DitheringConfig: p.GetConfig().(*post.DitheringConfig)}
+		case *post.ChromaticPass:
+			editor = &ui.ChromaticAbberationUI{ChromaticConfig: p.GetConfig().(*post.ChromaticConfig)}
 		case *post.VignettePass:
 			editor = &ui.VignetteUI{VignetteConfig: p.GetConfig().(*post.VignetteConfig)}
 		default:
