@@ -86,24 +86,24 @@ func (b *LevelBuilder) buildWall(w Wall) {
 		// build upper wall
 		if backSector.CeilingHeight > frontSector.CeilingHeight {
 			// build wall from front.ceiling to back.ceiling
-			b.addWallQuad(p1, p2, frontSector.CeilingHeight, backSector.CeilingHeight, w.USurf, true)
+			b.addWallQuad(p2, p1, frontSector.CeilingHeight, backSector.CeilingHeight, w.USurf)
 		} else {
 			// build wall from back.ceiling to front.ceiling
-			b.addWallQuad(p1, p2, backSector.CeilingHeight, frontSector.CeilingHeight, w.USurf, false)
+			b.addWallQuad(p1, p2, backSector.CeilingHeight, frontSector.CeilingHeight, w.USurf)
 		}
 
 		// build lower wall
 		if backSector.FloorHeight > frontSector.FloorHeight {
 			// build wall from front.floor to back.floor
-			b.addWallQuad(p1, p2, frontSector.FloorHeight, backSector.FloorHeight, w.LSurf, false)
+			b.addWallQuad(p1, p2, frontSector.FloorHeight, backSector.FloorHeight, w.LSurf)
 		} else {
 			// build wall from back.floor to front.floor
-			b.addWallQuad(p1, p2, backSector.FloorHeight, frontSector.FloorHeight, w.LSurf, true)
+			b.addWallQuad(p2, p1, backSector.FloorHeight, frontSector.FloorHeight, w.LSurf)
 		}
 
 		// build mid wall
 		if w.MSurf > -1 {
-			b.addWallQuad(p1, p2, backSector.FloorHeight, backSector.CeilingHeight, w.MSurf, true)
+			b.addWallQuad(p1, p2, backSector.FloorHeight, backSector.CeilingHeight, w.MSurf)
 		}
 		return
 	}
@@ -111,7 +111,7 @@ func (b *LevelBuilder) buildWall(w Wall) {
 	// solid wall
 	if frontSector != nil && backSector == nil {
 		// build mid wall
-		b.addWallQuad(p1, p2, frontSector.FloorHeight, frontSector.CeilingHeight, w.MSurf, false)
+		b.addWallQuad(p1, p2, frontSector.FloorHeight, frontSector.CeilingHeight, w.MSurf)
 	}
 
 }
@@ -274,17 +274,12 @@ func (b *LevelBuilder) addWallQuad(
 	v1, v2 mgl.Vec2,
 	h1, h2 float32,
 	surfId SurfaceIndex,
-	isExternal bool,
 ) {
 	startIndex := uint32(len(b.model.Vertices))
 
 	// wall normal
 	dir := v2.Sub(v1).Normalize()
 	normal := mgl.Vec3{-dir.Y(), 0, dir.X()}
-
-	if isExternal {
-		normal = normal.Mul(-1)
-	}
 
 	// Vertices
 	// 	left bottom
@@ -321,18 +316,10 @@ func (b *LevelBuilder) addWallQuad(
 	// build indices
 	var indices []uint32
 
-	if isExternal {
-		// CW
-		indices = []uint32{
-			0, 1, 3,
-			1, 2, 3,
-		}
-	} else {
-		// CCW
-		indices = []uint32{
-			0, 3, 1,
-			3, 2, 1,
-		}
+	// CCW
+	indices = []uint32{
+		0, 3, 1,
+		3, 2, 1,
 	}
 
 	// add indices

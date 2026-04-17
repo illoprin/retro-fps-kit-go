@@ -68,8 +68,8 @@ var (
 			// sector 1
 
 			{15, 27}, // 4
-			{15, 33}, // 5
-			{9, 33},  // 6
+			{15, 50}, // 5
+			{9, 50},  // 6
 			{9, 27},  // 7
 
 			// sector 0
@@ -256,21 +256,21 @@ var (
 			leveldata.Sector{
 				Sub:           []leveldata.SectorIndex{2},
 				FloorHeight:   0,
-				CeilingHeight: 4,
+				CeilingHeight: 6,
 				FloorSurf:     1,
 				CeilingSurf:   5,
 			},
 			// sector 1
 			leveldata.Sector{
-				FloorHeight:   -.25,
-				CeilingHeight: 2.5,
+				FloorHeight:   -.5,
+				CeilingHeight: 3.4,
 				FloorSurf:     3,
 				CeilingSurf:   5,
 			},
 			// sector 2
 			leveldata.Sector{
 				FloorHeight:   -1,
-				CeilingHeight: 2.5,
+				CeilingHeight: 3.5,
 				FloorSurf:     3,
 				CeilingSurf:   2,
 			},
