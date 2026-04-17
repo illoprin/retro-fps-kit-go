@@ -24,7 +24,6 @@ import (
 type DemoState struct {
 	api        app.AppAPI
 	prefabs    [](*prefab.Prefab)
-	resources  []rhi.Resource
 	renderer   *prefabsystem.PrefabRenderer
 	canvas     *gui.GUICanvas
 	controller *controllers.EditorController
@@ -34,6 +33,7 @@ type DemoState struct {
 	showUI     bool
 
 	prefabEmissive *prefab.Prefab
+	resources      []rhi.Resource
 }
 
 func NewDemoState() *DemoState {
@@ -340,7 +340,7 @@ func (s *DemoState) RenderGBuffer() {
 	}
 }
 
-func (s *DemoState) ShowImgui() {
+func (s *DemoState) DrawUI() {
 	if s.showUI {
 		imgui.Begin("Scene")
 

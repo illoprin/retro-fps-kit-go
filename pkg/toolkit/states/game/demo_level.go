@@ -136,15 +136,15 @@ var (
 				FrontSector: 1,
 				BackSector:  -1,
 			},
-			// 4-7 wall (portal from sector 0 to 1)
+			// 7-4 wall (portal from sector 0 to 1)
 			leveldata.Wall{
-				V1:          4,
-				V2:          7,
+				V1:          7,
+				V2:          4,
 				MSurf:       -1,
-				LSurf:       0,
-				USurf:       2,
-				FrontSector: 0,
-				BackSector:  1,
+				LSurf:       2,
+				USurf:       0,
+				FrontSector: 1,
+				BackSector:  0,
 			},
 			// 5-6 wall (sector 1)
 			leveldata.Wall{
@@ -262,7 +262,7 @@ var (
 			},
 			// sector 1
 			leveldata.Sector{
-				FloorHeight:   -.5,
+				FloorHeight:   -.25,
 				CeilingHeight: 2.5,
 				FloorSurf:     3,
 				CeilingSurf:   5,

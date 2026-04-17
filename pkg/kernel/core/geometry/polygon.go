@@ -1,7 +1,6 @@
 package geometry
 
 import (
-	"fmt"
 	"math"
 	"sort"
 
@@ -9,18 +8,18 @@ import (
 	lmath "github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/math"
 )
 
+// Segment represents 2D line
 type Segment struct {
 	P1 mgl.Vec2
 	P2 mgl.Vec2
 }
 
-// почти равенство (из-за float)
 func almostEqual(a, b mgl.Vec2) bool {
 	return math.Abs(float64(a.X()-b.X())) < float64(lmath.Epsilon) &&
 		math.Abs(float64(a.Y()-b.Y())) < float64(lmath.Epsilon)
 }
 
-// delte
+// delete
 func uniquePoints(segments []Segment) []mgl.Vec2 {
 	var points []mgl.Vec2
 
@@ -40,7 +39,7 @@ func uniquePoints(segments []Segment) []mgl.Vec2 {
 	return points
 }
 
-// центр масс
+// compute centroid
 func centroid(points []mgl.Vec2) mgl.Vec2 {
 	var c mgl.Vec2
 	for _, p := range points {
@@ -49,7 +48,7 @@ func centroid(points []mgl.Vec2) mgl.Vec2 {
 	return c.Mul(1.0 / float32(len(points)))
 }
 
-// угол точки относительно центра
+// polygon dot angle relative to center of mass
 func angle(c, p mgl.Vec2) float32 {
 	return float32(math.Atan2(
 		float64(p.Y()-c.Y()),
@@ -57,31 +56,17 @@ func angle(c, p mgl.Vec2) float32 {
 	))
 }
 
-// основная функция
+// BuildPolygon - returns CCW ordered points of polygon
+// segments - segments that make up the polygon in random order
 func BuildPolygon(segments []Segment) []mgl.Vec2 {
 	points := uniquePoints(segments)
 
 	c := centroid(points)
 
-	// сортировка по углу (CCW)
+	// sort by angle
 	sort.Slice(points, func(i, j int) bool {
 		return angle(c, points[i]) < angle(c, points[j])
 	})
 
 	return points
-}
-
-func main() {
-	segments := []Segment{
-		{mgl.Vec2{0, 0}, mgl.Vec2{1, 0}},
-		{mgl.Vec2{1, 0}, mgl.Vec2{1, 1}},
-		{mgl.Vec2{1, 1}, mgl.Vec2{0, 1}},
-		{mgl.Vec2{0, 1}, mgl.Vec2{0, 0}},
-	}
-
-	polygon := BuildPolygon(segments)
-
-	for i, p := range polygon {
-		fmt.Printf("%d: %v\n", i, p)
-	}
 }

@@ -57,8 +57,8 @@ type GBufferDrawer interface {
 
 // Optional: If state uses imgui objects
 type UIDrawer interface {
-	// RenderImgui - renders imgui objects
-	ShowImgui()
+	// DrawUI - renders imgui objects
+	DrawUI()
 }
 
 // Optional: UI, Menu, HUD

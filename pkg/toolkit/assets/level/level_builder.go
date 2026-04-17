@@ -2,7 +2,9 @@ package leveldata
 
 import (
 	mgl "github.com/go-gl/mathgl/mgl32"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/geometry"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
+	"github.com/rclancey/go-earcut"
 )
 
 // 36 bytes
@@ -23,11 +25,6 @@ type LevelBuilder struct {
 	model       *LevelModel
 	playerStart *EntityDef
 	dirty       bool
-}
-
-type contour struct {
-	points []float64 // x, y, x, y...
-	isHole bool
 }
 
 func NewLevelBuilder(def *LevelDef) *LevelBuilder {
@@ -61,10 +58,10 @@ func (b *LevelBuilder) BuildModel() {
 		b.buildWall(w)
 	}
 
-	// build sector flats
-	// for i, s := range b.def.Sectors {
-	// 	b.buildSector(s, uint32(i))
-	// }
+	// build sector flats (floors and ceilings)
+	for i, _ := range b.def.Sectors {
+		b.buildSectorFlats(SectorIndex(i))
+	}
 
 	b.dirty = false
 
@@ -78,10 +75,6 @@ func (b *LevelBuilder) getSector(idx SectorIndex) *Sector {
 	return &b.def.Sectors[idx]
 }
 
-func (b *LevelBuilder) buildSector(s Sector, sectorIndex uint32) {
-
-}
-
 func (b *LevelBuilder) buildWall(w Wall) {
 	frontSector := b.getSector(w.FrontSector)
 	backSector := b.getSector(w.BackSector)
@@ -93,59 +86,24 @@ func (b *LevelBuilder) buildWall(w Wall) {
 		// build upper wall
 		if backSector.CeilingHeight > frontSector.CeilingHeight {
 			// build wall from front.ceiling to back.ceiling
-			b.addWallQuad(
-				p1,
-				p2,
-				frontSector.CeilingHeight,
-				backSector.CeilingHeight,
-				w.USurf,
-				true,
-			)
+			b.addWallQuad(p1, p2, frontSector.CeilingHeight, backSector.CeilingHeight, w.USurf, true)
 		} else {
 			// build wall from back.ceiling to front.ceiling
-			b.addWallQuad(
-				p1,
-				p2,
-				backSector.CeilingHeight,
-				frontSector.CeilingHeight,
-				w.USurf,
-				false,
-			)
+			b.addWallQuad(p1, p2, backSector.CeilingHeight, frontSector.CeilingHeight, w.USurf, false)
 		}
 
 		// build lower wall
 		if backSector.FloorHeight > frontSector.FloorHeight {
 			// build wall from front.floor to back.floor
-			b.addWallQuad(
-				p1,
-				p2,
-				frontSector.FloorHeight,
-				backSector.FloorHeight,
-				w.LSurf,
-				false,
-			)
+			b.addWallQuad(p1, p2, frontSector.FloorHeight, backSector.FloorHeight, w.LSurf, false)
 		} else {
 			// build wall from back.floor to front.floor
-			b.addWallQuad(
-				p1,
-				p2,
-				backSector.FloorHeight,
-				frontSector.FloorHeight,
-				w.LSurf,
-				true,
-			)
+			b.addWallQuad(p1, p2, backSector.FloorHeight, frontSector.FloorHeight, w.LSurf, true)
 		}
 
 		// build mid wall
 		if w.MSurf > -1 {
-			b.addWallQuad(
-				p1,
-				p2,
-				backSector.FloorHeight,
-				backSector.CeilingHeight,
-				w.MSurf,
-				true,
-			)
+			b.addWallQuad(p1, p2, backSector.FloorHeight, backSector.CeilingHeight, w.MSurf, true)
 		}
 		return
 	}
@@ -153,16 +111,163 @@ func (b *LevelBuilder) buildWall(w Wall) {
 	// solid wall
 	if frontSector != nil && backSector == nil {
 		// build mid wall
-		b.addWallQuad(
-			p1,
-			p2,
-			frontSector.FloorHeight,
-			frontSector.CeilingHeight,
-			w.MSurf,
-			false,
-		)
+		b.addWallQuad(p1, p2, frontSector.FloorHeight, frontSector.CeilingHeight, w.MSurf, false)
 	}
 
+}
+
+func (b *LevelBuilder) getSectorSegments(idx SectorIndex) []geometry.Segment {
+
+	s := b.getSector(idx)
+	segments := make([]geometry.Segment, 0)
+
+	nested := s.Sub
+	for _, w := range b.def.Walls {
+		isNested := false
+		if len(nested) > 0 {
+			for _, n := range nested {
+				if idx == n {
+					logger.Errorf("the pointer to the nested sector points to the parent")
+					continue
+				}
+				if w.FrontSector == SectorIndex(n) || w.BackSector == SectorIndex(n) {
+					isNested = true
+				}
+			}
+		}
+
+		isSectorWall := (w.FrontSector == idx || w.BackSector == idx) && !isNested
+		if isSectorWall {
+			var s geometry.Segment
+			if w.FrontSector == idx {
+				s = geometry.Segment{
+					P1: b.def.Vertices[w.V1],
+					P2: b.def.Vertices[w.V2],
+				}
+			} else if w.BackSector == idx {
+				s = geometry.Segment{
+					P1: b.def.Vertices[w.V2],
+					P2: b.def.Vertices[w.V1],
+				}
+			}
+			segments = append(segments, s)
+		}
+	}
+	return segments
+}
+
+func (b *LevelBuilder) buildSectorFlats(idx SectorIndex) {
+	// get sector
+	s := b.getSector(idx)
+
+	// has no floor and ceiling
+	if s.CeilingSurf < 0 && s.FloorSurf < 0 {
+		return
+	}
+
+	// build sector countour
+	parentSegments := b.getSectorSegments(idx)
+
+	if len(parentSegments) < 3 {
+		return
+	}
+
+	// retruns points of polygon in CCW
+	contour := geometry.BuildPolygon(parentSegments)
+
+	// build sector holes (from nested sectors)
+	var floorHoles [][]mgl.Vec2
+	var ceilHoles [][]mgl.Vec2
+
+	for _, subIdx := range s.Sub {
+		sub := b.def.Sectors[subIdx]
+
+		// get sub-sector countour
+		// NOTE: I hope earcut will digest CCW for holes
+		subSegments := b.getSectorSegments(subIdx)
+		holeContour := geometry.BuildPolygon(subSegments)
+
+		// need a hole in the floor?
+		if sub.FloorHeight < s.FloorHeight {
+			floorHoles = append(floorHoles, holeContour)
+		}
+
+		// need a hole in ceil?
+		if sub.CeilingHeight > s.CeilingHeight {
+			ceilHoles = append(ceilHoles, holeContour)
+		}
+	}
+
+	// add flats
+	b.addFlat(contour, floorHoles, s.FloorHeight, s.FloorSurf, true)
+	b.addFlat(contour, ceilHoles, s.CeilingHeight, s.CeilingSurf, false)
+
+}
+
+func (b *LevelBuilder) addFlat(
+	contour []mgl.Vec2,
+	holes [][]mgl.Vec2,
+	height float32,
+	surf SurfaceIndex,
+	isFloor bool,
+) {
+	if surf < 0 {
+		return
+	}
+
+	startIndex := uint32(len(b.model.Vertices))
+
+	// build vertices list
+	var verticesRaw []float64
+	var holeIndices []int
+	var allPoints []mgl.Vec2 // save vec2 to create LevelVertex
+
+	// add external contour
+	for _, v := range contour {
+		verticesRaw = append(verticesRaw, float64(v[0]), float64(v[1]))
+		allPoints = append(allPoints, v)
+	}
+
+	// build holes list
+	for _, hole := range holes {
+		// remember where this hole in verticesRaw array begins
+		holeIndices = append(holeIndices, len(verticesRaw)/2)
+		for _, v := range hole {
+			verticesRaw = append(verticesRaw, float64(v[0]), float64(v[1]))
+			allPoints = append(allPoints, v)
+		}
+	}
+
+	// triangulate
+	indices, _ := earcut.Earcut(verticesRaw, holeIndices, 2)
+
+	// normal
+	normal := mgl.Vec3{0, 1, 0}
+	if !isFloor {
+		normal = normal.Mul(-1)
+	}
+
+	// positions
+	for _, v := range allPoints {
+		vertex := LevelVertex{
+			Position:  mgl.Vec3{v[0], height, v[1]},
+			TexCoord:  mgl.Vec2{v[0], v[1]},
+			Normal:    normal,
+			SurfaceID: int32(surf),
+		}
+		b.model.Vertices = append(b.model.Vertices, vertex)
+	}
+
+	// add indices
+	for i := 0; i < len(indices); i += 3 {
+		i1, i2, i3 := uint32(indices[i]), uint32(indices[i+1]), uint32(indices[i+2])
+		if isFloor {
+			// invert indices order for floor (CW -> CCW)
+			b.model.Indices = append(b.model.Indices, startIndex+i1, startIndex+i3, startIndex+i2)
+		} else {
+			b.model.Indices = append(b.model.Indices, startIndex+i1, startIndex+i2, startIndex+i3)
+		}
+	}
 }
 
 func (b *LevelBuilder) addWallQuad(
@@ -175,9 +280,9 @@ func (b *LevelBuilder) addWallQuad(
 
 	// wall normal
 	dir := v2.Sub(v1).Normalize()
-	normal := mgl.Vec3{dir.Y(), 0, -dir.X()}
+	normal := mgl.Vec3{-dir.Y(), 0, dir.X()}
 
-	if !isExternal {
+	if isExternal {
 		normal = normal.Mul(-1)
 	}
 
@@ -203,6 +308,7 @@ func (b *LevelBuilder) addWallQuad(
 		{0, height},
 	}
 
+	// add positions
 	for i := 0; i < 4; i++ {
 		b.model.Vertices = append(b.model.Vertices, LevelVertex{
 			Position:  positions[i],
@@ -212,7 +318,7 @@ func (b *LevelBuilder) addWallQuad(
 		})
 	}
 
-	// add indices
+	// build indices
 	var indices []uint32
 
 	if isExternal {
@@ -229,6 +335,7 @@ func (b *LevelBuilder) addWallQuad(
 		}
 	}
 
+	// add indices
 	for _, i := range indices {
 		b.model.Indices = append(b.model.Indices, startIndex+i)
 	}

@@ -24,7 +24,6 @@ void main() {
   vec2 offset = normalize(dir + 1e-6) * aberration;
 
   vec2 uvR = texcoord + offset * .5;
-  // vec2 uvG = texcoord + offset;
   vec2 uvB = texcoord + offset * (-.5);
 
   float r = texture(u_color, uvR).r;

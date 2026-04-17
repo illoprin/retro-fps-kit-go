@@ -209,7 +209,7 @@ func (a *App) Run() {
 		a.iUI.Draw()
 		// render state ui (if needs)
 		if s, ok := a.activeState.(UIDrawer); ok {
-			s.ShowImgui()
+			s.DrawUI()
 		}
 		// finalize
 		ui.FinalizeFrame()

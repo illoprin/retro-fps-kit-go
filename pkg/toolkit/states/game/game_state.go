@@ -3,12 +3,12 @@ package game
 import (
 	"fmt"
 
+	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/app"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/camera"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/math"
 	leveldata "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/level"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/entities/player"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/systems/gui"
@@ -22,15 +22,25 @@ type GameState struct {
 	level    *levelsys.Level
 	fps      *player.FPSController
 	canvas   *gui.GUICanvas
+
+	config gameConfig
+}
+
+type gameConfig struct {
+	showUI      bool
+	drawGrid    bool
+	sensitivity float32
 }
 
 func NewGameState() *GameState {
 	s := &GameState{
 		builder: leveldata.NewLevelBuilder(&demoLevel),
+		config: gameConfig{
+			sensitivity: 0.1,
+		},
 	}
 
 	s.level = levelsys.NewLevelSystem(s.builder)
-
 	return s
 }
 
@@ -61,7 +71,7 @@ func (g *GameState) Init(a app.AppAPI) error {
 		g.api.GetInputManager(),
 		playerStart.Pos,
 		playerStart.Rot[1],
-		0.1,
+		g.config.sensitivity,
 	)
 
 	// create gui canvas
@@ -108,6 +118,19 @@ func (g *GameState) OnKey(key glfw.Key, action glfw.Action, mods glfw.ModifierKe
 		if key == glfw.KeyF8 {
 			window.ToggleCursor()
 		}
+		if key == glfw.KeyF2 {
+			g.config.showUI = !g.config.showUI
+		}
+	}
+}
+
+func (g *GameState) DrawUI() {
+	if g.config.showUI {
+		imgui.Begin("Game")
+
+		imgui.Checkbox("Draw Grid", &g.config.drawGrid)
+
+		imgui.End()
 	}
 }
 
@@ -120,7 +143,9 @@ func (g *GameState) RenderGBuffer() {
 		g.GetCamera(),
 		g.api.GetDeferredRenderTarget().Wireframe,
 	)
-	g.api.GetDefaultAssets().DrawGrid(g.fps.GetCamera(), math.Epsilon, 1, 10)
+	if g.config.drawGrid {
+		g.api.GetDefaultAssets().DrawGrid(g.fps.GetCamera(), 0.1, 1, 10)
+	}
 }
 
 func (g *GameState) GetCamera() *camera.Camera3D {
