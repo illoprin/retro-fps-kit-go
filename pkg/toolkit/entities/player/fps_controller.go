@@ -14,7 +14,10 @@ const (
 	speed            = float32(0.53) // m/s
 	sprintMultiplier = float32(2.0)
 	bobSpeed         = 200.0
-	bobAmount        = 0.12
+	bobYAmount       = 0.12
+	bobXAmount       = 0.1
+	strafeRollAmount = 2.0  // deg
+	rollSpeed        = 12.5 // deg/s
 )
 
 type FPSController struct {
@@ -31,6 +34,7 @@ type FPSController struct {
 	sens   float32
 
 	bobTime float32
+	roll    float32
 
 	height float32
 }
@@ -74,23 +78,46 @@ func (c *FPSController) Update(deltaTime float32) {
 }
 
 func (c *FPSController) updateCamera(dt float32) {
+	vel := c.rigidbody.Velocity
+	velLen := vel.Len()
+
 	// camera bob
-	velLen := c.rigidbody.Velocity.Len()
 	c.bobTime += velLen * dt * bobSpeed
-	bobOffset := float32(math.Sin(float64(c.bobTime))) * bobAmount
+	bobY := float32(math.Sin(float64(c.bobTime))) * bobYAmount
+	bobX := float32(math.Cos(float64(c.bobTime)*0.5)) * bobXAmount
 
 	// strafe tilt
-	// TODO
+	var strafe float32 = 0
+	var targetRoll float32 = 0
+	if velLen > 0.012 {
+		strafe = vel.Normalize().Dot(c.right)
+	}
+	targetRoll = -strafe * strafeRollAmount
+	// apply roll
+	c.roll += (targetRoll - c.roll) * rollSpeed * dt
+	// clamp roll
+	if math.Abs(float64(c.roll)) < 0.01 {
+		c.roll = 0
+	}
 
 	// apply camera position
-	y := c.getEyesHeight(c.pos[1]) + bobOffset
-	c.camera.Position = mgl.Vec3{c.pos[0], y, c.pos[2]}
+	y := c.getEyesHeight(c.pos[1]) + bobY
+	c.camera.Position = mgl.Vec3{
+		c.pos[0] + bobX,
+		y,
+		c.pos[2] + bobX,
+	}
+
+	// apply camera rotation
+	c.camera.SetRoll(c.roll)
+
+	// update camera matrices
 	c.camera.Update()
 }
 
 func (c *FPSController) processKeyboard(dt float32) {
 
-	delta := mgl.Vec3{}
+	target := mgl.Vec3{}
 	s := speed * dt
 
 	// sprint
@@ -105,21 +132,21 @@ func (c *FPSController) processKeyboard(dt float32) {
 
 	// movement
 	if c.i.IsKeyPressed(glfw.KeyW) {
-		delta = delta.Add(c.front.Mul(s))
+		target = target.Add(c.front.Mul(s))
 	}
 	if c.i.IsKeyPressed(glfw.KeyS) {
-		delta = delta.Add(c.front.Mul(-s))
+		target = target.Add(c.front.Mul(-s))
 	}
 	// strafe
 	if c.i.IsKeyPressed(glfw.KeyA) {
-		delta = delta.Add(c.right.Mul(-s))
+		target = target.Add(c.right.Mul(-s))
 	}
 	if c.i.IsKeyPressed(glfw.KeyD) {
-		delta = delta.Add(c.right.Mul(s))
+		target = target.Add(c.right.Mul(s))
 	}
 
 	// update velocity
-	c.rigidbody.Velocity = c.rigidbody.Velocity.Add(delta)
+	c.rigidbody.Velocity = c.rigidbody.Velocity.Add(target)
 }
 
 func (c *FPSController) getEyesHeight(y float32) float32 {
