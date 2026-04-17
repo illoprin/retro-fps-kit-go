@@ -7,8 +7,7 @@ import (
 )
 
 type AmbientLight struct {
-	Color     mgl.Vec3
-	Intensity float32
+	Color mgl.Vec4 // color + intensity
 }
 
 // PointLight struct prepared for UBO injection

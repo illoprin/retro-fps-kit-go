@@ -95,14 +95,13 @@ func (m *Mesh) CreateElementBuffer() {
 
 // AllocateElementBuffer - allocates memory for EBO (indices) data
 // !!! BE CAREFUL WITH VAO BINDING (Binding = m.VAO; Binding = 0)
-func (m *Mesh) AllocateElementBufferWithData(sizeBytes int, data unsafe.Pointer, bType BufferType) {
+func (m *Mesh) AllocateElementBuffer(sizeBytes int, bType BufferType) {
 	if m.ebo == 0 {
 		return
 	}
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ebo)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, sizeBytes, data, GetBufferType(bType))
-
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, sizeBytes, nil, GetBufferType(bType))
 }
 
 // SetElementBufferData - update EBO (indices) data

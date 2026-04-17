@@ -277,25 +277,34 @@ var (
 		},
 
 		PointLights: []lights.PointLight{
+
+			// ROOM LIGHT
+
 			// right bottom
 			lights.PointLight{
-				Position: mgl.Vec4{5, 2, 3, 4},
-				Color:    mgl.Vec4{0.502, 0.537, 0.871, 5},
+				Position: mgl.Vec4{15, 5, 9, 10},
+				Color:    mgl.Vec4{0.502, 0.537, 0.871, 15},
 			},
 			// right top
 			lights.PointLight{
-				Position: mgl.Vec4{5, 2, 8, 4},
-				Color:    mgl.Vec4{0.502, 0.537, 0.871, 5},
+				Position: mgl.Vec4{15, 5, 24, 10},
+				Color:    mgl.Vec4{0.502, 0.537, 0.871, 15},
 			},
 			// left top
 			lights.PointLight{
-				Position: mgl.Vec4{3, 2, 8, 4},
-				Color:    mgl.Vec4{0.502, 0.537, 0.871, 5},
+				Position: mgl.Vec4{9, 5, 24, 10},
+				Color:    mgl.Vec4{0.502, 0.537, 0.871, 15},
 			},
 			// left bottom
 			lights.PointLight{
-				Position: mgl.Vec4{3, 2, 3, 4},
-				Color:    mgl.Vec4{0.502, 0.537, 0.871, 5},
+				Position: mgl.Vec4{9, 5, 9, 10},
+				Color:    mgl.Vec4{0.502, 0.537, 0.871, 15},
+			},
+
+			// TUNNEL light
+			lights.PointLight{
+				Position: mgl.Vec4{12, 2.5, 45, 7},
+				Color:    mgl.Vec4{0.961, 0.953, 0.522, 40},
 			},
 		},
 

@@ -125,6 +125,12 @@ func (p *Program) Set1i(name string, v int32) {
 	}
 }
 
+func (p *Program) Set1ui(name string, v uint32) {
+	if loc := p.getUniformLocation(name); loc != -1 {
+		gl.Uniform1ui(loc, v)
+	}
+}
+
 func (p *Program) Set1f(name string, v float32) {
 	if loc := p.getUniformLocation(name); loc != -1 {
 		gl.Uniform1f(loc, v)

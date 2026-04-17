@@ -14,3 +14,19 @@ func BoolToInt32(b bool) int32 {
 	}
 	return 0
 }
+
+func Max(a int, b int) int {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func Min(a int, b int) int {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}

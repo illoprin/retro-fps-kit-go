@@ -8,6 +8,7 @@ import (
 )
 
 // UniformBuffer  - stores uniforms
+// 64 KB max!!!
 type UniformBuffer struct {
 	handle    uint32 // id
 	sizeBytes int    // buffer size in bytes
@@ -36,11 +37,11 @@ func (u *UniformBuffer) Unbind() {
 	gl.BindBuffer(gl.UNIFORM_BUFFER, 0)
 }
 
-// Allocate - allocates ubo buffer WITHOUT data
+// AllocateWithData - allocates ubo buffer WITHOUT data
 // !!! BIND BEFORE USE
-func (u *UniformBuffer) Allocate(sizeBytes int, drawType BufferType) {
+func (u *UniformBuffer) AllocateWithData(sizeBytes int, data unsafe.Pointer, drawType BufferType) {
 	u.sizeBytes = sizeBytes
-	gl.BufferData(gl.UNIFORM_BUFFER, sizeBytes, nil, GetBufferType(drawType))
+	gl.BufferData(gl.UNIFORM_BUFFER, sizeBytes, data, GetBufferType(drawType))
 }
 
 // SetData - set data to UBO

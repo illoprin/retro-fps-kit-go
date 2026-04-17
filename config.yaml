@@ -27,8 +27,8 @@ post_processing:
     avgGray: 0.18
     adaptionSpeed: 0.008
     exposure: 1.0
-    exposureMin: 0.93
-    exposureMax: 1.284
+    exposureMin: 0.869
+    exposureMax: 3.608
   ssao:
     use: false
     kernelSize: 30
@@ -39,9 +39,9 @@ post_processing:
     blurSize: 2
   cavity:
     use: true
-    radius: 22.608
+    radius: 14.922
     depthBias: 0.001
-    intensity: 1.833
+    intensity: 1.348
     blurSize: 2
     kernelSize: 32
     blackPoint: 0.26
@@ -66,7 +66,7 @@ post_processing:
     softness: 0.535
     use: false
   dithering:
-    use: true
+    use: false
     speed: 2.0
     min: 0.75
     max: 1.0

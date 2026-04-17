@@ -7,10 +7,16 @@ import (
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/camera"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/files"
+	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/lights"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/logger"
-	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/math"
+	mathutils "github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/core/math"
 	"github.com/illoprin/retro-fps-toolkit-go/pkg/kernel/render/rhi"
 	leveldata "github.com/illoprin/retro-fps-toolkit-go/pkg/toolkit/assets/level"
+)
+
+const (
+	maxSurfaces = 1024
+	maxLights   = 256
 )
 
 // 32 bytes
@@ -23,14 +29,16 @@ type SurfaceUniform struct {
 }
 
 type LevelRenderer struct {
-	mesh      *rhi.Mesh
-	program   *rhi.Program
-	diffArr   *rhi.Texture
-	emiArr    *rhi.Texture
-	ubo       *rhi.UniformBuffer
-	surfaces  []SurfaceUniform
-	level     *Level
-	resources []rhi.Resource
+	mesh        *rhi.Mesh
+	program     *rhi.Program
+	diffArr     *rhi.Texture
+	emiArr      *rhi.Texture
+	surfacesUbo *rhi.UniformBuffer
+	pLightsUbo  *rhi.UniformBuffer
+	sLightsUbo  *rhi.UniformBuffer
+	surfaces    []SurfaceUniform
+	level       *Level
+	resources   []rhi.Resource
 }
 
 func NewLevelRenderer(l *Level) (*LevelRenderer, error) {
@@ -55,15 +63,21 @@ func NewLevelRenderer(l *Level) (*LevelRenderer, error) {
 	}
 
 	// build surface ubo
-	r.createUBO()
+	r.createSurfaceUbo()
 
-	// create and upload mesh
+	// create mesh
 	r.createMesh()
 
-	r.program.SetAttachUniformBlock("SurfaceBlock", r.ubo)
+	// build lights ubos
+	r.createLightsUbo()
+
+	// update buffers
+	r.Update()
 
 	r.resources = append(r.resources,
-		r.ubo,
+		r.surfacesUbo,
+		r.pLightsUbo,
+		r.sLightsUbo,
 		r.program,
 		r.mesh,
 		r.diffArr,
@@ -73,12 +87,14 @@ func NewLevelRenderer(l *Level) (*LevelRenderer, error) {
 	return r, nil
 }
 
-func (r *LevelRenderer) createUBO() {
-	r.ubo = rhi.NewUniformBuffer(0)
+func (r *LevelRenderer) createSurfaceUbo() {
+	r.surfacesUbo = rhi.NewUniformBuffer(0)
 	size := int(unsafe.Sizeof(SurfaceUniform{})) * len(r.surfaces)
-	r.ubo.Bind()
-	r.ubo.Allocate(size, rhi.StaticDraw)
-	r.ubo.SetAllData(unsafe.Pointer(&r.surfaces[0]))
+	r.surfacesUbo.Bind()
+	r.surfacesUbo.AllocateWithData(size, unsafe.Pointer(&r.surfaces[0]), rhi.StaticDraw)
+
+	// create program binding
+	r.program.SetAttachUniformBlock("SurfaceBlock", r.surfacesUbo)
 }
 
 func (r *LevelRenderer) buildSurfaces() error {
@@ -171,7 +187,8 @@ func (r *LevelRenderer) buildSurfaces() error {
 	r.emiArr = emiArr
 
 	// create SurfaceUniform objects
-	r.surfaces = make([]SurfaceUniform, len(def.Surfaces))
+	surfacesLen := mathutils.Min(len(def.Surfaces), maxSurfaces)
+	r.surfaces = make([]SurfaceUniform, surfacesLen)
 
 	for i, s := range def.Surfaces {
 		// find texture dependency
@@ -196,6 +213,40 @@ func (r *LevelRenderer) buildSurfaces() error {
 	}
 
 	return nil
+}
+
+func (r *LevelRenderer) createLightsUbo() {
+	r.pLightsUbo = rhi.NewUniformBuffer(1)
+	r.sLightsUbo = rhi.NewUniformBuffer(2)
+
+	// allocate
+	var size int
+	size = maxLights * int(unsafe.Sizeof(lights.PointLight{}))
+	r.pLightsUbo.Bind()
+	r.pLightsUbo.AllocateWithData(size, nil, rhi.StreamDraw)
+
+	size = maxLights * int(unsafe.Sizeof(lights.SpotLight{}))
+	r.sLightsUbo.Bind()
+	r.sLightsUbo.AllocateWithData(size, nil, rhi.StreamDraw)
+
+	// create attachmets
+	r.program.SetAttachUniformBlock("PointLightsBlock", r.pLightsUbo)
+	r.program.SetAttachUniformBlock("SpotLightsBlock", r.sLightsUbo)
+}
+
+func (r *LevelRenderer) updateLights() {
+	def := r.level.builder.GetDef()
+
+	if len(def.PointLights) > 0 {
+		r.pLightsUbo.Bind()
+		r.pLightsUbo.SetAllData(unsafe.Pointer(&def.PointLights[0]))
+	}
+
+	if len(def.SpotLights) > 0 {
+		r.sLightsUbo.Bind()
+		r.sLightsUbo.SetAllData(unsafe.Pointer(&def.SpotLights[0]))
+	}
+
 }
 
 func (r *LevelRenderer) hasDiffuseArray() bool {
@@ -251,8 +302,7 @@ func (r *LevelRenderer) createMesh() {
 		OffsetBytes: surfaceIdOffset,
 	})
 
-	// allocate and set buffers
-	r.Update()
+	r.mesh.Unbind()
 }
 
 func (r *LevelRenderer) Update() {
@@ -279,10 +329,11 @@ func (r *LevelRenderer) Update() {
 	indicesSize := len(indices) * int(unsafe.Sizeof(uint32(0)))
 
 	// allocate and set buffers
-	r.mesh.AllocateVertexBufferWithData(0, verticesSize, nil, rhi.StreamDraw)
-	r.mesh.SetVertexBufferData(0, 0, verticesSize, unsafe.Pointer(&vertices[0]))
-	r.mesh.AllocateElementBufferWithData(indicesSize, nil, rhi.StreamDraw)
+	r.mesh.AllocateVertexBufferWithData(0, verticesSize, unsafe.Pointer(&vertices[0]), rhi.StreamDraw)
+	r.mesh.AllocateElementBuffer(indicesSize, rhi.StreamDraw)
 	r.mesh.SetElementBufferData(0, indices)
+
+	r.updateLights()
 }
 
 func (r *LevelRenderer) Render(
@@ -310,9 +361,12 @@ func (r *LevelRenderer) Render(
 		r.program.Set1i("u_emissive", 1)
 	}
 
-	r.program.Set1i("u_wireframe", math.BoolToInt32(wireframe))
+	r.program.Set1i("u_wireframe", mathutils.BoolToInt32(wireframe))
 
-	// TODO lights
+	// lights
+	def := r.level.builder.GetDef()
+	r.program.Set1ui("u_pointLightsNum", uint32(len(def.PointLights)))
+	r.program.Set1ui("u_spotLightsNum", uint32(len(def.SpotLights)))
 
 	r.mesh.Draw()
 }

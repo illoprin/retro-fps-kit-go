@@ -59,7 +59,7 @@ func NewQuadMesh() (m *Mesh) {
 	// allocate buffers
 	m.AllocateVertexBufferWithData(0, sizeVerts, nil, StaticDraw)
 	m.SetVertexBufferData(0, 0, sizeVerts, unsafe.Pointer(&basicQuadVertices[0]))
-	m.AllocateElementBufferWithData(sizeIndices, nil, StaticDraw)
+	m.AllocateElementBuffer(sizeIndices, StaticDraw)
 	m.SetElementBufferData(0, basicQuadIndices)
 
 	return m

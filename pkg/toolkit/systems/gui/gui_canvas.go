@@ -50,7 +50,7 @@ func NewGUICanvas() (*GUICanvas, error) {
 	m.AllocateVertexBufferWithData(0, 1024*1024, nil, rhi.StreamDraw) // reserve 1MB
 
 	m.CreateElementBuffer()
-	m.AllocateElementBufferWithData(1024*1024, nil, rhi.StreamDraw) // reserve 1MB
+	m.AllocateElementBuffer(1024*1024, rhi.StreamDraw) // reserve 1MB
 
 	// position
 	m.SetAttribute(0, rhi.VertexAttribute{
